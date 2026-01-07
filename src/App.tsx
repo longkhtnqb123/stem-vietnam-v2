@@ -17,7 +17,10 @@ const LibraryPage = lazy(() => import('./components/library/LibraryPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 import AuthGuard from './components/auth/AuthGuard';
+import ApiKeyWarning from './components/common/ApiKeyWarning';
+import PWAInstallPrompt from './components/common/PWAInstallPrompt';
 
 // Chú thích: Loading fallback component
 function PageLoader() {
@@ -56,6 +59,8 @@ function App() {
   return (
     <BrowserRouter>
       <VersionCheck />
+      <ApiKeyWarning />
+      <PWAInstallPrompt />
       {/* Notification Toast */}
       {notification && (
         <div className={`
@@ -134,6 +139,14 @@ function App() {
             <AuthGuard>
               <Suspense fallback={<PageLoader />}>
                 <LibraryPage />
+              </Suspense>
+            </AuthGuard>
+          } />
+
+          <Route path="settings" element={
+            <AuthGuard>
+              <Suspense fallback={<PageLoader />}>
+                <SettingsPage />
               </Suspense>
             </AuthGuard>
           } />

@@ -17,6 +17,7 @@ interface AppState {
     // Toast/notifications
     notification: { type: 'success' | 'error' | 'info'; message: string } | null;
     showNotification: (type: 'success' | 'error' | 'info', message: string) => void;
+    setNotification: (notification: { type: 'success' | 'error' | 'info'; message: string } | null) => void;
     clearNotification: () => void;
 }
 
@@ -49,5 +50,6 @@ export const useAppStore = create<AppState>((set) => ({
         // Chú thích: Auto clear sau 3s
         setTimeout(() => set({ notification: null }), 3000);
     },
+    setNotification: (notification) => set({ notification }),
     clearNotification: () => set({ notification: null }),
 }));

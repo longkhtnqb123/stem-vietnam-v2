@@ -1,8 +1,32 @@
-// Chú thích: API client để gọi Cloudflare Workers backend
-// File này thay thế việc gọi Gemini trực tiếp từ frontend
+import { useSettingsStore } from '../stores/settingsStore';
 
 // Chú thích: Lấy API URL từ environment hoặc dùng URL đã deploy
 const API_URL = (import.meta.env.VITE_API_URL || 'https://stem-vietnam-api.stu725114073.workers.dev').replace(/\/$/, '');
+
+// Chú thích: Helper to get auth headers from store
+function getAuthHeaders() {
+    const state = useSettingsStore.getState();
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+    };
+
+    if (state.provider !== 'default') {
+        headers['X-User-Provider'] = state.provider;
+        if (state.selectedModel) {
+            headers['X-User-Model'] = state.selectedModel;
+        }
+    }
+
+    if (state.openRouterKey) {
+        headers['X-User-OpenRouter-Key'] = state.openRouterKey;
+    }
+
+    if (state.hfToken) {
+        headers['X-User-HF-Token'] = state.hfToken;
+    }
+
+    return headers;
+}
 
 // Chú thích: Interface cho response
 export interface ChatResponse {
@@ -37,9 +61,7 @@ export async function sendChatMessage(
     try {
         const response = await fetch(`${API_URL}/api/chat`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ message, context, systemPrompt }),
         });
 
@@ -63,9 +85,7 @@ export async function* streamChatMessage(
     try {
         const response = await fetch(`${API_URL}/api/chat/stream`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ message, context, systemPrompt }),
         });
 
@@ -119,9 +139,7 @@ export async function generateQuestions(
     try {
         const response = await fetch(`${API_URL}/api/generate`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ topic, count, difficulty }),
         });
 

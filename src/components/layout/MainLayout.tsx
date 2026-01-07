@@ -12,7 +12,8 @@ import {
     Menu,
     X,
     LogOut,
-    User
+    User,
+    Settings
 } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { useAuthStore } from '../../lib/auth';
@@ -24,6 +25,7 @@ const navItems = [
     { path: '/exam/thpt', icon: ClipboardList, label: 'Đề Thi THPT' },
     { path: '/exam/semester', icon: GraduationCap, label: 'Đề Giữa/Cuối Kỳ' },
     { path: '/library', icon: Library, label: 'Thư Viện' },
+    { path: '/settings', icon: Settings, label: 'Cài Đặt' },
 ];
 
 export default function MainLayout() {
@@ -136,7 +138,7 @@ export default function MainLayout() {
 
             {/* Main content */}
             <main className="lg:ml-64 min-h-screen">
-                <div className="p-6 lg:p-8">
+                <div className="p-4 pt-16 lg:pt-6 lg:p-8 pb-safe">
                     <Outlet />
                 </div>
             </main>
