@@ -1,0 +1,45 @@
+name = "stem-vietnam-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-30"
+
+[vars]
+# Chú thích: Token budget cho mỗi request
+MAX_TOKEN_BUDGET = "50000"
+
+# Chú thích: Môi trường development
+[env.dev]
+vars = { CORS_ORIGIN = "http://localhost:5173" }
+
+# Chú thích: Môi trường production
+[env.production]
+vars = { CORS_ORIGIN = "https://hoccongnghe.pages.dev" }
+
+# ============================================
+# Secrets (set via wrangler secret put)
+# ============================================
+# 
+# OPENROUTER_API_KEY: API key cho OpenRouter (BẮT BUỘC)
+# npx wrangler secret put OPENROUTER_API_KEY
+# Lấy tại: https://openrouter.ai/keys
+#
+# HF_API_TOKEN: API token cho HuggingFace (miễn phí - cho RAG embeddings)
+# npx wrangler secret put HF_API_TOKEN
+# Lấy tại: https://huggingface.co/settings/tokens
+#
+# JWT_SECRET: Secret cho JWT auth
+# npx wrangler secret put JWT_SECRET
+
+# ============================================
+# D1 Database
+# ============================================
+[[d1_databases]]
+binding = "DB"
+database_name = "stem-vietnam-db"
+database_id = "976ec8f9-bf7a-411a-a3d8-856b05e71a20"
+
+# ============================================
+# Vectorize (RAG Pipeline)
+# ============================================
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "stem-vietnam-rag"
