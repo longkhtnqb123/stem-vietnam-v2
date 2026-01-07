@@ -26228,12 +26228,6 @@ chatRoutes.post("/chat/stream", async (c) => {
 
 `);
     }
-  }, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      "Connection": "keep-alive"
-    }
   });
 });
 chatRoutes.post("/generate", async (c) => {

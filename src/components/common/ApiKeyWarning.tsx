@@ -3,22 +3,24 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Settings, X } from 'lucide-react';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { useAuthStore } from '../../lib/auth';
 
 export default function ApiKeyWarning() {
     const navigate = useNavigate();
     const { hasConfiguredKeys, hasSeenWarning, setHasSeenWarning } = useSettingsStore();
+    const { user } = useAuthStore();
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
-        // Chú thích: Hiện warning nếu chưa config key VÀ chưa từng thấy warning
-        if (!hasConfiguredKeys && !hasSeenWarning) {
+        // Chú thích: Hiện warning nếu DĐÃ ĐĂNG NHẬP, chưa config key VÀ chưa từng thấy warning
+        if (user && !hasConfiguredKeys && !hasSeenWarning) {
             // Delay 1 giây để user nhìn thấy UI trước
             const timer = setTimeout(() => {
                 setIsVisible(true);
             }, 1000);
             return () => clearTimeout(timer);
         }
-    }, [hasConfiguredKeys, hasSeenWarning]);
+    }, [hasConfiguredKeys, hasSeenWarning, user]);
 
     const handleGoToSettings = () => {
         setHasSeenWarning(true);

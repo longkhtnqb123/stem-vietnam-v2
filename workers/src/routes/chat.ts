@@ -158,12 +158,6 @@ chatRoutes.post('/chat/stream', async (c) => {
         } catch (error) {
             await streamWriter.write(`data: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
         }
-    }, {
-        headers: {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-        }
     });
 });
 
