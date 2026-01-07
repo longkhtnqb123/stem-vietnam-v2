@@ -9,23 +9,54 @@ import { SYSTEM_PROMPTS, classifyQuery, generateSuggestions } from '../prompts';
 
 const chatRoutes = new Hono<{ Bindings: Env }>();
 
-// Chú thích: Helper để lấy API keys từ headers hoặc env
-function getApiKeys(c: { req: { header: (name: string) => string | undefined }, env: Env }) {
+// Chú thích: Interface cho AI options từ frontend
+interface AIOptions {
+    ragEnabled: boolean;
+    webSearchEnabled: boolean;
+    costSaverMode: boolean;
+    thinkingLevel: 'low' | 'high';
+}
+
+// Chú thích: Cost-optimized models mapping
+const COST_OPTIMIZED_MODELS = {
+    free: 'google/gemini-2.0-flash-exp:free',
+    cheap: 'openai/gpt-4o-mini',
+    powerful: 'anthropic/claude-sonnet-4',
+};
+
+// Chú thích: Helper để lấy API keys và AI options từ headers
+function getApiConfig(c: { req: { header: (name: string) => string | undefined }, env: Env }) {
     const userOpenRouterKey = c.req.header('X-User-OpenRouter-Key');
     const userHfToken = c.req.header('X-User-HF-Token');
     const userModel = c.req.header('X-User-Model');
 
+    // Chú thích: Đọc AI options từ headers
+    const aiOptions: AIOptions = {
+        ragEnabled: c.req.header('X-Enable-RAG') !== 'false',
+        webSearchEnabled: c.req.header('X-Enable-Web-Search') === 'true',
+        costSaverMode: c.req.header('X-Cost-Saver-Mode') === 'true',
+        thinkingLevel: (c.req.header('X-Thinking-Level') as 'low' | 'high') || 'low',
+    };
+
+    // Chú thích: Nếu cost saver mode, override model sang miễn phí
+    let effectiveModel = userModel;
+    if (aiOptions.costSaverMode && !effectiveModel?.includes(':free')) {
+        effectiveModel = COST_OPTIMIZED_MODELS.free;
+        console.log('[chat] Cost saver mode: using free model', effectiveModel);
+    }
+
     return {
         openRouterKey: userOpenRouterKey || c.env.OPENROUTER_API_KEY,
         hfToken: userHfToken || c.env.HF_API_TOKEN,
-        userModel
+        userModel: effectiveModel,
+        aiOptions,
     };
 }
 
 // POST /api/chat
 chatRoutes.post('/chat', async (c) => {
     try {
-        const { openRouterKey, hfToken, userModel } = getApiKeys(c);
+        const { openRouterKey, hfToken, userModel, aiOptions } = getApiConfig(c);
 
         if (!openRouterKey) {
             return c.json({
@@ -38,7 +69,7 @@ chatRoutes.post('/chat', async (c) => {
             message: string;
             context?: string;
             systemPrompt?: string;
-            images?: string[]; // Array of base64 data URIs
+            images?: string[];
         }>();
 
         if (!body.message && (!body.images || body.images.length === 0)) {
@@ -50,16 +81,18 @@ chatRoutes.post('/chat', async (c) => {
         let ragContext = '';
         let sources: unknown[] = [];
 
-        // RAG search nếu là câu hỏi học tập (chỉ search nếu có text)
-        if (body.message && queryType === 'academic' && c.env.VECTORIZE && hfToken) {
+        // Chú thích: RAG search nếu bật và là câu hỏi học tập
+        if (aiOptions.ragEnabled && body.message && queryType === 'academic' && c.env.VECTORIZE && hfToken) {
             try {
                 const ragResult = await getRAGContext(hfToken, c.env.VECTORIZE, body.message, undefined);
                 ragContext = ragResult.context;
                 sources = ragResult.sources;
+                console.log('[chat] RAG context found:', ragContext.length, 'chars');
             } catch (error) {
                 console.warn('[chat] RAG search failed:', error);
             }
         }
+
 
         // Build context
         let fullContext = '';
@@ -122,7 +155,7 @@ chatRoutes.post('/chat', async (c) => {
 
 // POST /api/chat/stream
 chatRoutes.post('/chat/stream', async (c) => {
-    const { openRouterKey, userModel } = getApiKeys(c);
+    const { openRouterKey, userModel, aiOptions } = getApiConfig(c);
 
     const body = await c.req.json<{
         message: string;
@@ -176,7 +209,7 @@ chatRoutes.post('/generate', async (c) => {
 
         const count = body.count || 1;
         const difficulty = body.difficulty || 'medium';
-        const { openRouterKey, hfToken } = getApiKeys(c);
+        const { openRouterKey, hfToken, aiOptions } = getApiConfig(c);
 
         const userMessage = `Tạo ${count} câu hỏi trắc nghiệm về chủ đề: ${body.topic}\nĐộ khó: ${difficulty}\nTrả về dưới dạng JSON array.`;
 

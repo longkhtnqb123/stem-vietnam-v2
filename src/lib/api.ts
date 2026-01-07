@@ -3,28 +3,60 @@ import { useSettingsStore } from '../stores/settingsStore';
 // Chú thích: Lấy API URL từ environment hoặc dùng URL đã deploy
 const API_URL = (import.meta.env.VITE_API_URL || 'https://stem-vietnam-api.stu725114073.workers.dev').replace(/\/$/, '');
 
-// Chú thích: Helper to get auth headers from store
+// Chú thích: Helper to get auth headers from store với AI options
 function getAuthHeaders() {
     const state = useSettingsStore.getState();
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
     };
 
+    // Provider & Model
     if (state.provider !== 'default') {
         headers['X-User-Provider'] = state.provider;
-        if (state.selectedModel) {
-            headers['X-User-Model'] = state.selectedModel;
-        }
     }
 
-    // Chú thích: Ưu tiên apiKey mới, fallback về openRouterKey legacy
+    // Chú thích: Dùng getOptimalModel() nếu cost saver mode, ngược lại dùng selectedModel
+    const optimalModel = state.costSaverMode ? state.getOptimalModel() : state.selectedModel;
+    if (optimalModel) {
+        headers['X-User-Model'] = optimalModel;
+    }
+
+    // API Keys
     const apiKey = state.apiKey || state.openRouterKey;
     if (apiKey) {
         headers['X-User-OpenRouter-Key'] = apiKey;
     }
-
     if (state.hfToken) {
         headers['X-User-HF-Token'] = state.hfToken;
+    }
+
+    // ===== AI Options Headers =====
+    // RAG Context - tìm trong tài liệu SGK
+    headers['X-Enable-RAG'] = state.ragEnabled ? 'true' : 'false';
+
+    // Web Search - tìm kiếm thông tin mới nhất
+    headers['X-Enable-Web-Search'] = state.webSearchEnabled ? 'true' : 'false';
+
+    // Cost Saver Mode - tối ưu chi phí
+    if (state.costSaverMode) {
+        headers['X-Cost-Saver-Mode'] = 'true';
+    }
+
+    // Thinking Level - mức độ suy luận (low/high)
+    headers['X-Thinking-Level'] = state.thinkingLevel;
+
+    // ===== Advanced Options Headers =====
+    if (state.contextCachingEnabled) {
+        headers['X-Enable-Context-Caching'] = 'true';
+    }
+    if (state.structuredOutputEnabled) {
+        headers['X-Enable-Structured-Output'] = 'true';
+    }
+    if (state.codeExecutionEnabled) {
+        headers['X-Enable-Code-Execution'] = 'true';
+    }
+    if (state.urlContext) {
+        headers['X-URL-Context'] = state.urlContext;
     }
 
     return headers;

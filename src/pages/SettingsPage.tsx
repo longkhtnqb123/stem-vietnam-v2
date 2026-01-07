@@ -22,6 +22,7 @@ import {
     getDefaultModels,
 } from '../lib/aiProviders';
 import type { AIProviderType, ModelInfo } from '../lib/aiProviders';
+import { fetchModelsForProvider, validateApiKeyFormat, testApiKey } from '../lib/modelService';
 
 
 // Chú thích: Component cho Provider Icon trong grid
@@ -81,6 +82,9 @@ function ModelCard({
     isSelected: boolean;
     onClick: () => void;
 }) {
+    // Chú thích: Kiểm tra model miễn phí bằng id có ":free" hoặc field isFree
+    const isFreeModel = model.isFree || model.id.includes(':free');
+
     return (
         <button
             onClick={onClick}
@@ -93,25 +97,32 @@ function ModelCard({
             `}
         >
             <div className="flex items-center justify-between">
-                <div>
-                    <div className="font-medium text-slate-800 dark:text-white text-sm">
+                <div className="flex-1 min-w-0">
+                    <div className="font-medium text-slate-800 dark:text-white text-sm truncate">
                         {model.name}
                     </div>
                     {model.description && (
-                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                        <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
                             {model.description}
                         </div>
                     )}
                 </div>
-                {model.isFree && (
-                    <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full">
-                        Miễn phí
-                    </span>
-                )}
-                {isSelected && (
-                    <CheckCircle size={16} className="text-primary-500 ml-2" />
-                )}
+                <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+                    {isFreeModel ? (
+                        <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full">
+                            ✓ Miễn phí
+                        </span>
+                    ) : (
+                        <span className="px-2 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-full">
+                            💎 Pro
+                        </span>
+                    )}
+                    {isSelected && (
+                        <CheckCircle size={16} className="text-primary-500" />
+                    )}
+                </div>
             </div>
+
         </button>
     );
 }
@@ -124,15 +135,23 @@ export default function SettingsPage() {
         availableModels,
         isLoadingModels,
         ragEnabled,
+        webSearchEnabled,
+        costSaverMode,
+        thinkingLevel,
         hasConfiguredKeys,
         setProvider,
         setApiKey,
         setSelectedModel,
         setRagEnabled,
+        setWebSearchEnabled,
+        setCostSaverMode,
+        setThinkingLevel,
+        setAvailableModels,
+        setIsLoadingModels,
         saveSettings,
         resetSettings,
-        loadModelsForProvider,
     } = useSettingsStore();
+
 
     const { setNotification } = useAppStore();
 
@@ -143,6 +162,15 @@ export default function SettingsPage() {
     const [localRagEnabled, setLocalRagEnabled] = useState(ragEnabled);
     const [showApiKey, setShowApiKey] = useState(false);
     const [localModels, setLocalModels] = useState<ModelInfo[]>(availableModels);
+
+    // Chú thích: State cho auto-validation
+    const [keyStatus, setKeyStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
+    const [keyError, setKeyError] = useState<string | null>(null);
+
+    // Chú thích: State cho filter models
+    const [modelFilter, setModelFilter] = useState<'all' | 'free' | 'paid'>('all');
+    const [modelSearch, setModelSearch] = useState('');
+
 
     // Chú thích: Sync local state khi store thay đổi
     useEffect(() => {
@@ -173,12 +201,32 @@ export default function SettingsPage() {
         ? getProviderById(localProvider)
         : null;
 
+    // Chú thích: Filter models theo loại (free/paid) và search
+    const filteredModels = localModels.filter(model => {
+        const isFree = model.isFree || model.id.includes(':free');
+        const matchesFilter = modelFilter === 'all' ||
+            (modelFilter === 'free' && isFree) ||
+            (modelFilter === 'paid' && !isFree);
+
+        // Chú thích: Search theo tên hoặc id
+        const matchesSearch = !modelSearch ||
+            model.name.toLowerCase().includes(modelSearch.toLowerCase()) ||
+            model.id.toLowerCase().includes(modelSearch.toLowerCase());
+
+        return matchesFilter && matchesSearch;
+    });
+
+    // Chú thích: Đếm số models theo loại
+    const freeCount = localModels.filter(m => m.isFree || m.id.includes(':free')).length;
+    const paidCount = localModels.length - freeCount;
+
     // Chú thích: Xử lý lưu cấu hình
     const handleSave = () => {
         setProvider(localProvider);
         setApiKey(localApiKey);
         setSelectedModel(localModel);
         setRagEnabled(localRagEnabled);
+        setAvailableModels(localModels); // Save models to store
         saveSettings();
 
         setNotification({
@@ -193,8 +241,10 @@ export default function SettingsPage() {
             resetSettings();
             setLocalProvider('default');
             setLocalApiKey('');
-            setLocalModel('google/gemini-flash-1.5');
+            setLocalModel('google/gemini-2.0-flash-exp:free');
             setLocalRagEnabled(true);
+            setKeyStatus('idle');
+            setKeyError(null);
 
             setNotification({
                 type: 'info',
@@ -203,13 +253,104 @@ export default function SettingsPage() {
         }
     };
 
-    // Chú thích: Load models (placeholder cho API fetch)
-    const handleLoadModels = () => {
-        loadModelsForProvider();
-        setNotification({
-            type: 'info',
-            message: 'Đã tải danh sách models mặc định',
-        });
+    // Chú thích: Load models từ API với validation
+    const handleLoadModels = async () => {
+        if (localProvider === 'default') {
+            // Mặc định load từ OpenRouter
+            const models = getDefaultModels('openrouter');
+            setLocalModels(models);
+            // Không save vào store ngay, chỉ khi user bấm Save
+            setNotification({
+                type: 'info',
+                message: `Đã tải ${models.length} models mặc định từ OpenRouter`,
+            });
+            return;
+        }
+
+        // Kiểm tra format API key trước
+        if (!localApiKey) {
+            setNotification({
+                type: 'error',
+                message: 'Vui lòng nhập API Key trước khi tải models',
+            });
+            return;
+        }
+
+        const isValidFormat = validateApiKeyFormat(localProvider, localApiKey);
+        if (!isValidFormat) {
+            setKeyStatus('invalid');
+            setKeyError('Định dạng API Key không đúng cho ' + (getProviderById(localProvider)?.name || localProvider));
+            setNotification({
+                type: 'error',
+                message: 'Định dạng API Key không đúng',
+            });
+            return;
+        }
+
+        // Bắt đầu loading
+        setIsLoadingModels(true);
+        setKeyStatus('checking');
+        setKeyError(null);
+
+        try {
+            // Test API key trước
+            const testResult = await testApiKey(localProvider, localApiKey);
+
+            if (!testResult.valid) {
+                setKeyStatus('invalid');
+                setKeyError(testResult.error || 'API Key không hợp lệ');
+                setIsLoadingModels(false);
+                setNotification({
+                    type: 'error',
+                    message: testResult.error || 'API Key không hợp lệ',
+                });
+                return;
+            }
+
+            // Fetch models từ provider
+            const result = await fetchModelsForProvider(localProvider, localApiKey);
+
+            if (result.success && result.models.length > 0) {
+                setLocalModels(result.models);
+                // Không save vào store ngay
+                setKeyStatus('valid');
+
+                // Chọn model đầu tiên nếu cần
+                if (!result.models.find(m => m.id === localModel)) {
+                    setLocalModel(result.models[0].id);
+                }
+
+                setNotification({
+                    type: 'success',
+                    message: `Đã tải ${result.models.length} models từ ${getProviderById(localProvider)?.name || localProvider}`,
+                });
+            } else {
+                // Fallback về default models
+                const defaultModels = getDefaultModels(localProvider);
+                setLocalModels(defaultModels);
+                // Không save vào store ngay
+                setKeyStatus('valid');
+
+                setNotification({
+                    type: 'info',
+                    message: `Đang dùng ${defaultModels.length} models mặc định (API không trả danh sách)`,
+                });
+            }
+        } catch (error) {
+            setKeyStatus('invalid');
+            setKeyError(error instanceof Error ? error.message : 'Lỗi kết nối');
+
+            // Fallback về default models
+            const defaultModels = getDefaultModels(localProvider);
+            setLocalModels(defaultModels);
+
+            setNotification({
+                type: 'error',
+                message: 'Lỗi khi tải models: ' + (error instanceof Error ? error.message : 'Unknown'),
+            });
+        } finally {
+            setIsLoadingModels(false);
+        }
     };
 
     return (
@@ -278,7 +419,10 @@ export default function SettingsPage() {
                                     value={localApiKey}
                                     onChange={(e) => setLocalApiKey(e.target.value)}
                                     placeholder={currentProviderInfo?.apiKeyPlaceholder || 'Nhập API Key...'}
-                                    className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                                    className={`w-full px-4 py-3 pr-12 rounded-xl border bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all ${keyStatus === 'valid' ? 'border-emerald-400' :
+                                        keyStatus === 'invalid' ? 'border-red-400' :
+                                            'border-slate-200 dark:border-slate-600'
+                                        }`}
                                 />
                                 <button
                                     type="button"
@@ -288,6 +432,24 @@ export default function SettingsPage() {
                                     {showApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
                             </div>
+
+                            {/* Key Status Indicator */}
+                            {keyStatus !== 'idle' && (
+                                <div className={`mt-2 text-xs flex items-center gap-1.5 ${keyStatus === 'valid' ? 'text-emerald-600' :
+                                    keyStatus === 'invalid' ? 'text-red-600' :
+                                        'text-amber-600'
+                                    }`}>
+                                    {keyStatus === 'checking' && (
+                                        <><RefreshCw size={12} className="animate-spin" /> Đang kiểm tra...</>
+                                    )}
+                                    {keyStatus === 'valid' && (
+                                        <><CheckCircle size={12} /> API Key hợp lệ</>
+                                    )}
+                                    {keyStatus === 'invalid' && (
+                                        <><AlertCircle size={12} /> {keyError || 'API Key không hợp lệ'}</>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Link lấy API Key */}
                             {currentProviderInfo && (
@@ -302,6 +464,68 @@ export default function SettingsPage() {
                                 </a>
                             )}
                         </div>
+
+                        {/* Load Models Button - Nổi bật */}
+                        <button
+                            onClick={handleLoadModels}
+                            disabled={isLoadingModels || !localApiKey}
+                            className={`w-full mt-4 py-3 px-4 rounded-xl font-medium text-white transition-all flex items-center justify-center gap-2 ${isLoadingModels
+                                ? 'bg-slate-400 cursor-not-allowed'
+                                : localApiKey
+                                    ? 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-md hover:shadow-lg'
+                                    : 'bg-slate-300 cursor-not-allowed'
+                                }`}
+                        >
+                            {isLoadingModels ? (
+                                <>
+                                    <RefreshCw size={18} className="animate-spin" />
+                                    Đang tải danh sách models...
+                                </>
+                            ) : (
+                                <>
+                                    <RefreshCw size={18} />
+                                    Tải Models
+                                </>
+                            )}
+                        </button>
+
+                        {/* Key Status Panel - Hiển thị khi key valid */}
+                        {keyStatus === 'valid' && localApiKey && (
+                            <div className="mt-4 space-y-2">
+                                {/* Key Active Indicator */}
+                                <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                                    <CheckCircle size={16} className="text-emerald-600" />
+                                    <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                                        Key đang hoạt động:
+                                    </span>
+                                    <code className="text-xs text-emerald-600 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 rounded">
+                                        {localApiKey.slice(0, 8)}{'•'.repeat(8)}{localApiKey.slice(-4)}
+                                    </code>
+                                </div>
+
+                                {/* Models Found Indicator */}
+                                {localModels.length > 0 && (
+                                    <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                                        <CheckCircle size={16} className="text-blue-600" />
+                                        <span className="text-sm text-blue-700 dark:text-blue-400">
+                                            Tìm thấy <strong>{localModels.length}</strong> models sẵn sàng
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Security Note */}
+                        <div className="mt-4 p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600">
+                            <div className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
+                                <Shield size={14} className="mt-0.5 flex-shrink-0" />
+                                <span>
+                                    Key được mã hóa trước khi lưu vào trình duyệt.
+                                    Kết nối trực tiếp từ máy bạn tới API nhà cung cấp, không qua trung gian.
+                                </span>
+                            </div>
+                        </div>
+
 
                         {/* RAG Toggle */}
                         <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50">
@@ -328,6 +552,16 @@ export default function SettingsPage() {
                                 <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-500 peer-checked:bg-primary-500"></div>
                             </label>
                         </div>
+
+                        {/* Reset Button */}
+                        <button
+                            onClick={handleReset}
+                            className="mt-4 w-full py-2.5 text-sm text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors flex items-center justify-center gap-2"
+                        >
+                            <RefreshCw size={14} />
+                            Reset về mặc định
+                        </button>
+
                     </div>
                 </div>
 
@@ -342,15 +576,24 @@ export default function SettingsPage() {
                                     Chọn Model
                                 </h2>
                             </div>
-                            <button
-                                onClick={handleLoadModels}
-                                disabled={isLoadingModels}
-                                className="flex items-center gap-2 px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
-                            >
-                                <RefreshCw size={14} className={isLoadingModels ? 'animate-spin' : ''} />
-                                Tải Models
-                            </button>
+                            <div className="flex items-center gap-3">
+                                {/* Models Active Badge */}
+                                {localModels.length > 0 && (
+                                    <span className="px-3 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full">
+                                        {localModels.length} Models Active
+                                    </span>
+                                )}
+                                <button
+                                    onClick={handleLoadModels}
+                                    disabled={isLoadingModels}
+                                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+                                >
+                                    <RefreshCw size={14} className={isLoadingModels ? 'animate-spin' : ''} />
+                                    Tải Models
+                                </button>
+                            </div>
                         </div>
+
 
                         {/* Provider Icons Grid */}
                         <div className="grid grid-cols-3 gap-3 mb-6">
@@ -366,9 +609,61 @@ export default function SettingsPage() {
 
                         {/* Models List */}
                         <div className="border-t border-slate-200 dark:border-slate-700 pt-5">
-                            {localModels.length > 0 ? (
-                                <div className="space-y-2 max-h-48 overflow-y-auto">
-                                    {localModels.map((model) => (
+                            {/* Filter Tabs */}
+                            <div className="flex items-center gap-2 mb-4">
+                                <button
+                                    onClick={() => setModelFilter('all')}
+                                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${modelFilter === 'all'
+                                        ? 'bg-primary-500 text-white'
+                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                        }`}
+                                >
+                                    Tất cả ({localModels.length})
+                                </button>
+                                <button
+                                    onClick={() => setModelFilter('free')}
+                                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${modelFilter === 'free'
+                                        ? 'bg-emerald-500 text-white'
+                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                        }`}
+                                >
+                                    ✓ Miễn phí ({freeCount})
+                                </button>
+                                <button
+                                    onClick={() => setModelFilter('paid')}
+                                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${modelFilter === 'paid'
+                                        ? 'bg-amber-500 text-white'
+                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                        }`}
+                                >
+                                    💎 Pro ({paidCount})
+                                </button>
+                            </div>
+
+                            {/* Search Input */}
+                            <div className="relative mb-4">
+                                <input
+                                    type="text"
+                                    placeholder="Tìm kiếm model..."
+                                    value={modelSearch}
+                                    onChange={(e) => setModelSearch(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                />
+                                <svg
+                                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+
+                            {/* Models List - Tăng chiều cao */}
+                            {filteredModels.length > 0 ? (
+                                <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                                    {filteredModels.map((model) => (
+
                                         <ModelCard
                                             key={model.id}
                                             model={model}
@@ -377,6 +672,7 @@ export default function SettingsPage() {
                                         />
                                     ))}
                                 </div>
+
                             ) : (
                                 <div className="text-center py-8 text-slate-400 dark:text-slate-500">
                                     <Database size={32} className="mx-auto mb-2 opacity-50" />
@@ -402,7 +698,123 @@ export default function SettingsPage() {
                 </div>
             </div>
 
+            {/* AI Options Card - NEW SECTION */}
+            <div className="mt-6 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                        <Zap className="text-white" size={24} />
+                    </div>
+                    <div>
+                        <h2 className="font-semibold text-slate-900 dark:text-white">
+                            Tùy chọn AI
+                        </h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                            Cấu hình nâng cao cho AI thông minh hơn
+                        </p>
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    {/* Web Search Toggle */}
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
+                                <RefreshCw className="text-white" size={18} />
+                            </div>
+                            <div>
+                                <div className="font-medium text-slate-800 dark:text-white text-sm">
+                                    🌐 Tìm kiếm Web
+                                </div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
+                                    Thông tin mới nhất từ internet
+                                </div>
+                            </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={webSearchEnabled}
+                                onChange={(e) => setWebSearchEnabled(e.target.checked)}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-500 peer-checked:bg-blue-500"></div>
+                        </label>
+                    </div>
+
+                    {/* Cost Saver Toggle */}
+                    <div className={`flex items-center justify-between p-4 rounded-xl transition-all ${costSaverMode ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-700/50'}`}>
+                        <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${costSaverMode ? 'bg-gradient-to-br from-emerald-500 to-green-600' : 'bg-gradient-to-br from-slate-400 to-slate-500'}`}>
+                                <span className="text-white text-lg">💰</span>
+                            </div>
+                            <div>
+                                <div className="font-medium text-slate-800 dark:text-white text-sm flex items-center gap-2">
+                                    Tiết kiệm Chi phí
+                                    {costSaverMode && (
+                                        <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full">
+                                            ĐANG BẬT
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
+                                    Tự động dùng model miễn phí + cache thông minh
+                                </div>
+                            </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={costSaverMode}
+                                onChange={(e) => setCostSaverMode(e.target.checked)}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 dark:peer-focus:ring-emerald-800 rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-500 peer-checked:bg-emerald-500"></div>
+                        </label>
+                    </div>
+
+                    {/* Thinking Level Selector */}
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                                <span className="text-white text-lg">🧠</span>
+                            </div>
+                            <div>
+                                <div className="font-medium text-slate-800 dark:text-white text-sm">
+                                    Mức độ Suy luận
+                                </div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
+                                    Cho các model hỗ trợ thinking mode (Gemini 3, o1, etc.)
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setThinkingLevel('low')}
+                                className={`flex-1 py-2.5 px-4 rounded-lg font-medium text-sm transition-all ${thinkingLevel === 'low'
+                                    ? 'bg-purple-500 text-white shadow-md'
+                                    : 'bg-white dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-500'
+                                    }`}
+                            >
+                                ⚡ Low
+                                <span className="block text-[10px] opacity-75 mt-0.5">Nhanh, hiệu quả</span>
+                            </button>
+                            <button
+                                onClick={() => setThinkingLevel('high')}
+                                className={`flex-1 py-2.5 px-4 rounded-lg font-medium text-sm transition-all ${thinkingLevel === 'high'
+                                    ? 'bg-purple-500 text-white shadow-md'
+                                    : 'bg-white dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-500'
+                                    }`}
+                            >
+                                🔬 High
+                                <span className="block text-[10px] opacity-75 mt-0.5">Suy luận sâu</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* Policy Configuration Card */}
+
             <div className="mt-6 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
                 <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">

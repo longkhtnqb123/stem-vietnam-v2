@@ -1,15 +1,15 @@
 // Chú thích: Constants cho AI Providers configuration
 // Hỗ trợ nhiều nhà cung cấp AI với thông tin icon, URL lấy key, và models mặc định
 
-export type AIProviderType = 
-    | 'openrouter' 
-    | 'openai' 
-    | 'google' 
-    | 'anthropic' 
-    | 'deepseek' 
-    | 'groq' 
-    | 'mistral' 
-    | 'perplexity' 
+export type AIProviderType =
+    | 'openrouter'
+    | 'openai'
+    | 'google'
+    | 'anthropic'
+    | 'deepseek'
+    | 'groq'
+    | 'mistral'
+    | 'perplexity'
     | 'together';
 
 export interface AIProvider {
@@ -126,54 +126,78 @@ export const AI_PROVIDERS: AIProvider[] = [
     },
 ];
 
-// Chú thích: Models mặc định cho mỗi provider (khi chưa fetch từ API)
+// Chú thích: Models mặc định cho mỗi provider (cập nhật 2025)
 export const DEFAULT_MODELS: Record<AIProviderType, ModelInfo[]> = {
     openrouter: [
-        { id: 'google/gemini-flash-1.5', name: 'Gemini Flash 1.5', description: 'Nhanh và đa năng', isFree: false },
-        { id: 'google/gemini-2.0-flash-exp:free', name: 'Gemini 2.0 Flash', description: 'Miễn phí', isFree: true },
-        { id: 'deepseek/deepseek-chat', name: 'DeepSeek Chat', description: 'Miễn phí, mạnh', isFree: true },
-        { id: 'anthropic/claude-3-haiku', name: 'Claude 3 Haiku', description: 'Nhanh, rẻ', isFree: false },
-        { id: 'meta-llama/llama-3.2-3b-instruct:free', name: 'LLaMA 3.2 3B', description: 'Miễn phí, nhẹ', isFree: true },
+        { id: 'google/gemini-2.0-flash-exp:free', name: 'Gemini 2.0 Flash', description: '2025 - Miễn phí, cực mạnh', isFree: true },
+        { id: 'google/gemini-2.5-pro-exp-03-25:free', name: 'Gemini 2.5 Pro', description: '2025 - Mới nhất', isFree: true },
+        { id: 'anthropic/claude-sonnet-4', name: 'Claude Sonnet 4', description: '2025 - Claude mới nhất', isFree: false },
+        { id: 'openai/gpt-4.1', name: 'GPT-4.1', description: '2025 - OpenAI mới nhất', isFree: false },
+        { id: 'openai/o3-mini', name: 'o3 Mini', description: '2025 - Reasoning model', isFree: false },
+        { id: 'deepseek/deepseek-r1:free', name: 'DeepSeek R1', description: '2025 - Reasoning miễn phí', isFree: true },
+        { id: 'deepseek/deepseek-chat-v3-0324:free', name: 'DeepSeek V3', description: '2025 - Chat mạnh', isFree: true },
+        { id: 'meta-llama/llama-4-maverick:free', name: 'LLaMA 4 Maverick', description: '2025 - Meta mới nhất', isFree: true },
+        { id: 'qwen/qwen3-235b-a22b:free', name: 'Qwen 3 235B', description: '2025 - Alibaba mới nhất', isFree: true },
+        { id: 'mistralai/mistral-small-3.1-24b-instruct:free', name: 'Mistral Small 3.1', description: '2025 - Nhẹ, nhanh', isFree: true },
     ],
     openai: [
-        { id: 'gpt-4o', name: 'GPT-4o', description: 'Mạnh nhất', contextLength: 128000 },
+        { id: 'gpt-4.1', name: 'GPT-4.1', description: '2025 - Mới nhất', contextLength: 1047576 },
+        { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', description: '2025 - Nhanh, rẻ', contextLength: 1047576 },
+        { id: 'gpt-4.1-nano', name: 'GPT-4.1 Nano', description: '2025 - Siêu nhẹ', contextLength: 1047576 },
+        { id: 'o3-mini', name: 'o3 Mini', description: '2025 - Reasoning', contextLength: 200000 },
+        { id: 'o4-mini', name: 'o4 Mini', description: '2025 - Reasoning mới nhất', contextLength: 200000 },
+        { id: 'gpt-4o', name: 'GPT-4o', description: 'Multimodal mạnh', contextLength: 128000 },
         { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Nhanh và rẻ', contextLength: 128000 },
-        { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Legacy, rẻ', contextLength: 16385 },
     ],
     google: [
-        { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', description: 'Nhanh', contextLength: 1000000 },
-        { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', description: 'Mạnh nhất', contextLength: 2000000 },
-        { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', description: 'Mới nhất', contextLength: 1000000 },
+        { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', description: '2025 - Mạnh nhất', contextLength: 1000000 },
+        { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', description: '2025 - Nhanh nhất', contextLength: 1000000 },
+        { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', description: 'Đa năng', contextLength: 1000000 },
+        { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash Lite', description: 'Nhẹ, nhanh', contextLength: 1000000 },
+        { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', description: 'Legacy mạnh', contextLength: 2000000 },
     ],
     anthropic: [
-        { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', description: 'Cân bằng tốt', contextLength: 200000 },
-        { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus', description: 'Mạnh nhất', contextLength: 200000 },
-        { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku', description: 'Nhanh, rẻ', contextLength: 200000 },
+        { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', description: '2025 - Mới nhất', contextLength: 200000 },
+        { id: 'claude-3-7-sonnet-20250219', name: 'Claude 3.7 Sonnet', description: '2025 - Extended thinking', contextLength: 200000 },
+        { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', description: 'Ổn định', contextLength: 200000 },
+        { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', description: 'Nhanh, rẻ', contextLength: 200000 },
+        { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus', description: 'Legacy mạnh nhất', contextLength: 200000 },
     ],
     deepseek: [
-        { id: 'deepseek-chat', name: 'DeepSeek Chat', description: 'Chat đa năng' },
-        { id: 'deepseek-coder', name: 'DeepSeek Coder', description: 'Chuyên code' },
+        { id: 'deepseek-chat', name: 'DeepSeek Chat V3', description: '2025 - Chat mạnh nhất' },
+        { id: 'deepseek-reasoner', name: 'DeepSeek R1', description: '2025 - Reasoning' },
+        { id: 'deepseek-coder', name: 'DeepSeek Coder V3', description: '2025 - Chuyên code' },
     ],
     groq: [
-        { id: 'llama-3.3-70b-versatile', name: 'LLaMA 3.3 70B', description: 'Mạnh, nhanh' },
-        { id: 'llama-3.1-8b-instant', name: 'LLaMA 3.1 8B', description: 'Siêu nhanh' },
-        { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B', description: 'Đa dạng' },
+        { id: 'llama-3.3-70b-versatile', name: 'LLaMA 3.3 70B', description: 'Mạnh, siêu nhanh' },
+        { id: 'llama-3.3-70b-specdec', name: 'LLaMA 3.3 70B SpecDec', description: 'Speculative decoding' },
+        { id: 'llama-3.1-8b-instant', name: 'LLaMA 3.1 8B', description: 'Instant response' },
+        { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B', description: 'MoE model' },
+        { id: 'gemma2-9b-it', name: 'Gemma 2 9B', description: 'Google Gemma' },
     ],
     mistral: [
-        { id: 'mistral-large-latest', name: 'Mistral Large', description: 'Mạnh nhất' },
-        { id: 'mistral-medium-latest', name: 'Mistral Medium', description: 'Cân bằng' },
-        { id: 'mistral-small-latest', name: 'Mistral Small', description: 'Nhẹ, nhanh' },
+        { id: 'mistral-large-2411', name: 'Mistral Large', description: '2025 - Flagship model' },
+        { id: 'mistral-small-2503', name: 'Mistral Small 3.1', description: '2025 - Mới nhất' },
+        { id: 'codestral-2501', name: 'Codestral', description: '2025 - Chuyên code' },
+        { id: 'pixtral-large-2411', name: 'Pixtral Large', description: 'Multimodal' },
+        { id: 'ministral-8b-2410', name: 'Ministral 8B', description: 'Nhẹ, nhanh' },
     ],
     perplexity: [
-        { id: 'llama-3.1-sonar-large-128k-online', name: 'Sonar Large', description: 'Tích hợp web search' },
-        { id: 'llama-3.1-sonar-small-128k-online', name: 'Sonar Small', description: 'Nhanh + search' },
+        { id: 'sonar-pro', name: 'Sonar Pro', description: '2025 - Best for search' },
+        { id: 'sonar', name: 'Sonar', description: 'Web search tích hợp' },
+        { id: 'sonar-reasoning-pro', name: 'Sonar Reasoning Pro', description: 'Reasoning + search' },
+        { id: 'sonar-reasoning', name: 'Sonar Reasoning', description: 'Reasoning model' },
+        { id: 'sonar-deep-research', name: 'Sonar Deep Research', description: 'Nghiên cứu sâu' },
     ],
     together: [
-        { id: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', name: 'LLaMA 3.3 70B', description: 'Mạnh' },
+        { id: 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8', name: 'LLaMA 4 Maverick', description: '2025 - Meta mới nhất' },
+        { id: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', name: 'LLaMA 3.3 70B Turbo', description: 'Nhanh, mạnh' },
         { id: 'Qwen/Qwen2.5-72B-Instruct-Turbo', name: 'Qwen 2.5 72B', description: 'Đa ngôn ngữ' },
-        { id: 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B', name: 'DeepSeek R1', description: 'Reasoning' },
+        { id: 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B', name: 'DeepSeek R1 Distill', description: 'Reasoning' },
+        { id: 'deepseek-ai/DeepSeek-V3', name: 'DeepSeek V3', description: '2025 - Chat mạnh' },
     ],
 };
+
 
 // Chú thích: Lấy provider info theo id
 export function getProviderById(id: AIProviderType): AIProvider | undefined {

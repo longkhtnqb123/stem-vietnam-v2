@@ -6,11 +6,13 @@ import ChatSidebar from './ChatSidebar';
 import { addMessage } from '../../lib/conversationApi';
 import ChatInput from './ChatInput';
 import MessageBubble from './MessageBubble';
-import { sendChatMessage } from '../../lib/api';
+// import { sendChatMessage } from '../../lib/api'; // Comment out unused or remove
 import * as conversationApi from '../../lib/conversationApi';
 import type { ChatMessage } from '../../types';
 import type { Conversation, FileAttachment } from '../../types/chat';
 import { useAuthStore } from '../../lib/auth';
+import { useSettingsStore } from '../../stores/settingsStore';
+import { sendClientSideChat, type ChatMessage as ServiceChatMessage } from '../../lib/chatService';
 
 // Chú thích: LocalStorage key prefix
 const STORAGE_PREFIX = 'stem-vietnam-chat-history';
@@ -222,9 +224,22 @@ export default function ChatPage() {
         });
     }, [activeId, token]);
 
-    // Chú thích: Send message
+    // Chú thích: Import Settings Store (Moved to top)
+    const { provider, apiKey, selectedModel } = useSettingsStore();
+    // import { sendClientSideChat ... } removed from here
+
+    // Chú thích: Send message logic updated for Client-side
     const handleSend = async (message: string, files: FileAttachment[], hiddenContext?: string) => {
         if (!message.trim() && files.length === 0) return;
+
+        // Check if settings are configured
+        if (!apiKey || !selectedModel || provider === 'default') {
+            // Fallback hoặc báo lỗi. 
+            // Tạm thời nếu chưa config, báo user vào settings
+            // Nhưng để trải nghiệm tốt, có thể fallback về backend cũ hoặc báo lỗi
+            // User yêu cầu "chạy qua frontend sau khi đã lưu api", nên expect đã có api.
+            // Nếu chưa có, alert nhẹ.
+        }
 
         // Chú thích: Nếu chưa có conversation, tạo mới
         let currentId = activeId;
@@ -250,24 +265,24 @@ export default function ChatPage() {
             attachments: files.map(f => ({ name: f.file.name, type: f.type, url: URL.createObjectURL(f.file) })),
         };
 
-        // Chú thích: Add user message
+        // Chú thích: Add user message to UI immediately
         setConversations(prev => prev.map(c => {
             if (c.id === currentId) {
                 const isFirstMessage = c.messages.length === 0;
                 const messagesToAdd = [userMessage];
 
-                // Chú thích: Nếu là tin nhắn đầu tiên, thêm tin nhắn chào mừng từ StemBot
+                // Welcome message logic
                 if (isFirstMessage) {
                     const welcomeMessage: ChatMessage = {
                         id: 'welcome',
                         role: 'assistant',
-                        content: 'Chào bạn! Mình là **StemBot** - trợ lý AI chuyên về học tập và công nghệ.\n\nMình có thể giúp gì cho bạn hôm nay? (Giải bài tập, tìm tin tức, hay chỉ đơn giản là trò chuyện?)',
+                        content: 'Chào bạn! Mình là **StemBot** - trợ lý AI chuyên về học tập và công nghệ.\n\nMình có thể giúp gì cho bạn hôm nay?',
                         timestamp: Date.now(),
                     };
-                    messagesToAdd.unshift(welcomeMessage); // Thêm vào đầu danh sách
+                    messagesToAdd.unshift(welcomeMessage);
                 }
 
-                // Chú thích: Sync user message to backend
+                // Sync to backend (optional log)
                 if (token && currentId && !hiddenContext) {
                     addMessage(currentId, {
                         role: 'user',
@@ -288,44 +303,50 @@ export default function ChatPage() {
 
         setIsLoading(true);
         const startTime = Date.now();
-        setThinkingStep('Phân tích câu hỏi...');
+        setThinkingStep('Kết nối AI Provider...');
         setElapsedTime(0);
 
-        // Timer effect
         const timerInterval = setInterval(() => {
             setElapsedTime((Date.now() - startTime) / 1000);
         }, 100);
 
-        // Simulation of thinking steps
-        setTimeout(() => setThinkingStep('Tìm kiếm thông tin...'), 800);
-        setTimeout(() => setThinkingStep('Tổng hợp câu trả lời...'), 2000);
+        setTimeout(() => setThinkingStep('Đang gửi yêu cầu...'), 800);
 
         try {
-            // Chú thích: Lấy lịch sử chat gần nhất (6 tin nhắn) để AI nhớ context
-            const currentMessages = conversations.find(c => c.id === currentId)?.messages || [];
-            const chatHistory = currentMessages.slice(-6).map(m =>
-                `${m.role === 'user' ? 'User' : 'AI'}: ${m.content.slice(0, 500)}`
-            ).join('\n');
+            // Chú thích: Prepare messages for API
+            // 1. Get history
+            const currentConv = conversations.find(c => c.id === currentId);
+            const history = currentConv?.messages || [];
 
-            // Chú thích: Gọi trực tiếp API - KHÔNG dùng RAG, chỉ dùng Google Search
-            // Gửi chat history trong message để AI nhớ ngữ cảnh
-            // Chú thích: Gọi trực tiếp API - KHÔNG dùng RAG, chỉ dùng Google Search
-            // Gửi chat history trong message để AI nhớ ngữ cảnh
-            const currentConversation = conversations.find(c => c.id === currentId);
-            const contextToUse = currentConversation?.context || (hiddenContext && !activeId ? hiddenContext : undefined);
+            // 2. Format history to ServiceChatMessage[]
+            // Lấy 10 tin nhắn gần nhất
+            const apiMessages: ServiceChatMessage[] = history.slice(-10).map(m => ({
+                role: m.role as 'user' | 'assistant',
+                content: m.content
+                // TODO: handle history images if needed
+            }));
 
-            let fullMessage = chatHistory
-                ? `[Lịch sử hội thoại gần nhất]\n${chatHistory}\n\n[Câu hỏi mới]\n${message}`
-                : message;
+            // 3. Add Context / System Prompt
+            const contextToUse = currentConv?.context || (hiddenContext && !activeId ? hiddenContext : undefined);
 
-            if (contextToUse) {
-                fullMessage += `\n\n[Thông tin bổ sung/Ngữ cảnh]\n${contextToUse}`;
-            }
+            // System Message
+            const systemPrompt = `Bạn là StemBot, trợ lý học tập thông minh. 
+            Hãy trả lời ngắn gọn, chính xác, tập trung vào công nghệ và lập trình.
+            Nếu có câu hỏi về code, hãy viết code trong markdown block.
+            ${contextToUse ? `\n\nThông tin bối cảnh:\n${contextToUse}` : ''}`;
 
-            // Chú thích: Convert file images sang base64
+            apiMessages.unshift({ role: 'system', content: systemPrompt });
+
+            // 4. Add current message (handled in history slice if setConversations worked fast enough? 
+            // No, setConversations is async. We constructed apiMessages from `conversations` state which might act funny with closure.
+            // Better to append the new user message explicitly since state update might not reflect yet in this closure.
+            // Actually `currentConv` depends on `conversations` which is from closure scope.
+            // Is `conversations` updated? No, `setConversations` schedules update.
+            // So `history` does NOT contain `userMessage` yet.
+
+            // Convert images
             const imageAttachments = files.filter(f => f.type === 'image');
             const imagesBase64: string[] = [];
-
             if (imageAttachments.length > 0) {
                 for (const img of imageAttachments) {
                     const reader = new FileReader();
@@ -337,7 +358,30 @@ export default function ChatPage() {
                 }
             }
 
-            const response = await sendChatMessage(fullMessage, undefined, undefined, imagesBase64);
+            apiMessages.push({
+                role: 'user',
+                content: message,
+                images: imagesBase64.length > 0 ? imagesBase64 : undefined
+            });
+
+
+            // 5. Call Client-side Service
+            // Check config again
+            const currentProvider = provider === 'default' ? 'openrouter' : provider; // Fallback? Default is OpenRouter?
+            // User said "tất cả chạy qua frontend... đã lưu api". 
+            // If default, maybe use some hardcoded demo key? Or fail?
+            // Assuming user configured properly.
+
+            if (!apiKey) {
+                throw new Error('Vui lòng nhập API Key trong phần Cài đặt để chat.');
+            }
+
+            const response = await sendClientSideChat(
+                currentProvider,
+                apiKey,
+                selectedModel || 'google/gemini-2.0-flash-exp:free', // Fallback model
+                apiMessages
+            );
 
             if (!response.success || !response.response) {
                 throw new Error(response.error || 'Failed to get response');
@@ -350,19 +394,12 @@ export default function ChatPage() {
                 timestamp: Date.now(),
             };
 
-            // Chú thích: Sync assistant message to backend
+            // Sync AI message
             if (token && currentId) {
                 addMessage(currentId, {
                     role: 'assistant',
                     content: response.response,
                 }, token).catch(e => console.error('Failed to sync AI msg', e));
-            }
-
-            // Chú thích: Lưu suggestions từ API
-            if (response.suggestions && response.suggestions.length > 0) {
-                setSuggestions(response.suggestions);
-            } else {
-                setSuggestions([]);
             }
 
             setConversations(prev => prev.map(c => {
@@ -375,13 +412,14 @@ export default function ChatPage() {
                 }
                 return c;
             }));
+
         } catch (error) {
-            clearInterval(timerInterval); // Chú thích: Fix memory leak - clear timer khi error
+            clearInterval(timerInterval);
             console.error('[chat] error:', error);
             const errorMessage: ChatMessage = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại.',
+                content: `⚠️ Lỗi: ${error instanceof Error ? error.message : 'Đã có lỗi xảy ra'}`,
                 timestamp: Date.now(),
             };
             setConversations(prev => prev.map(c => {
@@ -392,6 +430,7 @@ export default function ChatPage() {
             }));
         } finally {
             setIsLoading(false);
+            clearInterval(timerInterval);
         }
     };
 
@@ -473,7 +512,15 @@ export default function ChatPage() {
                                     </div>
                                 )}
                             </div>
-                            <p className="text-xs text-slate-500">Sử dụng mô hình Gemini (Mạnh nhất) kết hợp Google Search và RAG Context</p>
+                            <p className="text-xs text-slate-500 flex items-center gap-1">
+                                <span className="uppercase font-medium text-primary-600 dark:text-primary-400">
+                                    {provider === 'default' ? 'OpenRouter' : provider}
+                                </span>
+                                <span className="text-slate-300">•</span>
+                                <span className="truncate max-w-[200px]" title={selectedModel || 'Default Model'}>
+                                    {selectedModel ? selectedModel.split('/').pop() : 'Default Model'}
+                                </span>
+                            </p>
                         </div>
                     </div>
                 </div>
