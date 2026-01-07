@@ -1,6 +1,6 @@
 // Chú thích: Message Bubble Component - Hiển thị tin nhắn với Markdown + LaTeX + Mermaid
 import { useState, useEffect, useRef } from 'react';
-import { User, Sparkles, BookOpen, ExternalLink, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { User, Sparkles, BookOpen, ExternalLink, ThumbsUp, ThumbsDown, Volume2, Square } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -11,6 +11,62 @@ import 'katex/dist/katex.min.css';
 
 interface MessageBubbleProps {
     message: ChatMessage;
+}
+
+// Chú thích: TTS Component
+function SpeakerButton({ text }: { text: string }) {
+    const [isSpeaking, setIsSpeaking] = useState(false);
+
+    useEffect(() => {
+        // Cleanup on unmount
+        return () => {
+            if (isSpeaking) {
+                window.speechSynthesis.cancel();
+            }
+        };
+    }, []);
+
+    const speak = () => {
+        if (isSpeaking) {
+            window.speechSynthesis.cancel();
+            setIsSpeaking(false);
+            return;
+        }
+
+        // Clean text for speech (remove markdown symbols roughly)
+        const cleanText = text
+            .replace(/[*_#`[\]()]/g, '') // remove common markdown chars
+            .replace(/https?:\/\/\S+/g, 'liên kết') // replace links
+            .substring(0, 1000); // Limit length for stability
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = 'vi-VN';
+        utterance.rate = 1.0;
+
+        // Try to find a Vietnamese voice
+        const voices = window.speechSynthesis.getVoices();
+        const viVoice = voices.find(v => v.lang.includes('vi'));
+        if (viVoice) utterance.voice = viVoice;
+
+        utterance.onend = () => setIsSpeaking(false);
+        utterance.onerror = () => setIsSpeaking(false);
+
+        window.speechSynthesis.speak(utterance);
+        setIsSpeaking(true);
+    };
+
+    return (
+        <button
+            onClick={speak}
+            className={`p-1 rounded transition-colors ${isSpeaking
+                    ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
+                    : 'text-slate-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20'
+                }`}
+            title={isSpeaking ? "Dừng đọc" : "Đọc to"}
+        >
+            {isSpeaking ? <Square size={14} fill="currentColor" /> : <Volume2 size={14} />}
+        </button>
+    );
 }
 
 // Chú thích: Init mermaid với theme phù hợp
@@ -236,6 +292,9 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                 {/* Feedback Buttons - Chỉ hiển thị cho assistant */}
                 {!isUser && (
                     <div className="flex items-center gap-2 mt-2">
+                        {/* TTS Button */}
+                        <SpeakerButton text={message.content} />
+
                         {feedbackSent ? (
                             <span className="text-xs text-slate-500 dark:text-slate-400">
                                 {feedbackSent === 'helpful' ? '✅ Cảm ơn phản hồi!' : '📝 Đã ghi nhận'}

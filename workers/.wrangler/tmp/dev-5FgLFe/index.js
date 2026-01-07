@@ -22665,10 +22665,10 @@ var require_lib3 = __commonJS({
   }
 });
 
-// .wrangler/tmp/bundle-9EoF5V/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-bUhH0M/middleware-loader.entry.ts
 init_modules_watch_stub();
 
-// .wrangler/tmp/bundle-9EoF5V/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-bUhH0M/middleware-insertion-facade.js
 init_modules_watch_stub();
 
 // src/index.ts
@@ -25535,7 +25535,7 @@ function classifyQueryForModel(query) {
   };
 }
 __name(classifyQueryForModel, "classifyQueryForModel");
-function buildMessages(systemPrompt, userMessage, context) {
+function buildMessages(systemPrompt, userMessage, context, images) {
   const messages = [];
   let fullSystemPrompt = systemPrompt;
   if (context) {
@@ -25549,10 +25549,27 @@ ${context}
     role: "system",
     content: fullSystemPrompt
   });
-  messages.push({
-    role: "user",
-    content: userMessage
-  });
+  if (images && images.length > 0) {
+    const content = [
+      { type: "text", text: userMessage }
+    ];
+    for (const img of images) {
+      content.push({
+        type: "image_url",
+        image_url: { url: img }
+        // Expecting data URI like data:image/png;base64,...
+      });
+    }
+    messages.push({
+      role: "user",
+      content
+    });
+  } else {
+    messages.push({
+      role: "user",
+      content: userMessage
+    });
+  }
   return messages;
 }
 __name(buildMessages, "buildMessages");
@@ -26113,13 +26130,13 @@ chatRoutes.post("/chat", async (c) => {
       }, 500);
     }
     const body = await c.req.json();
-    if (!body.message) {
-      return c.json({ error: "Message is required" }, 400);
+    if (!body.message && (!body.images || body.images.length === 0)) {
+      return c.json({ error: "Message or Image is required" }, 400);
     }
     const queryType = classifyQuery(body.message);
     let ragContext = "";
     let sources = [];
-    if (queryType === "academic" && c.env.VECTORIZE && hfToken) {
+    if (body.message && queryType === "academic" && c.env.VECTORIZE && hfToken) {
       try {
         const ragResult = await getRAGContext(hfToken, c.env.VECTORIZE, body.message, void 0);
         ragContext = ragResult.context;
@@ -26139,7 +26156,7 @@ ${ragContext}
       fullContext += body.context;
     }
     const modelRouting = classifyQueryForModel(body.message);
-    if (modelRouting.useOnlineSearch) {
+    if (body.message && modelRouting.useOnlineSearch) {
       try {
         const searchResult = await webSearch(body.message);
         const webSearchContext = formatSearchResultsAsContext(searchResult);
@@ -26152,8 +26169,11 @@ ${ragContext}
     }
     const messages = buildMessages(
       body.systemPrompt || SYSTEM_PROMPTS.chat,
-      body.message,
-      fullContext || void 0
+      body.message || "H\xE3y m\xF4 t\u1EA3 h\xECnh \u1EA3nh n\xE0y.",
+      // Default prompt if only image provided
+      fullContext || void 0,
+      body.images
+      // Helper images
     );
     const result = await callOpenRouter(openRouterKey, {
       messages,
@@ -26180,14 +26200,15 @@ ${ragContext}
 chatRoutes.post("/chat/stream", async (c) => {
   const { openRouterKey, userModel } = getApiKeys(c);
   const body = await c.req.json();
-  if (!body.message) {
-    return c.json({ error: "Message is required" }, 400);
+  if (!body.message && (!body.images || body.images.length === 0)) {
+    return c.json({ error: "Message or Image is required" }, 400);
   }
-  const modelRouting = classifyQueryForModel(body.message);
+  const modelRouting = classifyQueryForModel(body.message || "Describe this image");
   const messages = buildMessages(
     body.systemPrompt || SYSTEM_PROMPTS.chat,
-    body.message,
-    body.context
+    body.message || "Describe this image",
+    body.context,
+    body.images
   );
   return stream(c, async (streamWriter) => {
     try {
@@ -27010,7 +27031,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env2, _ctx, middlewareCtx
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-9EoF5V/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-bUhH0M/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -27043,7 +27064,7 @@ function __facade_invoke__(request, env2, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-9EoF5V/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-bUhH0M/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

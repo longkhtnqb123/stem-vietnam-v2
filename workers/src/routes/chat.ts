@@ -38,10 +38,11 @@ chatRoutes.post('/chat', async (c) => {
             message: string;
             context?: string;
             systemPrompt?: string;
+            images?: string[]; // Array of base64 data URIs
         }>();
 
-        if (!body.message) {
-            return c.json({ error: 'Message is required' }, 400);
+        if (!body.message && (!body.images || body.images.length === 0)) {
+            return c.json({ error: 'Message or Image is required' }, 400);
         }
 
         // Phân loại câu hỏi
@@ -49,8 +50,8 @@ chatRoutes.post('/chat', async (c) => {
         let ragContext = '';
         let sources: unknown[] = [];
 
-        // RAG search nếu là câu hỏi học tập
-        if (queryType === 'academic' && c.env.VECTORIZE && hfToken) {
+        // RAG search nếu là câu hỏi học tập (chỉ search nếu có text)
+        if (body.message && queryType === 'academic' && c.env.VECTORIZE && hfToken) {
             try {
                 const ragResult = await getRAGContext(hfToken, c.env.VECTORIZE, body.message, undefined);
                 ragContext = ragResult.context;
@@ -73,7 +74,7 @@ chatRoutes.post('/chat', async (c) => {
         const modelRouting = classifyQueryForModel(body.message);
 
         // Web search nếu cần
-        if (modelRouting.useOnlineSearch) {
+        if (body.message && modelRouting.useOnlineSearch) {
             try {
                 const searchResult = await webSearch(body.message);
                 const webSearchContext = formatSearchResultsAsContext(searchResult);
@@ -88,8 +89,9 @@ chatRoutes.post('/chat', async (c) => {
         // Call OpenRouter
         const messages = buildMessages(
             body.systemPrompt || SYSTEM_PROMPTS.chat,
-            body.message,
-            fullContext || undefined
+            body.message || "Hãy mô tả hình ảnh này.", // Default prompt if only image provided
+            fullContext || undefined,
+            body.images // Helper images
         );
 
         const result = await callOpenRouter(openRouterKey, {
@@ -126,17 +128,19 @@ chatRoutes.post('/chat/stream', async (c) => {
         message: string;
         context?: string;
         systemPrompt?: string;
+        images?: string[]; // Array of base64 data URIs
     }>();
 
-    if (!body.message) {
-        return c.json({ error: 'Message is required' }, 400);
+    if (!body.message && (!body.images || body.images.length === 0)) {
+        return c.json({ error: 'Message or Image is required' }, 400);
     }
 
-    const modelRouting = classifyQueryForModel(body.message);
+    const modelRouting = classifyQueryForModel(body.message || "Describe this image");
     const messages = buildMessages(
         body.systemPrompt || SYSTEM_PROMPTS.chat,
-        body.message,
-        body.context
+        body.message || "Describe this image",
+        body.context,
+        body.images
     );
 
     return stream(c, async (streamWriter) => {

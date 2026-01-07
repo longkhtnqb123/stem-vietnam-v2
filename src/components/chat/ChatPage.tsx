@@ -322,7 +322,22 @@ export default function ChatPage() {
                 fullMessage += `\n\n[Thông tin bổ sung/Ngữ cảnh]\n${contextToUse}`;
             }
 
-            const response = await sendChatMessage(fullMessage);
+            // Chú thích: Convert file images sang base64
+            const imageAttachments = files.filter(f => f.type === 'image');
+            const imagesBase64: string[] = [];
+
+            if (imageAttachments.length > 0) {
+                for (const img of imageAttachments) {
+                    const reader = new FileReader();
+                    const promise = new Promise<string>((resolve) => {
+                        reader.onload = (e) => resolve(e.target?.result as string);
+                    });
+                    reader.readAsDataURL(img.file);
+                    imagesBase64.push(await promise);
+                }
+            }
+
+            const response = await sendChatMessage(fullMessage, undefined, undefined, imagesBase64);
 
             if (!response.success || !response.response) {
                 throw new Error(response.error || 'Failed to get response');

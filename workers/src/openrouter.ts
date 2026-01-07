@@ -54,9 +54,13 @@ export interface OpenRouterResponse {
     cost?: number;
 }
 
+export type ContentPart =
+    | { type: 'text'; text: string }
+    | { type: 'image_url'; image_url: { url: string } };
+
 export interface OpenRouterMessage {
     role: 'system' | 'user' | 'assistant';
-    content: string;
+    content: string | ContentPart[];
 }
 
 // ============================================
@@ -322,7 +326,8 @@ export function classifyQueryForModel(query: string): {
 export function buildMessages(
     systemPrompt: string,
     userMessage: string,
-    context?: string
+    context?: string,
+    images?: string[] // Chú thích: Base64 data strings for images
 ): OpenRouterMessage[] {
     const messages: OpenRouterMessage[] = [];
 
@@ -337,11 +342,31 @@ export function buildMessages(
         content: fullSystemPrompt,
     });
 
-    // User message
-    messages.push({
-        role: 'user',
-        content: userMessage,
-    });
+    // User message logic
+    if (images && images.length > 0) {
+        // Multimodal message
+        const content: ContentPart[] = [
+            { type: 'text', text: userMessage }
+        ];
+
+        for (const img of images) {
+            content.push({
+                type: 'image_url',
+                image_url: { url: img } // Expecting data URI like data:image/png;base64,...
+            });
+        }
+
+        messages.push({
+            role: 'user',
+            content,
+        });
+    } else {
+        // Standard text message
+        messages.push({
+            role: 'user',
+            content: userMessage,
+        });
+    }
 
     return messages;
 }

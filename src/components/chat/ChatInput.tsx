@@ -1,6 +1,13 @@
-// Chú thích: Chat Input với File Upload - Hỗ trợ mọi file, không giới hạn
-import { useState, useRef, useCallback } from 'react';
-import { Send, Paperclip, X, Image, FileText, Film, Music, File } from 'lucide-react';
+// Add global declaration for SpeechRecognition
+declare global {
+    interface Window {
+        SpeechRecognition: any;
+        webkitSpeechRecognition: any;
+    }
+}
+
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Send, Paperclip, X, Image, FileText, Film, Music, File, Mic, MicOff } from 'lucide-react';
 import type { FileAttachment } from '../../types/chat';
 
 interface ChatInputProps {
@@ -33,8 +40,71 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhập tin
     const [input, setInput] = useState('');
     const [files, setFiles] = useState<FileAttachment[]>([]);
     const [isDragging, setIsDragging] = useState(false);
+    const [isListening, setIsListening] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const recognitionRef = useRef<any>(null);
+
+    // Chú thích: Initialize Speech Recognition
+    useEffect(() => {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.continuous = true;
+            recognitionRef.current.interimResults = true;
+            recognitionRef.current.lang = 'vi-VN';
+
+            recognitionRef.current.onresult = (event: any) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+
+                if (finalTranscript) {
+                    setInput(prev => {
+                        const spacer = prev && !prev.endsWith(' ') ? ' ' : '';
+                        return prev + spacer + finalTranscript;
+                    });
+                }
+            };
+
+            recognitionRef.current.onerror = (event: any) => {
+                console.error('Speech recognition error', event.error);
+                setIsListening(false);
+            };
+
+            recognitionRef.current.onend = () => {
+                // Auto-restart if still listening (optional, but good for long dictation)
+                // For now, we just stop state
+                if (isListening) {
+                    // request restart? 
+                    // for UX, usually better to let user manually toggle unless specifically "always listening"
+                    setIsListening(false);
+                }
+            };
+        }
+    }, []);
+
+    const toggleListening = () => {
+        if (!recognitionRef.current) {
+            alert('Trình duyệt của bạn không hỗ trợ nhận diện giọng nói (Web Speech API). Vui lòng dùng Chrome/Edge.');
+            return;
+        }
+
+        if (isListening) {
+            recognitionRef.current.stop();
+            setIsListening(false);
+        } else {
+            recognitionRef.current.start();
+            setIsListening(true);
+        }
+    };
 
     // Chú thích: Xử lý file selection
     const handleFiles = useCallback((selectedFiles: FileList | null) => {
@@ -89,6 +159,13 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhập tin
     // Chú thích: Submit
     const handleSubmit = () => {
         if ((!input.trim() && files.length === 0) || isLoading) return;
+
+        // Stop listening if sending
+        if (isListening && recognitionRef.current) {
+            recognitionRef.current.stop();
+            setIsListening(false);
+        }
+
         onSend(input.trim(), files);
         setInput('');
         setFiles([]);
@@ -156,6 +233,18 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhập tin
                     <Paperclip size={20} />
                 </button>
 
+                {/* Voice Input Button */}
+                <button
+                    onClick={toggleListening}
+                    className={`p-3 rounded-xl transition-all ${isListening
+                            ? 'bg-red-100 text-red-600 animate-pulse ring-2 ring-red-500 ring-offset-1 dark:bg-red-900/30 dark:text-red-400'
+                            : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400'
+                        }`}
+                    title={isListening ? "Dừng ghi âm" : "Nhập bằng giọng nói"}
+                >
+                    {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+                </button>
+
                 {/* Textarea */}
                 <textarea
                     ref={textareaRef}
@@ -167,7 +256,7 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhập tin
                             handleSubmit();
                         }
                     }}
-                    placeholder={placeholder}
+                    placeholder={isListening ? "Đang nghe bạn nói..." : placeholder}
                     rows={1}
                     className="flex-1 resize-none bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white placeholder-slate-400 py-3 px-2 max-h-[200px]"
                     disabled={isLoading}

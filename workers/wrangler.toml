@@ -8,7 +8,7 @@ MAX_TOKEN_BUDGET = "50000"
 
 # Chú thích: Môi trường development
 [env.dev]
-vars = { CORS_ORIGIN = "http://localhost:5173" }
+vars = { CORS_ORIGIN = "http://localhost:5173;http://localhost:5175" }
 
 # Chú thích: Môi trường production
 [env.production]

@@ -56,13 +56,14 @@ export interface GenerateResponse {
 export async function sendChatMessage(
     message: string,
     context?: string,
-    systemPrompt?: string // Chú thích: Cho phép gửi systemPrompt tùy chỉnh từ frontend
+    systemPrompt?: string, // Chú thích: Cho phép gửi systemPrompt tùy chỉnh từ frontend
+    images?: string[] // Chú thích: Base64 string images
 ): Promise<ChatResponse> {
     try {
         const response = await fetch(`${API_URL}/api/chat`, {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ message, context, systemPrompt }),
+            body: JSON.stringify({ message, context, systemPrompt, images }),
         });
 
         const data = await response.json();
@@ -80,13 +81,14 @@ export async function sendChatMessage(
 export async function* streamChatMessage(
     message: string,
     context?: string,
-    systemPrompt?: string // Chú thích: Cho phép gửi systemPrompt tùy chỉnh
+    systemPrompt?: string, // Chú thích: Cho phép gửi systemPrompt tùy chỉnh
+    images?: string[]
 ): AsyncGenerator<string> {
     try {
         const response = await fetch(`${API_URL}/api/chat/stream`, {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ message, context, systemPrompt }),
+            body: JSON.stringify({ message, context, systemPrompt, images }),
         });
 
         if (!response.ok) {
