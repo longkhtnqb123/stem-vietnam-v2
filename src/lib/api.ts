@@ -17,8 +17,10 @@ function getAuthHeaders() {
         }
     }
 
-    if (state.openRouterKey) {
-        headers['X-User-OpenRouter-Key'] = state.openRouterKey;
+    // Chú thích: Ưu tiên apiKey mới, fallback về openRouterKey legacy
+    const apiKey = state.apiKey || state.openRouterKey;
+    if (apiKey) {
+        headers['X-User-OpenRouter-Key'] = apiKey;
     }
 
     if (state.hfToken) {
@@ -27,6 +29,7 @@ function getAuthHeaders() {
 
     return headers;
 }
+
 
 // Chú thích: Interface cho response
 export interface ChatResponse {
