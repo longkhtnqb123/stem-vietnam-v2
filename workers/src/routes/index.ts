@@ -13,15 +13,15 @@ import adminRoutes from './admin';
 
 const app = new Hono<{ Bindings: Env }>();
 
-// Chú thích: Global middleware
+// Global middleware
 app.use('*', async (c, next) => {
     // CORS
     const corsMiddleware = createCorsMiddleware(c.env.CORS_ORIGIN);
-    await corsMiddleware(c, async () => { });
-
-    // Auth (set user context)
-    const authMw = authMiddleware(c.env.JWT_SECRET);
-    await authMw(c, next);
+    return corsMiddleware(c, async () => {
+        // Auth (set user context)
+        const authMw = authMiddleware(c.env.JWT_SECRET);
+        await authMw(c, next);
+    });
 });
 
 // Chú thích: Health check

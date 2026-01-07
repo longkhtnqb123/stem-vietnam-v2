@@ -26914,8 +26914,8 @@ adminRoutes.post("/rag/search", async (c) => {
   }
   try {
     const results = await searchVectors(
-      c.env.HF_API_TOKEN,
       c.env.VECTORIZE,
+      c.env.HF_API_TOKEN,
       body.query,
       body.filters
     );
@@ -26939,10 +26939,10 @@ var admin_default = adminRoutes;
 var app = new Hono2();
 app.use("*", async (c, next) => {
   const corsMiddleware = createCorsMiddleware(c.env.CORS_ORIGIN);
-  await corsMiddleware(c, async () => {
+  return corsMiddleware(c, async () => {
+    const authMw = authMiddleware(c.env.JWT_SECRET);
+    await authMw(c, next);
   });
-  const authMw = authMiddleware(c.env.JWT_SECRET);
-  await authMw(c, next);
 });
 app.get("/", (c) => {
   return c.json({

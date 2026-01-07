@@ -83,8 +83,8 @@ adminRoutes.post('/rag/search', async (c) => {
 
     try {
         const results = await searchVectors(
-            c.env.HF_API_TOKEN,
             c.env.VECTORIZE,
+            c.env.HF_API_TOKEN,
             body.query,
             body.filters
         );
