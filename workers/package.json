@@ -1,20 +1,12 @@
 {
     "name": "stem-vietnam-workers",
     "version": "1.0.0",
-    "private": true,
     "scripts": {
         "dev": "wrangler dev",
         "deploy": "wrangler deploy",
-        "tail": "wrangler tail"
-    },
-    "devDependencies": {
-        "@cloudflare/workers-types": "^4.20241230.0",
-        "typescript": "^5.7.2",
-        "wrangler": "^4.16.1"
-    },
-    "dependencies": {
-        "hono": "^4.11.3",
-        "mammoth": "^1.11.0",
-        "pdf-parse": "^2.4.5"
+        "setup": "bash scripts/setup.sh",
+        "test": "pwsh scripts/test-features.ps1",
+        "migrate": "bash scripts/migrate.sh",
+        "cf-typegen": "wrangler types"
     }
 }

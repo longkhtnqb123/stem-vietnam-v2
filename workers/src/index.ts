@@ -3,6 +3,7 @@
 import { callOpenRouter, streamOpenRouter, buildMessages, classifyQueryForModel, MODEL_ROUTES, MODELS } from './openrouter';
 import { webSearch, formatSearchResultsAsContext } from './duckduckgo';
 import { handleRegister, handleLogin, handleMe, getUserFromToken, AuthEnv } from './auth-routes';
+import { handleGetSettings, handleUpdateSettings, handleGetModels, handleRefreshModels } from './settings-routes';
 import { getConversations, getConversation, createConversation, deleteConversation, addMessage, addMessageFromRequest, ConvoEnv } from './conversation-routes';
 import {
     getExams,
@@ -13,7 +14,8 @@ import {
 import { getUsers, getUser, deleteUser, updateUser, getStats, getAdminConversations, getAdminConversation, deleteAdminConversation, AdminEnv } from './admin-routes';
 import { handleStorageRequest } from './storage-routes';
 import { searchVectors, buildContextFromResults } from './vectorize';
-import { processLocalFile, getRAGContext, parseMetadataFromFilename, type RAGPipelineConfig, type BookMetadata } from './rag-pipeline';
+import { getRAGContext } from './rag-pipeline';
+import { getAdvancedRAGContext } from './rag/advanced-rag-pipeline';
 import { isFileTypeSupported, isFileSizeValid, MAX_FILE_SIZE, getSupportedExtensions } from './file-parser';
 
 // Chú thích: Environment interface (đã xoá Vertex AI, chuyển sang HuggingFace)
@@ -174,11 +176,59 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
             message: string;
             context?: string;
             systemPrompt?: string;
+            useCoT?: boolean; // Enable Chain-of-Thought
+            useReflection?: boolean; // Enable Self-Reflection
+            userId?: string; // For rate limiting & personalization
         };
 
         if (!body.message) {
             return jsonResponse({ error: 'Message is required' }, 400, origin);
         }
+
+        // ===== PRODUCTION FEATURES =====
+
+        // 1. Rate Limiting (if KV available)
+        const userId = body.userId || 'anonymous';
+        if (env.CACHE) {
+            const { RateLimiter } = await import('./optimization/rate-limiter');
+            const limiter = new RateLimiter(env.CACHE);
+            const limit = await limiter.isAllowed(userId);
+
+            if (!limit.allowed) {
+                return jsonResponse({
+                    error: 'Rate limit exceeded',
+                    resetAt: limit.resetAt,
+                    message: 'You have reached the maximum number of requests. Please try again later.'
+                }, 429, origin);
+            }
+        }
+
+        // 2. Enhanced Semantic Cache Check (if KV available)
+        let cachedResponse = null;
+        if (env.CACHE) {
+            const { EnhancedSemanticCache } = await import('./cache/enhanced-cache');
+            const cache = new EnhancedSemanticCache(env.CACHE);
+
+            cachedResponse = await cache.getWithFuzzyMatch({
+                query: body.message,
+                apiKey: env.HF_API_TOKEN
+            });
+
+            if (cachedResponse) {
+                console.log('[chat] ✅ Cache HIT - returning cached response');
+                return jsonResponse({
+                    success: true,
+                    response: cachedResponse.response,
+                    thinking: cachedResponse.thinking,
+                    reflection: cachedResponse.reflection,
+                    sources: cachedResponse.sources,
+                    cached: true,
+                    cacheHits: cachedResponse.hitCount
+                }, 200, origin);
+            }
+        }
+
+        console.log('[chat] Cache MISS - generating new response');
 
         // Chú thích: Phân loại câu hỏi để quyết định có dùng RAG không
         const queryType = classifyQuery(body.message);
@@ -186,20 +236,33 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
         let sources: unknown[] = [];
 
         // Chú thích: Nếu là câu hỏi học tập → tìm RAG context từ thư viện sách
-        if (queryType === 'academic' && env.VECTORIZE && env.HF_API_TOKEN) {
+        if (queryType === 'academic' && env.VECTORIZE && env.OPENROUTER_API_KEY && env.DB) {
             try {
-                console.info('[chat] Academic query detected, searching RAG...');
-                const ragResult = await getRAGContext(
-                    env.HF_API_TOKEN,
+                console.info('[chat] Academic query detected, using Advanced RAG...');
+                const ragResult = await getAdvancedRAGContext(
+                    env.OPENROUTER_API_KEY,
                     env.VECTORIZE,
                     body.message,
-                    undefined // Không filter theo grade/subject
+                    env.DB
                 );
                 ragContext = ragResult.context;
                 sources = ragResult.sources;
-                console.info('[chat] RAG found', { sourcesCount: sources.length });
+                console.info('[chat] Advanced RAG found', { sourcesCount: sources.length });
             } catch (error) {
-                console.warn('[chat] RAG search failed, continuing without context:', error);
+                console.warn('[chat] Advanced RAG failed, falling back to basic RAG:', error);
+                // Fallback to old RAG
+                try {
+                    const ragResult = await getRAGContext(
+                        env.HF_API_TOKEN || env.OPENROUTER_API_KEY,
+                        env.VECTORIZE,
+                        body.message,
+                        undefined
+                    );
+                    ragContext = ragResult.context;
+                    sources = ragResult.sources;
+                } catch (fallbackError) {
+                    console.warn('[chat] Fallback RAG also failed, continuing without context:', fallbackError);
+                }
             }
         }
 
@@ -236,30 +299,77 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
             }
         }
 
-        // Chú thích: Build messages cho OpenRouter
-        const messages = buildMessages(
-            body.systemPrompt || SYSTEM_PROMPTS.chat,
-            body.message,
-            fullContext || undefined
-        );
+        // Chú thích: Gọi OpenRouter để generate response
+        let aiResponse = '';
+        let thinkingProcess = ''; // For CoT mode
+        let reflectionData: any = null; // For reflection mode
+        let usedModel = ''; // To store the model used
 
-        // Chú thích: Gọi OpenRouter với model được chọn tự động
-        const result = await callOpenRouter(env.OPENROUTER_API_KEY, {
-            messages,
-            model: modelRouting.model,
-            useOnlineSearch: modelRouting.useOnlineSearch,
-        });
+        // Chú thích: Check if user wants advanced reasoning
+        if (body.useReflection) {
+            // Self-Reflection mode: Generate → Critique → Revise
+            console.info('[chat] Self-Reflection mode enabled');
+            const { generateWithReflection } = await import('./reasoning/self-reflection');
+
+            const reflectionResult = await generateWithReflection({
+                query: body.message,
+                context: fullContext,
+                systemPrompt: body.systemPrompt || SYSTEM_PROMPTS.chat,
+                apiKey: env.OPENROUTER_API_KEY,
+                maxIterations: 2
+            });
+
+            aiResponse = reflectionResult.final;
+            reflectionData = {
+                iterations: reflectionResult.iterations.length,
+                issues: reflectionResult.iterations.flatMap(it => it.critique.issues)
+            };
+            usedModel = modelRouting.model; // Reflection uses the base model
+        } else if (body.useCoT) {
+            // Chain-of-Thought mode: Show thinking process
+            console.info('[chat] Chain-of-Thought mode enabled');
+            const { generateWithCoT } = await import('./reasoning/chain-of-thought');
+
+            const cotResult = await generateWithCoT({
+                query: body.message,
+                context: fullContext,
+                systemPrompt: body.systemPrompt || SYSTEM_PROMPTS.chat,
+                apiKey: env.OPENROUTER_API_KEY
+            });
+
+            thinkingProcess = cotResult.thinking;
+            aiResponse = cotResult.answer;
+            usedModel = modelRouting.model; // CoT uses the base model
+        } else {
+            // Standard mode: Direct response
+            const messages = buildMessages(
+                body.systemPrompt || SYSTEM_PROMPTS.chat,
+                body.message,
+                fullContext || undefined
+            );
+
+            const result = await callOpenRouter(env.OPENROUTER_API_KEY, {
+                messages,
+                model: modelRouting.model,
+                useOnlineSearch: modelRouting.useOnlineSearch,
+            });
+
+            aiResponse = result.text;
+            usedModel = result.model;
+        }
 
         // Chú thích: Tạo suggestions dựa trên nội dung trả lời
-        const suggestions = generateSuggestions(body.message, result.text, queryType);
+        const suggestions = generateSuggestions(body.message, aiResponse, queryType);
 
         return jsonResponse({
             success: true,
-            response: result.text,
+            response: aiResponse,
+            thinking: thinkingProcess || undefined, // Include thinking if CoT mode
+            reflection: reflectionData || undefined, // Include reflection if enabled
             sources: sources.length > 0 ? sources : undefined,
             queryType,
             suggestions, // Gợi ý câu hỏi tiếp theo
-            model: result.model, // Trả về model đã sử dụng để debug
+            model: usedModel, // Trả về model đã sử dụng để debug
         }, 200, origin);
 
 
@@ -590,6 +700,9 @@ export default {
                     return handleRegister(request, env as unknown as AuthEnv);
                 case '/api/auth/login':
                     return handleLogin(request, env as unknown as AuthEnv);
+                // Settings routes
+                case '/api/settings/models/refresh':
+                    return handleRefreshModels(request, env);
                 // Conversation routes
                 case '/api/conversations': {
                     const user = await getUserFromToken(request, env as unknown as AuthEnv);
@@ -618,6 +731,13 @@ export default {
             // Auth me
             if (path === '/api/auth/me') {
                 return handleMe(request, env as unknown as AuthEnv);
+            }
+            // Settings routes
+            if (path === '/api/settings') {
+                return handleGetSettings(request, env);
+            }
+            if (path === '/api/settings/models') {
+                return handleGetModels(request, env);
             }
             // Get all conversations
             if (path === '/api/conversations') {
@@ -671,6 +791,10 @@ export default {
 
         // PUT routes (Admin update)
         if (request.method === 'PUT') {
+            // Settings update
+            if (path === '/api/settings') {
+                return handleUpdateSettings(request, env);
+            }
             const adminUserMatch = path.match(/^\/api\/admin\/users\/([^/]+)$/);
             if (adminUserMatch) {
                 return updateUser(adminUserMatch[1], request, env as unknown as AdminEnv);
