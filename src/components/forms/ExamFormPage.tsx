@@ -268,20 +268,20 @@ export default function ExamFormPage() {
                         <div className="grid grid-cols-2 gap-2">
                             <button
                                 onClick={() => setFormData(prev => ({ ...prev, subject: 'cong_nghiep' }))}
-                                className={`p - 3 rounded - xl text - center transition - all border - 2 ${formData.subject === 'cong_nghiep'
+                                className={`p-3 rounded-xl text-center transition-all border-2 ${formData.subject === 'cong_nghiep'
                                     ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
                                     : 'border-slate-200 dark:border-slate-700'
-                                    } `}
+                                    }`}
                             >
                                 <p className="font-semibold text-sm">🏭 Công nghiệp</p>
                                 <p className="text-xs text-slate-500">Cơ khí, Điện, Ô tô...</p>
                             </button>
                             <button
                                 onClick={() => setFormData(prev => ({ ...prev, subject: 'nong_nghiep' }))}
-                                className={`p - 3 rounded - xl text - center transition - all border - 2 ${formData.subject === 'nong_nghiep'
+                                className={`p-3 rounded-xl text-center transition-all border-2 ${formData.subject === 'nong_nghiep'
                                     ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
                                     : 'border-slate-200 dark:border-slate-700'
-                                    } `}
+                                    }`}
                             >
                                 <p className="font-semibold text-sm">🌾 Nông nghiệp</p>
                                 <p className="text-xs text-slate-500">Trồng trọt, Chăn nuôi...</p>
@@ -301,10 +301,10 @@ export default function ExamFormPage() {
                                     <button
                                         key={purpose}
                                         onClick={() => setFormData(prev => ({ ...prev, examPurpose: purpose }))}
-                                        className={`w - full p - 3 rounded - xl text - left transition - all border - 2 ${formData.examPurpose === purpose
+                                        className={`w-full p-3 rounded-xl text-left transition-all border-2 ${formData.examPurpose === purpose
                                             ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
                                             : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
-                                            } `}
+                                            }`}
                                     >
                                         <p className="font-semibold text-sm text-slate-900 dark:text-white">
                                             {info.label}
@@ -328,10 +328,10 @@ export default function ExamFormPage() {
                                 <button
                                     key={level}
                                     onClick={() => setFormData(prev => ({ ...prev, difficulty: level }))}
-                                    className={`flex - 1 py - 2.5 px - 3 rounded - xl text - sm font - medium transition - all ${formData.difficulty === level
+                                    className={`flex-1 py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${formData.difficulty === level
                                         ? 'bg-primary-600 text-white'
                                         : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                                        } `}
+                                        }`}
                                 >
                                     {DIFFICULTY_LEVELS[level].label}
                                 </button>

@@ -10,8 +10,8 @@
 export const EMBEDDING_MODEL = 'sentence-transformers/all-MiniLM-L6-v2';
 export const EMBEDDING_DIMENSIONS = 384;
 
-// HuggingFace API endpoint
-const HF_API_URL = 'https://api-inference.huggingface.co/pipeline/feature-extraction';
+// HuggingFace API endpoint (updated to new router URL)
+const HF_API_URL = 'https://router.huggingface.co/pipeline/feature-extraction';
 
 // ============================================
 // TYPES
