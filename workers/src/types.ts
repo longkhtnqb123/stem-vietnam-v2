@@ -1,32 +1,58 @@
-// Chú thích: Shared types for Hono routes
 
-// Chú thích: Environment bindings
+// Chú thích: Shared types cho Frontend và Backend
+
 export interface Env {
-    // OpenRouter API Key
     OPENROUTER_API_KEY: string;
-
-    // HuggingFace API Token (cho embeddings RAG)
     HF_API_TOKEN: string;
-
-    // JWT Secret for auth
     JWT_SECRET: string;
-
-    // D1 Database
     DB: D1Database;
-
-    // Vectorize (RAG Pipeline)
     VECTORIZE: VectorizeIndex;
-
-    // CORS
     CORS_ORIGIN: string;
-
-    // Max token budget
-    MAX_TOKEN_BUDGET?: string;
+    BOOKS_BUCKET: R2Bucket;
 }
 
-// Chú thích: User payload from JWT
-export interface UserPayload {
-    sub: string;
-    email: string;
-    name: string;
+// ==================== EXAM GENERATION TYPES ====================
+
+export type QuestionType = 'multiple_choice' | 'true_false' | 'matching' | 'reading';
+
+export type Difficulty = 'remember' | 'understand' | 'apply' | 'analyze';
+
+export interface ExamMatrix {
+    topic: string;
+    totalQuestions: number;
+    distribution: {
+        remember: number;   // % (e.g., 30)
+        understand: number; // %
+        apply: number;      // %
+        analyze: number;    // %
+    };
+    types: {
+        multiple_choice: number; // Count
+        true_false: number;     // Count
+        matching?: number;      // Count
+        reading?: number;       // Count
+    };
+    focusTopics?: string[]; // Các chủ đề trọng tâm cần tập trung
+}
+
+export interface GeneratedQuestion {
+    id: number;
+    type: QuestionType;
+    question: string;
+    options?: string[]; // For MCQ: 4 options
+    statements?: string[]; // For True/False: 4 statements
+    correct?: number | boolean[]; // MCQ: index; True/False: [true, false, true, false]
+    matches?: Array<{ left: string; right: string }>; // For Matching
+    explanation: string;
+    difficulty: Difficulty;
+    source: string; // Citation
+    thinking?: string; // CoT reasoning
+}
+
+export interface GeneratorResponse {
+    success: boolean;
+    questions: GeneratedQuestion[];
+    matrix: ExamMatrix;
+    criticFeedback?: string; // Feedback from the Critic step
+    sourceChunks?: any[];
 }

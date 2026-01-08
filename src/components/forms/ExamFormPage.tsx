@@ -4,7 +4,8 @@
 import { useState } from 'react';
 // import { useNavigate } from 'react-router-dom'; // TODO: Uncomment khi cần redirect
 import { ClipboardList, Sparkles, BookOpen, AlertTriangle, Info, FileText, FileDown, History, Archive } from 'lucide-react';
-import { generateExamWithRAG } from '../../lib/rag/generator';
+// import { generateExamWithRAG } from '../../lib/rag/generator'; // DEPRECATED
+import { generateQuestions } from '../../lib/api';
 import { createExam, getExams, getExam, type ExamHistoryItem } from '../../lib/examApi';
 import { useAuthStore } from '../../lib/auth';
 import { EXAM_GENERATOR_PROMPT } from '../../lib/prompts';
@@ -78,65 +79,59 @@ export default function ExamFormPage() {
         setIsLoading(true);
         setResult('');
         setError(null);
-        setEditedContent(''); // Clear edited content on new generation
+        setEditedContent('');
 
         try {
             const purposeInfo = EXAM_PURPOSES[formData.examPurpose];
             const difficultyInfo = DIFFICULTY_LEVELS[formData.difficulty];
 
-            // Chú thích: Build prompt với logic SGK + Chuyên đề
-            const structurePrompt = `
-Cấu trúc đề THPT Quốc gia 2026:
-- Phần I: 24 câu trắc nghiệm nhiều lựa chọn(4 phương án, 1 đúng)
-    - Phần II: 4 câu Đúng / Sai(mỗi câu có 4 ý a, b, c, d)
-        - Phân bố mức độ: ${difficultyInfo.distribution}
+            // Chú thích: Build Matrix Object
+            const matrix = {
+                topic: `Đề thi ${formData.subject === 'cong_nghiep' ? 'Công nghiệp' : 'Nông nghiệp'} - ${purposeInfo.label}`,
+                totalQuestions: 28,
+                distribution: {
+                    remember: difficultyInfo.distribution.includes('10 Nhớ') ? 35 : 20, // Approximate %
+                    understand: difficultyInfo.distribution.includes('10 Hiểu') ? 35 : 20,
+                    apply: difficultyInfo.distribution.includes('10 VD') ? 35 : 20,
+                    analyze: 15
+                },
+                types: {
+                    multiple_choice: 24,
+                    true_false: 4
+                },
+                focusTopics: [
+                    formData.subject === 'cong_nghiep' ? 'Công nghệ Công nghiệp' : 'Công nghệ Nông nghiệp',
+                    formData.customPrompt
+                ].filter(Boolean)
+            };
 
-QUAN TRỌNG - Phân bổ nguồn kiến thức:
-- ${purposeInfo.sgkRatio}% câu hỏi từ SGK(nội dung cốt lõi Công nghệ ${formData.subject === 'cong_nghiep' ? 'Công nghiệp' : 'Nông nghiệp'})
-    - ${100 - purposeInfo.sgkRatio}% câu hỏi từ Chuyên đề học tập
-${formData.examPurpose === 'mock'
-                    ? '- Các câu Đúng/Sai và VDC có thể lồng ghép kiến thức từ cả SGK và Chuyên đề để phân loại học sinh'
-                    : ''
-                }
-${formData.examPurpose === 'advanced'
-                    ? '- Câu VDC BẮT BUỘC lấy từ Chuyên đề (dự án, vi điều khiển, công nghệ cao...)'
-                    : ''
-                }
-
-PHẢI có ĐÁP ÁN đầy đủ ở cuối đề.
-`;
-
-            const bookPrompt = formData.bookPublisher !== 'all'
-                ? `Ưu tiên nội dung từ bộ sách ${formData.bookPublisher} `
-                : '';
-
-            const fullCustomPrompt = [
-                structurePrompt,
-                bookPrompt,
-                formData.customPrompt,
-            ].filter(Boolean).join('\n');
-
-            const response = await generateExamWithRAG({
-                subject: formData.subject,
-                systemPrompt: EXAM_GENERATOR_PROMPT,
-                customPrompt: fullCustomPrompt || undefined,
+            // Call API with Matrix
+            const response = await generateQuestions({
+                topic: matrix.topic,
+                matrix: matrix,
+                systemPrompt: EXAM_GENERATOR_PROMPT
             });
 
+            if (!response.success && !response.text) {
+                throw new Error('Không nhận được phản hồi từ AI');
+            }
+
+            // Chú thích: Response text now contains JSON string of questions
             handleResultChange(response.text);
             setSources(response.sourceChunks || []);
 
-            // Chú thích: Save to history if logged in
-            if (token && response.text) {
+            // Save history
+            if (token) {
                 createExam(token, {
-                    topic: `Đề thi ${formData.subject === 'cong_nghiep' ? 'Công nghiệp' : 'Nông nghiệp'} - ${EXAM_PURPOSES[formData.examPurpose].label}`,
+                    topic: matrix.topic,
                     config: formData,
                     content: response.text,
                 }).catch(e => console.error('Failed to save exam history', e));
             }
-        } catch (err) {
+
+        } catch (err: any) {
             console.error('[exam-form] generate error:', err);
-            setError(err instanceof Error ? err.message : 'Có lỗi xảy ra khi tạo đề. Vui lòng thử lại.');
-            // Keep previous content if failed
+            setError(err.message || 'Có lỗi xảy ra khi tạo đề.');
         } finally {
             setIsLoading(false);
         }

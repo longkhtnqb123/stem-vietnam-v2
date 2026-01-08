@@ -1,7 +1,11 @@
 // Chú thích: Danh sách tài liệu THỰC TẾ đã có trong public/books
 // Cập nhật dựa trên file đã upload - ưu tiên Cánh Diều
-
+// Cập nhật: Đã tích hợp Cloudflare R2
 import type { Document } from '../../types';
+
+// Lấy API URL từ env
+const API_URL = (import.meta.env.VITE_API_URL || 'https://stem-vietnam-api.stu725114073.workers.dev').replace(/\/$/, '');
+const STORAGE_BASE = `${API_URL}/api/storage`;
 
 // Chú thích: Các bộ sách được Bộ GD&ĐT phê duyệt
 export const BOOK_PUBLISHERS = {
@@ -21,7 +25,7 @@ const SGK_BOOKS: Document[] = [
         grade: '10',
         topic: 'Trồng trọt',
         source: BOOK_PUBLISHERS.CANH_DIEU,
-        fileUrl: '/books/sgk/SGK Công nghệ Trồng trọt 10.pdf',
+        fileUrl: `${STORAGE_BASE}/books/sgk/SGK Công nghệ Trồng trọt 10.pdf`,
         createdAt: Date.now(),
     },
     {
@@ -79,7 +83,7 @@ const CHUYEN_DE_BOOKS: Document[] = [
         grade: '10',
         topic: 'Trồng trọt',
         source: BOOK_PUBLISHERS.CANH_DIEU,
-        fileUrl: '/books/chuyen_de/Chuyên đề công nghệ trồng trọt 10.pdf',
+        fileUrl: `${STORAGE_BASE}/books/chuyen_de/Chuyên đề công nghệ trồng trọt 10.pdf`,
         createdAt: Date.now(),
     },
     {
