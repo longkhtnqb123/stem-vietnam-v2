@@ -91,8 +91,8 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
                 <button
                     onClick={() => setSelectedCategory('chat')}
                     className={`pb-3 px-4 font-medium transition-colors relative ${selectedCategory === 'chat'
-                            ? 'text-primary-600 dark:text-primary-400'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        ? 'text-primary-600 dark:text-primary-400'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                         }`}
                 >
                     Chat Model
@@ -103,8 +103,8 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
                 <button
                     onClick={() => setSelectedCategory('exam')}
                     className={`pb-3 px-4 font-medium transition-colors relative ${selectedCategory === 'exam'
-                            ? 'text-primary-600 dark:text-primary-400'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        ? 'text-primary-600 dark:text-primary-400'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                         }`}
                 >
                     Exam Generation Model
@@ -112,17 +112,6 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600" />
                     )}
                 </button>
-            </div>
-
-            {/* Current Selection */}
-            <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-400">
-                    <CheckCircle size={16} />
-                    <span className="font-medium">Currently selected:</span>
-                    <code className="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300">
-                        {currentModel}
-                    </code>
-                </div>
             </div>
 
             {/* Controls */}
@@ -144,8 +133,8 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
                     <button
                         onClick={() => setFilter('all')}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'all'
-                                ? 'bg-primary-500 text-white'
-                                : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
                             }`}
                     >
                         All ({models.length})
@@ -153,8 +142,8 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
                     <button
                         onClick={() => setFilter('free')}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'free'
-                                ? 'bg-emerald-500 text-white'
-                                : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
                             }`}
                     >
                         Free
@@ -162,8 +151,8 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
                     <button
                         onClick={() => setFilter('paid')}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'paid'
-                                ? 'bg-amber-500 text-white'
-                                : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
                             }`}
                     >
                         Paid
@@ -220,8 +209,8 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
                                                 key={model.id}
                                                 onClick={() => handleSelectModel(model.id)}
                                                 className={`w-full text-left p-4 rounded-lg border-2 transition-all ${isSelected
-                                                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                                                        : 'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-primary-300'
+                                                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                                                    : 'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-primary-300'
                                                     }`}
                                             >
                                                 <div className="flex items-start justify-between gap-3">

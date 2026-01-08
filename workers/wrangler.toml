@@ -54,8 +54,9 @@ binding = "BOOKS_BUCKET"
 bucket_name = "stem-vietnam-books"
 
 # KV Namespace for semantic cache and rate limiting
-[[kv_namespaces]]
-binding = "CACHE"
-id = "YOUR_KV_ID_HERE"  # Run: npx wrangler kv:namespace create "CACHE"
-preview_id = "YOUR_PREVIEW_KV_ID_HERE"
+# Uncomment sau khi chạy: npx wrangler kv namespace create CACHE
+# [[kv_namespaces]]
+# binding = "CACHE"
+# id = "YOUR_KV_ID_HERE"
+# preview_id = "YOUR_PREVIEW_KV_ID_HERE"
 
