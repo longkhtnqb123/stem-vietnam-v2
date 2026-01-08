@@ -35,7 +35,12 @@ interface Env {
 
     // CORS
     CORS_ORIGIN: string;
+
+    // R2 Storage (Static Files)
+    FILES: R2Bucket;
 }
+
+import { handleFileRequest } from './files-route';
 
 const SYSTEM_PROMPTS = {
     // Chú thích: Chat AI - Chuyên gia đa năng với LaTeX support
@@ -786,6 +791,28 @@ export default {
 
         // Admin RAG routes (đã xoá Google Drive và Document AI, chỉ giữ search)
         // Chú thích: Route /api/admin/rag/list và /api/admin/rag/process đã bị xoá vì cần GCP
+
+        // STATIC FILES ROUTE (R2 Proxy)
+        if (request.method === 'GET' && path.startsWith('/api/books/')) {
+            const filePath = path.replace('/api/books/', '');
+            // Chú thích: File path trong R2: books/sgk/file.pdf -> request: /api/books/books/sgk/file.pdf
+            // Tuy nhiên, để tiện clean-up, ta sẽ map: /api/books/filename -> filename
+            // User current structure: /books/sgk/...
+            // Let's assume URL requested is /api/books/sgk/filename.pdf -> R2 key: books/sgk/filename.pdf
+            // Wait, defaultBooks.ts uses fileUrl: '/books/sgk/...'
+            // We will change it to API_URL + '/api/books/sgk/...'
+            // So path here will be /sgk/...
+            // And R2 key should be books/sgk/...
+
+            // Adjust: R2 root contains "books" folder? Or we upload content of "books" to root?
+            // "books" folder contains "sgk", "chuyen_de". 
+            // If user drags "books" folder to R2 root, keys will start with "books/".
+            // UPDATE: User confirmed R2 structure shows "book/" (singular).
+
+            const r2Key = 'book/' + filePath; // filePath is "sgk/file.pdf"
+
+            return handleFileRequest(request, env.FILES, r2Key, env.CORS_ORIGIN);
+        }
 
         if (request.method === 'POST' && path === '/api/admin/rag/search') {
             // Test RAG search (dùng HuggingFace embeddings)

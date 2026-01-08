@@ -43,3 +43,10 @@ database_id = "976ec8f9-bf7a-411a-a3d8-856b05e71a20"
 [[vectorize]]
 binding = "VECTORIZE"
 index_name = "stem-vietnam-rag"
+
+# ============================================
+# R2 Storage (Static Files)
+# ============================================
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "stem-vietnam-files"

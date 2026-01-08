@@ -2,7 +2,7 @@
 // File này thay thế việc gọi Gemini trực tiếp từ frontend
 
 // Chú thích: Lấy API URL từ environment hoặc dùng URL đã deploy
-const API_URL = (import.meta.env.VITE_API_URL || 'https://stem-vietnam-api.stu725114073.workers.dev').replace(/\/$/, '');
+export const API_URL = (import.meta.env.VITE_API_URL || 'https://stem-vietnam-api.stu725114073.workers.dev').replace(/\/$/, '');
 
 // Chú thích: Interface cho response
 export interface ChatResponse {

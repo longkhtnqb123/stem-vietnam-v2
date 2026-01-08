@@ -2,6 +2,7 @@
 // Cập nhật dựa trên file đã upload - ưu tiên Cánh Diều
 
 import type { Document } from '../../types';
+import { API_URL } from '../../lib/api';
 
 // Chú thích: Các bộ sách được Bộ GD&ĐT phê duyệt
 export const BOOK_PUBLISHERS = {
@@ -21,7 +22,7 @@ const SGK_BOOKS: Document[] = [
         grade: '10',
         topic: 'Trồng trọt',
         source: BOOK_PUBLISHERS.CANH_DIEU,
-        fileUrl: '/books/sgk/SGK Công nghệ Trồng trọt 10.pdf',
+        fileUrl: `${API_URL}/api/books/sgk/SGK Công nghệ Trồng trọt 10.pdf`,
         createdAt: Date.now(),
     },
     {
@@ -30,7 +31,7 @@ const SGK_BOOKS: Document[] = [
         grade: '10',
         topic: 'Thiết kế & Công nghệ',
         source: BOOK_PUBLISHERS.CANH_DIEU,
-        fileUrl: '/books/sgk/SGKchuyên đề thiết kế và công nghệ 10.pdf',
+        fileUrl: `${API_URL}/api/books/sgk/SGKchuyên đề thiết kế và công nghệ 10.pdf`,
         createdAt: Date.now(),
     },
     {
@@ -39,7 +40,7 @@ const SGK_BOOKS: Document[] = [
         grade: '11',
         topic: 'Chăn nuôi',
         source: BOOK_PUBLISHERS.CANH_DIEU,
-        fileUrl: '/books/sgk/SGK công nghệ Chăn nuôi 11.pdf',
+        fileUrl: `${API_URL}/api/books/sgk/SGK công nghệ Chăn nuôi 11.pdf`,
         createdAt: Date.now(),
     },
     {
@@ -48,7 +49,7 @@ const SGK_BOOKS: Document[] = [
         grade: '11',
         topic: 'Cơ khí',
         source: BOOK_PUBLISHERS.CANH_DIEU,
-        fileUrl: '/books/sgk/Sách giáo khoa Công nghệ 11 – Công nghệ cơ khí (Cánh Diều).pdf',
+        fileUrl: `${API_URL}/api/books/sgk/Sách giáo khoa Công nghệ 11 – Công nghệ cơ khí (Cánh Diều).pdf`,
         createdAt: Date.now(),
     },
     {
@@ -57,7 +58,7 @@ const SGK_BOOKS: Document[] = [
         grade: '12',
         topic: 'Lâm nghiệp & Thuỷ sản',
         source: BOOK_PUBLISHERS.CANH_DIEU,
-        fileUrl: '/books/sgk/SGK Công nghệ Lâm Nghiệp Thuỷ sản 12.pdf',
+        fileUrl: `${API_URL}/api/books/sgk/SGK Công nghệ Lâm Nghiệp Thuỷ sản 12.pdf`,
         createdAt: Date.now(),
     },
     {
@@ -66,7 +67,7 @@ const SGK_BOOKS: Document[] = [
         grade: '12',
         topic: 'Điện - Điện tử',
         source: BOOK_PUBLISHERS.CANH_DIEU,
-        fileUrl: '/books/sgk/SGK Công nghệ điện - điện tử 12.pdf',
+        fileUrl: `${API_URL}/api/books/sgk/SGK Công nghệ điện - điện tử 12.pdf`,
         createdAt: Date.now(),
     },
 ];
@@ -79,7 +80,7 @@ const CHUYEN_DE_BOOKS: Document[] = [
         grade: '10',
         topic: 'Trồng trọt',
         source: BOOK_PUBLISHERS.CANH_DIEU,
-        fileUrl: '/books/chuyen_de/Chuyên đề công nghệ trồng trọt 10.pdf',
+        fileUrl: `${API_URL}/api/books/chuyen_de/Chuyên đề công nghệ trồng trọt 10.pdf`,
         createdAt: Date.now(),
     },
     {
@@ -88,7 +89,7 @@ const CHUYEN_DE_BOOKS: Document[] = [
         grade: '10',
         topic: 'Thiết kế & Công nghệ',
         source: BOOK_PUBLISHERS.CANH_DIEU,
-        fileUrl: '/books/chuyen_de/Chuyên đề học tập Thiết kế và Công nghệ 10 - Cánh diều.pdf',
+        fileUrl: `${API_URL}/api/books/chuyen_de/Chuyên đề học tập Thiết kế và Công nghệ 10 - Cánh diều.pdf`,
         createdAt: Date.now(),
     },
     {
@@ -97,7 +98,7 @@ const CHUYEN_DE_BOOKS: Document[] = [
         grade: '11',
         topic: 'Chăn nuôi',
         source: BOOK_PUBLISHERS.CANH_DIEU,
-        fileUrl: '/books/chuyen_de/Chuyên đề học tập Công nghệ 11 – Công nghệ chăn nuôi (Cánh Diều).pdf',
+        fileUrl: `${API_URL}/api/books/chuyen_de/Chuyên đề học tập Công nghệ 11 – Công nghệ chăn nuôi (Cánh Diều).pdf`,
         createdAt: Date.now(),
     },
     {
@@ -106,7 +107,7 @@ const CHUYEN_DE_BOOKS: Document[] = [
         grade: '11',
         topic: 'Cơ khí',
         source: BOOK_PUBLISHERS.CANH_DIEU,
-        fileUrl: '/books/chuyen_de/Chuyên đề học tập Công nghệ 11 – Công nghệ cơ khí (Cánh Diều).pdf',
+        fileUrl: `${API_URL}/api/books/chuyen_de/Chuyên đề học tập Công nghệ 11 – Công nghệ cơ khí (Cánh Diều).pdf`,
         createdAt: Date.now(),
     },
     {
@@ -115,7 +116,7 @@ const CHUYEN_DE_BOOKS: Document[] = [
         grade: '12',
         topic: 'Lâm nghiệp & Thuỷ sản',
         source: BOOK_PUBLISHERS.CANH_DIEU,
-        fileUrl: '/books/chuyen_de/Chuyên đề học tập 12, lâm nghiệp - Thuỷ sản.pdf',
+        fileUrl: `${API_URL}/api/books/chuyen_de/Chuyên đề học tập 12, lâm nghiệp - Thuỷ sản.pdf`,
         createdAt: Date.now(),
     },
 ];
@@ -141,7 +142,7 @@ const SAMPLE_EXAMS: Document[] = [
         grade: '10',
         topic: 'Đề thi mẫu',
         source: BOOK_PUBLISHERS.BO_GDDT,
-        fileUrl: '/books/de_thi/Lớp 10/DE CUONG ON TAP HK I 20232024.docx',
+        fileUrl: `${API_URL}/api/books/de_thi/Lớp 10/DE CUONG ON TAP HK I 20232024.docx`,
         createdAt: Date.now(),
     },
     {
@@ -150,7 +151,7 @@ const SAMPLE_EXAMS: Document[] = [
         grade: '10',
         topic: 'Đề thi mẫu',
         source: BOOK_PUBLISHERS.BO_GDDT,
-        fileUrl: '/books/de_thi/Lớp 10/Ma_de_001.docx',
+        fileUrl: `${API_URL}/api/books/de_thi/Lớp 10/Ma_de_001.docx`,
         createdAt: Date.now(),
     },
     {
@@ -159,7 +160,7 @@ const SAMPLE_EXAMS: Document[] = [
         grade: '10',
         topic: 'Đề thi mẫu',
         source: BOOK_PUBLISHERS.BO_GDDT,
-        fileUrl: '/books/de_thi/Lớp 10/Ma_de_002.docx',
+        fileUrl: `${API_URL}/api/books/de_thi/Lớp 10/Ma_de_002.docx`,
         createdAt: Date.now(),
     },
     // Chú thích: Thêm đại diện từ Lớp 11, 12 nếu cần
