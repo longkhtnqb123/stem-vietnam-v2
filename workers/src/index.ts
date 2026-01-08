@@ -43,26 +43,7 @@ export interface Env {
 
 // SYSTEM_PROMPTS moved to prompts.ts
 import { SYSTEM_PROMPTS } from './prompts';
-
-// Chú thích: CORS headers
-function corsHeaders(origin: string): HeadersInit {
-    return {
-        'Access-Control-Allow-Origin': origin || '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, DELETE',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    };
-}
-
-// Chú thích: JSON response helper
-function jsonResponse(data: unknown, status: number, origin: string): Response {
-    return new Response(JSON.stringify(data), {
-        status,
-        headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders(origin),
-        },
-    });
-}
+import { getAllowedOrigin, corsHeaders, jsonResponse } from './utils';
 
 // Chú thích: Phân loại câu hỏi - học tập (academic) vs tổng quát (general)
 // Nếu là câu hỏi học tập → sẽ dùng RAG context từ thư viện sách
@@ -178,6 +159,7 @@ function generateSuggestions(
 
 // Chú thích: Handle chat endpoint
 async function handleChat(request: Request, env: Env): Promise<Response> {
+    const origin = getAllowedOrigin(request.headers.get('Origin'), env.CORS_ORIGIN);
     try {
         // Chú thích: Validate API key trước
         if (!env.OPENROUTER_API_KEY) {
@@ -185,7 +167,7 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
             return jsonResponse({
                 error: 'AI service not configured',
                 details: 'OPENROUTER_API_KEY is missing. Run: wrangler secret put OPENROUTER_API_KEY'
-            }, 500, env.CORS_ORIGIN);
+            }, 500, origin);
         }
 
         const body = await request.json() as {
@@ -195,7 +177,7 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
         };
 
         if (!body.message) {
-            return jsonResponse({ error: 'Message is required' }, 400, env.CORS_ORIGIN);
+            return jsonResponse({ error: 'Message is required' }, 400, origin);
         }
 
         // Chú thích: Phân loại câu hỏi để quyết định có dùng RAG không
@@ -278,7 +260,7 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
             queryType,
             suggestions, // Gợi ý câu hỏi tiếp theo
             model: result.model, // Trả về model đã sử dụng để debug
-        }, 200, env.CORS_ORIGIN);
+        }, 200, origin);
 
 
     } catch (error) {
@@ -286,13 +268,14 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
         return jsonResponse({
             error: 'Internal server error',
             details: error instanceof Error ? error.message : 'Unknown error'
-        }, 500, env.CORS_ORIGIN);
+        }, 500, origin);
     }
 }
 
 // Chú thích: Handle generate endpoint (tạo câu hỏi)
 // Chú thích: Handle generate endpoint (tạo câu hỏi) - Updated 2-Pass Logic
 async function handleGenerate(request: Request, env: Env): Promise<Response> {
+    const origin = getAllowedOrigin(request.headers.get('Origin'), env.CORS_ORIGIN);
     try {
         const body = await request.json() as {
             topic: string;
@@ -302,7 +285,7 @@ async function handleGenerate(request: Request, env: Env): Promise<Response> {
         };
 
         if (!body.topic) {
-            return jsonResponse({ error: 'Topic is required' }, 400, env.CORS_ORIGIN);
+            return jsonResponse({ error: 'Topic is required' }, 400, origin);
         }
 
         // Chú thích: Construct request message from Matrix or legacy params
@@ -371,7 +354,7 @@ ${ragContext || '(Không tìm thấy tài liệu SGK, hãy dùng kiến thức c
                 success: false,
                 error: 'AI Output Error',
                 raw: resultPass1.text
-            }, 500, env.CORS_ORIGIN);
+            }, 500, origin);
         }
 
         // ==========================================
@@ -405,19 +388,20 @@ ${ragContext || '(Không tìm thấy tài liệu SGK, hãy dùng kiến thức c
             sourceChunks: sourceChunks.length > 0 ? sourceChunks : undefined,
             matrix: body.matrix,
             criticFeedback: 'Pass 2 Completed' // Flag để biết đã qua bước 2
-        }, 200, env.CORS_ORIGIN);
+        }, 200, origin);
 
     } catch (error) {
         console.error('[generate] error:', error);
         return jsonResponse({
             error: 'Internal server error',
             details: error instanceof Error ? error.message : 'Unknown error'
-        }, 500, env.CORS_ORIGIN);
+        }, 500, origin);
     }
 }
 
 // Chú thích: Handle stream chat (Server-Sent Events)
 async function handleChatStream(request: Request, env: Env): Promise<Response> {
+    const origin = getAllowedOrigin(request.headers.get('Origin'), env.CORS_ORIGIN);
     try {
         const body = await request.json() as {
             message: string;
@@ -426,7 +410,7 @@ async function handleChatStream(request: Request, env: Env): Promise<Response> {
         };
 
         if (!body.message) {
-            return jsonResponse({ error: 'Message is required' }, 400, env.CORS_ORIGIN);
+            return jsonResponse({ error: 'Message is required' }, 400, origin);
         }
 
         // Chú thích: Phân loại câu hỏi để chọn model (OpenRouter routing)
@@ -472,7 +456,7 @@ async function handleChatStream(request: Request, env: Env): Promise<Response> {
                 'Content-Type': 'text/event-stream',
                 'Cache-Control': 'no-cache',
                 'Connection': 'keep-alive',
-                ...corsHeaders(env.CORS_ORIGIN),
+                ...corsHeaders(origin),
             },
         });
 
@@ -480,12 +464,13 @@ async function handleChatStream(request: Request, env: Env): Promise<Response> {
         console.error('[stream] error:', error);
         return jsonResponse({
             error: 'Internal server error'
-        }, 500, env.CORS_ORIGIN);
+        }, 500, origin);
     }
 }
 
 // Chú thích: Handle feedback endpoint - lưu feedback từ user về chất lượng câu trả lời
 async function handleFeedback(request: Request, env: Env): Promise<Response> {
+    const origin = getAllowedOrigin(request.headers.get('Origin'), env.CORS_ORIGIN);
     try {
         const body = await request.json() as {
             messageId: string;
@@ -496,7 +481,7 @@ async function handleFeedback(request: Request, env: Env): Promise<Response> {
         };
 
         if (!body.messageId) {
-            return jsonResponse({ error: 'messageId is required' }, 400, env.CORS_ORIGIN);
+            return jsonResponse({ error: 'messageId is required' }, 400, origin);
         }
 
         // Chú thích: Lưu vào D1 database
@@ -548,13 +533,13 @@ async function handleFeedback(request: Request, env: Env): Promise<Response> {
         return jsonResponse({
             success: true,
             message: 'Cảm ơn phản hồi của bạn!'
-        }, 200, env.CORS_ORIGIN);
+        }, 200, origin);
 
     } catch (error) {
         console.error('[feedback] error:', error);
         return jsonResponse({
             error: 'Lỗi lưu phản hồi'
-        }, 500, env.CORS_ORIGIN);
+        }, 500, origin);
     }
 }
 
@@ -563,11 +548,12 @@ export default {
     async fetch(request: Request, env: Env): Promise<Response> {
         const url = new URL(request.url);
         const path = url.pathname;
+        const allowedOrigin = getAllowedOrigin(request.headers.get('Origin'), env.CORS_ORIGIN);
 
         // Chú thích: Handle CORS preflight
         if (request.method === 'OPTIONS') {
             return new Response(null, {
-                headers: corsHeaders(env.CORS_ORIGIN),
+                headers: corsHeaders(allowedOrigin),
             });
         }
 
@@ -578,7 +564,7 @@ export default {
                 service: 'stem-vietnam-api',
                 provider: 'openrouter + huggingface + r2',
                 timestamp: new Date().toISOString(),
-            }, 200, env.CORS_ORIGIN);
+            }, 200, allowedOrigin);
         }
 
         // Storage routes (R2)
