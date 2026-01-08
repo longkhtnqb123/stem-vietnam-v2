@@ -120,7 +120,7 @@ export async function generateWithRAG(params: {
     };
 }
 
-// Chú thích: Generate câu hỏi với RAG
+// Chú thích: Generate câu hỏi với RAG - START
 export async function generateQuestionsWithRAG(params: {
     topic: string;
     grade: '10' | '11' | '12';
@@ -129,80 +129,67 @@ export async function generateQuestionsWithRAG(params: {
     systemPrompt: string;
     customPrompt?: string;
 }): Promise<RAGGeneratorResponse> {
-    const { topic, grade, difficulty, count, systemPrompt, customPrompt } = params;
+    const { topic, grade, difficulty, count } = params;
 
-    const query = `Tạo ${count} câu hỏi trắc nghiệm về chủ đề "${topic}" cho học sinh lớp ${grade}, mức độ ${difficulty}`;
+    // Call new API
+    // Mapping difficulty string to matrix if needed, or just passing generic topic
+    const matrix = {
+        topic: topic,
+        totalQuestions: count,
+        distribution: {
+            remember: difficulty === 'remember' ? 100 : 0, // Simplified
+            understand: difficulty === 'understand' ? 100 : 0,
+            apply: difficulty === 'apply' ? 100 : 0,
+            analyze: difficulty === 'analyze' ? 100 : 0
+        },
+        types: {
+            multiple_choice: count,
+            true_false: 0
+        },
+        focusTopics: [params.customPrompt || '']
+    };
 
-    return generateWithRAG({
-        query,
-        systemPrompt,
-        customPrompt,
-        filters: { grade },
+    const response = await generateQuestions({
+        topic: `${topic} (Lớp ${grade})`,
+        matrix: matrix,
+        count: count, // Legacy support
+        difficulty: difficulty // Legacy support
     });
+
+    return {
+        text: response.text,
+        sourceChunks: response.sourceChunks || []
+    };
 }
 
-// Chú thích: Generate đề thi với RAG thông qua API Workers mới
+
 import { generateQuestions } from '../api';
 
 export async function generateExamWithRAG(params: {
     subject: 'cong_nghiep' | 'nong_nghiep';
-    systemPrompt: string; // (Deprecated - worker dùng prompt riêng)
+    systemPrompt: string;
     customPrompt?: string;
 }): Promise<RAGGeneratorResponse> {
     const { subject, customPrompt } = params;
-
     const subjectName = subject === 'cong_nghiep' ? 'Công nghiệp' : 'Nông nghiệp';
-    const topic = `Đề thi THPT Quốc gia môn Công nghệ ${subjectName}. ${customPrompt || ''}`;
 
-    // Chú thích: Gọi API Worker thay vì local Gemini
-    const response = await generateQuestions(topic, 28, 'medium');
+    // Call new API
+    const response = await generateQuestions({
+        topic: `Đề thi THPT Quốc gia môn Công nghệ ${subjectName}. ${customPrompt || ''}`,
+        // Let backend use default/fallback if matrix not provided here, 
+        // OR construct a basic matrix.
+        // For legacy call, we rely on the API returning formatted text.
+        count: 28,
+        difficulty: 'medium'
+    });
 
-    if (!response.success || !response.questions) {
-        throw new Error(response.error || 'Failed to generate exam');
+    if (!response.success) {
+        throw new Error('Failed to generate exam');
     }
 
-    // Chú thích: Format JSON questions thành text hiển thị
-    // Frontend hiện tại expect text để hiển thị và sửa
-    let formattedText = `**ĐỀ THI THỬ THPT QUỐC GIA MÔN CÔNG NGHỆ (${subjectName.toUpperCase()})**\n\n`;
-
-    response.questions.forEach((q, index) => {
-        const sourceTag = q.source_type ? ` *[Nguồn: ${q.source_type}]*` : '';
-        formattedText += `**Câu ${index + 1}:** ${q.question}${sourceTag}\n`;
-        q.options.forEach(opt => {
-            formattedText += `${opt}\n`;
-        });
-        formattedText += `\n`; // Spacer
-    });
-
-    formattedText += `\n---\n**ĐÁP ÁN & GIẢI THÍCH CHI TIẾT**\n`;
-    response.questions.forEach((q, index) => {
-        const correctChar = String.fromCharCode(65 + q.correct); // 0->A, 1->B...
-        formattedText += `\n**Câu ${index + 1}: ${correctChar}**\n*Giải thích:* ${q.explanation}\n`;
-    });
-
-    // Chú thích: Map sourceChunks từ API
-    // Cần convert sang RetrievedChunk type giả định
-    const mappedSources = (response.sourceChunks || []).map((chunk, idx) => ({
-        chunk: {
-            id: `chunk-${idx}`,
-            documentId: 'doc-api',
-            content: chunk.content,
-            chunkIndex: idx,
-        },
-        score: 1, // Fake score
-        document: {
-            id: 'doc-api',
-            title: chunk.source,
-            grade: '12',
-            topic: subjectName,
-            source: chunk.source,
-            fileUrl: '',
-            createdAt: Date.now(),
-        }
-    })) as RetrievedChunk[];
-
     return {
-        text: formattedText,
-        sourceChunks: mappedSources,
+        text: response.text, // API now returns formatted Markdown text
+        sourceChunks: response.sourceChunks || []
     };
 }
+// END

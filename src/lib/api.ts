@@ -167,7 +167,7 @@ export async function generateQuestions(params: {
                 if (q.type === 'multiple_choice' && q.options) {
                     q.options.forEach(opt => formattedText += `${opt}\n`);
                 } else if (q.type === 'true_false' && q.statements) {
-                    q.statements.forEach((stmt, idx) => formattedText += `- ${stmt} (Đ/S)\n`);
+                    q.statements.forEach((stmt) => formattedText += `- ${stmt} (Đ/S)\n`);
                 }
                 formattedText += `\n`;
             });
