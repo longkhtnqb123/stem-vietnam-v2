@@ -16,6 +16,7 @@ import {
     Settings,
     Trophy,
     HelpCircle,
+    School,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { useAuthStore } from '../../lib/auth';
@@ -34,6 +35,7 @@ const navItems: NavItem[] = [
     { path: '/exam-online', icon: Trophy, label: '🔥 Thi Online' },
     { path: '/student-dashboard', icon: GraduationCap, label: '📈 Tiến Độ', roles: ['student'] },
     { path: '/teacher-dashboard', icon: ClipboardList, label: '📊 Dashboard GV', roles: ['teacher', 'admin'] },
+    { path: '/classes', icon: School, label: 'Lớp Học' },
     { path: '/questions', icon: FileQuestion, label: 'Tạo Câu Hỏi', roles: ['teacher', 'admin'] },
     { path: '/exam/thpt', icon: ClipboardList, label: 'Đề Thi THPT', roles: ['teacher', 'admin'] },
     { path: '/exam/semester', icon: GraduationCap, label: 'Đề Giữa/Cuối Kỳ', roles: ['teacher', 'admin'] },

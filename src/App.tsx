@@ -24,6 +24,8 @@ const ExamTakingPage = lazy(() => import('./pages/ExamTakingPage'));
 const HelpPage = lazy(() => import('./pages/HelpPage'));
 const TeacherDashboard = lazy(() => import('./pages/TeacherDashboard'));
 const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
+const ClassesPage = lazy(() => import('./pages/ClassesPage'));
+const ClassDetailPage = lazy(() => import('./pages/ClassDetailPage'));
 import AuthGuard from './components/auth/AuthGuard';
 import ApiKeyWarning from './components/common/ApiKeyWarning';
 import PWAInstallPrompt from './components/common/PWAInstallPrompt';
@@ -199,6 +201,24 @@ function App() {
               </Suspense>
             </AuthGuard>
           } />
+
+          {/* Class System */}
+          <Route path="classes" element={
+            <AuthGuard>
+              <Suspense fallback={<PageLoader />}>
+                <ClassesPage />
+              </Suspense>
+            </AuthGuard>
+          } />
+
+          <Route path="classes/:id" element={
+            <AuthGuard>
+              <Suspense fallback={<PageLoader />}>
+                <ClassDetailPage />
+              </Suspense>
+            </AuthGuard>
+          } />
+
         </Route>
       </Routes>
     </BrowserRouter>

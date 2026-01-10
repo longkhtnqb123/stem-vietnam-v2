@@ -364,3 +364,38 @@ export function getLevelLabel(level: string): string {
     };
     return labels[level] || level;
 }
+
+// Thống kê template
+export async function getTemplateStats(templateId: string): Promise<any> {
+    const response = await fetch(`${API_URL}/api/exam-online/templates/${templateId}/stats`, {
+        headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+        throw new Error('Không thể tải thống kê đề thi');
+    }
+
+    return response.json();
+}
+
+export const examOnlineApi = {
+    getTemplates: getExamTemplates,
+    getTemplate: getExamTemplate,
+    createTemplate: createExamTemplate,
+    deleteExamTemplate,
+    generateExamWithAI,
+    startExamAttempt,
+    saveAttemptProgress,
+    submitExamAttempt,
+    getAttempt,
+    getAttempts,
+    getTemplateStats,
+    getTeacherDashboard,
+    getStudentDashboard,
+    formatTime,
+    formatScore,
+    calculatePercentage,
+    getExamTypeLabel,
+    getDifficultyLabel,
+    getLevelLabel
+};

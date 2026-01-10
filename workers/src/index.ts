@@ -33,6 +33,7 @@ import { getRAGContext } from './rag-pipeline';
 import { getAdvancedRAGContext } from './rag/advanced-rag-pipeline';
 import { isFileTypeSupported, isFileSizeValid, MAX_FILE_SIZE, getSupportedExtensions } from './file-parser';
 import { ingestFromR2 } from './ingest';
+import { getClasses, createClass, joinClass, getClassDetails, createAssignment, deleteClass, ClassesEnv } from './class-routes';
 
 // Chú thích: Environment interface (đã xoá Vertex AI, chuyển sang HuggingFace)
 export interface Env {
@@ -776,6 +777,27 @@ export default {
                 // Chú thích: Có thể thêm role check admin ở đây
                 return ingestFromR2(request, user, env as any);
             }
+
+            // ========== CLASS SYSTEM ROUTES (POST) ==========
+            // Tạo lớp mới
+            if (path === '/api/classes') {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return createClass(request, user, env as any);
+            }
+            // Tham gia lớp
+            if (path === '/api/classes/join') {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return joinClass(request, user, env as any);
+            }
+            // Giao bài tập
+            const assignMatch = path.match(/^\/api\/classes\/([^/]+)\/assignments$/);
+            if (assignMatch) {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return createAssignment(request, assignMatch[1], user, env as any);
+            }
         }
 
         // GET routes
@@ -862,6 +884,21 @@ export default {
                 if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
                 return getStudentDashboard(user, env as any);
             }
+
+            // ========== CLASS SYSTEM ROUTES (GET) ==========
+            // Lấy danh sách lớp
+            if (path === '/api/classes') {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return getClasses(user, env as any);
+            }
+            // Chi tiết lớp
+            const classMatch = path.match(/^\/api\/classes\/([^/]+)$/);
+            if (classMatch) {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return getClassDetails(classMatch[1], user, env as any);
+            }
         }
 
         // DELETE routes
@@ -883,6 +920,15 @@ export default {
             const adminUserMatch = path.match(/^\/api\/admin\/users\/([^/]+)$/);
             if (adminUserMatch) {
                 return deleteUser(adminUserMatch[1], env as unknown as AdminEnv);
+            }
+
+            // ========== CLASS SYSTEM ROUTES (DELETE) ==========
+            // Xóa lớp
+            const deleteClassMatch = path.match(/^\/api\/classes\/([^/]+)$/);
+            if (deleteClassMatch) {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return deleteClass(deleteClassMatch[1], user, env as any);
             }
         }
 
