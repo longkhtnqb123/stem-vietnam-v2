@@ -147,7 +147,7 @@ export default function TeacherDashboard() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-5 text-white">
+                <div className="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl p-5 text-white shadow-lg shadow-primary-500/20">
                     <div className="flex items-center gap-3 mb-3">
                         <FileText size={24} className="opacity-80" />
                         <span className="text-sm opacity-80">Đề đã tạo</span>
@@ -187,7 +187,7 @@ export default function TeacherDashboard() {
                     {Object.entries(scoreDistribution).map(([range, count]) => (
                         <div key={range} className="flex-1 flex flex-col items-center">
                             <div
-                                className="w-full bg-gradient-to-t from-blue-500 to-cyan-400 rounded-t-lg transition-all duration-500"
+                                className="w-full bg-gradient-to-t from-primary-500 to-secondary-400 rounded-t-lg transition-all duration-500"
                                 style={{ height: `${(count / maxDistribution) * 100}%`, minHeight: count > 0 ? '20px' : '4px' }}
                             />
                             <span className="text-xs text-slate-500 mt-2">{range}</span>

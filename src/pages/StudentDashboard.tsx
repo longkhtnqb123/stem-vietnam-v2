@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../lib/auth';
+import { XPBar, StreakCounter, BadgeDisplay, DailyGoalCard } from '../components/gamification/GamificationComponents';
 
 const API_URL = (import.meta.env.VITE_API_URL || 'https://stem-vietnam-api.stu725114073.workers.dev').replace(/\/$/, '');
 
@@ -109,30 +110,46 @@ export default function StudentDashboard() {
                 </div>
                 <Link
                     to="/exam-online"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-medium hover:from-blue-700 hover:to-cyan-700 transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary-500 to-secondary-500 text-white rounded-xl font-medium hover:from-primary-600 hover:to-secondary-600 transition-colors shadow-lg shadow-primary-500/30"
                 >
                     <BookOpen size={18} />
                     Làm bài thi
                 </Link>
             </div>
 
+            {/* Gamification Section - XP, Streak, Daily Goal */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <XPBar
+                    currentXP={overview.totalAttempts * 25}
+                    level={Math.floor(overview.totalAttempts / 5) + 1}
+                    progressToNextLevel={(overview.totalAttempts % 5) * 20}
+                    xpToNextLevel={125 - (overview.totalAttempts % 5) * 25}
+                />
+                <StreakCounter streak={overview.streak} />
+                <DailyGoalCard
+                    targetExams={3}
+                    completedExams={Math.min(overview.totalAttempts % 3, 3)}
+                    achieved={overview.totalAttempts % 3 === 0 && overview.totalAttempts > 0}
+                />
+            </div>
+
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white">
+                <div className="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl p-4 text-white shadow-lg shadow-primary-500/20">
                     <div className="flex items-center gap-2 mb-2">
                         <Target size={20} className="opacity-80" />
                         <span className="text-xs opacity-80">Bài đã làm</span>
                     </div>
                     <p className="text-2xl font-bold">{overview.totalAttempts}</p>
                 </div>
-                <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-4 text-white">
+                <div className="bg-gradient-to-br from-secondary-500 to-secondary-600 rounded-2xl p-4 text-white shadow-lg shadow-secondary-500/20">
                     <div className="flex items-center gap-2 mb-2">
                         <TrendingUp size={20} className="opacity-80" />
                         <span className="text-xs opacity-80">Điểm TB</span>
                     </div>
                     <p className="text-2xl font-bold">{overview.averageScore.toFixed(1)}</p>
                 </div>
-                <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-4 text-white">
+                <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl p-4 text-white shadow-lg shadow-primary-600/20">
                     <div className="flex items-center gap-2 mb-2">
                         <Trophy size={20} className="opacity-80" />
                         <span className="text-xs opacity-80">Cao nhất</span>
@@ -172,7 +189,7 @@ export default function StudentDashboard() {
                                 )}
                                 <div
                                     className={`w-full rounded-t-lg transition-all duration-500 ${p.count > 0
-                                        ? 'bg-gradient-to-t from-blue-500 to-cyan-400'
+                                        ? 'bg-gradient-to-t from-primary-500 to-secondary-400'
                                         : 'bg-slate-200 dark:bg-slate-700'
                                         }`}
                                     style={{

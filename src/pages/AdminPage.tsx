@@ -260,7 +260,7 @@ export default function AdminPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                             <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center shadow-lg shadow-primary-500/25">
                                     <Users className="text-white" size={22} />
                                 </div>
                                 <div>
@@ -301,8 +301,8 @@ export default function AdminPage() {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id
-                                    ? 'bg-primary-500 text-white shadow-md shadow-primary-500/25'
-                                    : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                                ? 'bg-primary-500 text-white shadow-md shadow-primary-500/25'
+                                : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
                                 }`}
                         >
                             <tab.icon size={16} />
@@ -468,7 +468,7 @@ export default function AdminPage() {
                     <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                         <h3 className="text-lg font-bold text-slate-900 mb-4">📊 Analytics Overview</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6">
+                            <div className="bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 rounded-xl p-6">
                                 <h4 className="text-blue-800 font-medium mb-2">User Growth</h4>
                                 <p className="text-4xl font-bold text-blue-600">{stats?.total_users || 0}</p>
                                 <p className="text-blue-600/70 text-sm mt-1">Total registered users</p>
@@ -573,8 +573,8 @@ export default function AdminPage() {
                                 {selectedConvo.messages.map(msg => (
                                     <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                         <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.role === 'user'
-                                                ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-br-md'
-                                                : 'bg-slate-100 text-slate-800 rounded-bl-md'
+                                            ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-br-md'
+                                            : 'bg-slate-100 text-slate-800 rounded-bl-md'
                                             }`}>
                                             <p className="whitespace-pre-wrap">{msg.content}</p>
                                             <p className={`text-xs mt-1 ${msg.role === 'user' ? 'text-primary-100' : 'text-slate-400'}`}>

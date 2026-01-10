@@ -212,7 +212,7 @@ export default function HelpPage() {
                         <button
                             onClick={() => setActiveTab('student')}
                             className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${activeTab === 'student'
-                                ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg'
+                                ? 'bg-gradient-to-r from-primary-500 to-secondary-500 text-white shadow-lg'
                                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                                 }`}
                         >
@@ -264,7 +264,7 @@ export default function HelpPage() {
                                     <ol className="space-y-2">
                                         {guide.steps.map((step, stepIdx) => (
                                             <li key={stepIdx} className="flex items-start gap-3">
-                                                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs flex items-center justify-center font-bold">
+                                                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-r from-primary-500 to-secondary-500 text-white text-xs flex items-center justify-center font-bold">
                                                     {stepIdx + 1}
                                                 </span>
                                                 <span className="text-slate-700 dark:text-slate-300 text-sm">
@@ -279,7 +279,7 @@ export default function HelpPage() {
                                 {guide.link && (
                                     <Link
                                         to={guide.link}
-                                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-medium hover:from-blue-700 hover:to-cyan-700 transition-colors"
+                                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-medium hover:from-primary-600 hover:to-secondary-600 transition-colors"
                                     >
                                         {guide.linkText}
                                         <ChevronRight size={18} />

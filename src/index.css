@@ -1,18 +1,29 @@
 /* Chú thích: Tailwind v4 - dùng @import thay cho @tailwind directives */
 @import "tailwindcss";
 
-/* Chú thích: Theme customization cho Tailwind v4 */
+/* Import design tokens */
+@import "./styles/design-tokens.css";
+
+/* Chú thích: Theme customization cho Tailwind v4 - Emerald Theme */
 @theme {
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93c5fd;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
+  /* Emerald Primary Colors */
+  --color-primary-50: #ecfdf5;
+  --color-primary-100: #d1fae5;
+  --color-primary-200: #a7f3d0;
+  --color-primary-300: #6ee7b7;
+  --color-primary-400: #34d399;
+  --color-primary-500: #10b981;
+  --color-primary-600: #059669;
+  --color-primary-700: #047857;
+  --color-primary-800: #065f46;
+  --color-primary-900: #064e3b;
+
+  /* Teal Secondary Colors */
+  --color-secondary-500: #06b6d4;
+  --color-secondary-600: #0891b2;
+
+  /* Amber Accent */
+  --color-accent-500: #f59e0b;
 }
 
 /* Chú thích: Base styles cho toàn bộ app */
@@ -29,9 +40,12 @@
 body {
   @apply bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100;
   @apply antialiased;
+  font-family: 'Inter', 'Nunito', system-ui, sans-serif;
 }
 
-/* Chú thích: Utility classes cho glass morphism UI */
+/* ============================================ */
+/* CARD STYLES - Updated for Emerald theme     */
+/* ============================================ */
 .glass-card {
   @apply bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg rounded-2xl;
   @apply border border-slate-200 dark:border-slate-700;
@@ -44,15 +58,41 @@ body {
   @apply shadow-xl;
 }
 
-/* Chú thích: Primary button style */
+/* Bento Card - cho dashboard mới */
+.bento-card {
+  @apply bg-white dark:bg-slate-800 rounded-2xl p-6;
+  @apply border border-slate-200 dark:border-slate-700;
+  @apply shadow-sm hover:shadow-lg transition-shadow duration-300;
+}
+
+.bento-card-highlight {
+  @apply bg-gradient-to-br from-primary-500 to-secondary-500 rounded-2xl p-6;
+  @apply text-white;
+  @apply shadow-lg shadow-primary-500/30;
+}
+
+/* ============================================ */
+/* BUTTONS - Updated with Emerald gradients    */
+/* ============================================ */
 .btn-primary {
-  @apply bg-gradient-to-r from-primary-600 to-primary-700;
+  @apply bg-gradient-to-r from-primary-500 to-primary-600;
   @apply text-white font-semibold;
   @apply px-6 py-3 rounded-xl;
-  @apply hover:from-primary-700 hover:to-primary-800;
+  @apply hover:from-primary-600 hover:to-primary-700;
   @apply transition-all duration-200;
   @apply shadow-lg shadow-primary-500/30;
   @apply disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-primary-glow {
+  @apply bg-gradient-to-r from-primary-500 to-primary-600;
+  @apply text-white font-semibold;
+  @apply px-6 py-3 rounded-xl;
+  @apply hover:from-primary-600 hover:to-primary-700;
+  @apply transition-all duration-200;
+  @apply shadow-lg shadow-primary-500/30;
+  @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply hover:shadow-glow;
 }
 
 .btn-secondary {
@@ -64,7 +104,18 @@ body {
   @apply border border-slate-200 dark:border-slate-600;
 }
 
-/* Chú thích: Input field styles */
+.btn-accent {
+  @apply bg-gradient-to-r from-accent-500 to-accent-600;
+  @apply text-white font-semibold;
+  @apply px-6 py-3 rounded-xl;
+  @apply hover:from-accent-600 hover:to-amber-600;
+  @apply transition-all duration-200;
+  @apply shadow-lg shadow-accent-500/30;
+}
+
+/* ============================================ */
+/* INPUT FIELDS                                 */
+/* ============================================ */
 .input-field {
   @apply w-full px-4 py-3 rounded-xl;
   @apply bg-slate-50 dark:bg-slate-900;
@@ -75,13 +126,68 @@ body {
   @apply outline-none transition-all;
 }
 
-/* Chú thích: Animations */
+/* ============================================ */
+/* BENTO GRID LAYOUT                            */
+/* ============================================ */
+.bento-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: minmax(100px, auto);
+}
+
+.bento-grid .span-2 {
+  grid-column: span 2;
+}
+
+.bento-grid .span-3 {
+  grid-column: span 3;
+}
+
+.bento-grid .span-4 {
+  grid-column: span 4;
+}
+
+.bento-grid .row-span-2 {
+  grid-row: span 2;
+}
+
+@media (max-width: 1024px) {
+  .bento-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .bento-grid .span-3,
+  .bento-grid .span-4 {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .bento-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bento-grid .span-2,
+  .bento-grid .span-3,
+  .bento-grid .span-4 {
+    grid-column: span 1;
+  }
+}
+
+/* ============================================ */
+/* ANIMATIONS                                   */
+/* ============================================ */
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out;
 }
 
 .animate-slide-up {
   animation: slideUp 0.3s ease-out;
+}
+
+.animate-slide-left {
+  animation: slideLeft 0.3s ease-out;
 }
 
 @keyframes fadeIn {
@@ -106,11 +212,26 @@ body {
   }
 }
 
-/* Chú thích: Landing page animations */
+@keyframes slideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Landing page animations */
 @keyframes float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0) rotate(0deg);
   }
+
   50% {
     transform: translateY(-20px) rotate(3deg);
   }
@@ -120,11 +241,25 @@ body {
   0% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
+
   100% {
     background-position: 0% 50%;
+  }
+}
+
+@keyframes pulseGlow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 30px 10px rgba(16, 185, 129, 0);
   }
 }
 
@@ -137,7 +272,27 @@ body {
   animation: gradient 8s ease infinite;
 }
 
-/* Chú thích: Smooth scrolling */
+.animate-pulse-glow {
+  animation: pulseGlow 2s infinite;
+}
+
+/* ============================================ */
+/* UTILITIES                                    */
+/* ============================================ */
+.text-gradient {
+  @apply bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-600;
+  @apply bg-clip-text text-transparent;
+}
+
+.bg-gradient-primary {
+  @apply bg-gradient-to-r from-primary-500 to-secondary-500;
+}
+
+.shadow-glow {
+  box-shadow: 0 0 30px -5px rgba(16, 185, 129, 0.3);
+}
+
+/* Smooth scrolling */
 html {
   scroll-behavior: smooth;
 }

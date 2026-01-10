@@ -234,14 +234,14 @@ export default function LandingPage() {
             title: 'Chat AI Thông Minh',
             description: 'Hỏi đáp kiến thức môn Công nghệ với AI được huấn luyện từ SGK chính thống.',
             href: '/chat',
-            gradient: 'bg-gradient-to-br from-blue-500 to-cyan-500'
+            gradient: 'bg-gradient-to-br from-primary-500 to-secondary-500'
         },
         {
             icon: FileQuestion,
             title: 'Tạo Câu Hỏi Trắc Nghiệm',
             description: 'Tự động sinh câu hỏi trắc nghiệm theo chủ đề và mức độ khó tùy chọn.',
             href: '/questions',
-            gradient: 'bg-gradient-to-br from-purple-500 to-pink-500'
+            gradient: 'bg-gradient-to-br from-secondary-500 to-secondary-700'
         },
         {
             icon: ClipboardList,
@@ -262,7 +262,7 @@ export default function LandingPage() {
             title: 'Thư Viện Tài Liệu',
             description: 'Kho SGK và tài liệu học tập phong phú, cập nhật liên tục.',
             href: '/library',
-            gradient: 'bg-gradient-to-br from-indigo-500 to-violet-500'
+            gradient: 'bg-gradient-to-br from-primary-600 to-primary-800'
         }
     ];
 
@@ -315,7 +315,7 @@ export default function LandingPage() {
                     <AnimatedSection animation="fade-up" delay={100}>
                         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-slate-900 dark:text-white leading-tight">
                             Luyện đề{' '}
-                            <span className="bg-gradient-to-r from-primary-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                            <span className="bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-600 bg-clip-text text-transparent">
                                 Công Nghệ
                             </span>
                             <br />

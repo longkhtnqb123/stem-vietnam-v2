@@ -176,7 +176,7 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="p-6 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                            <div className="p-6 rounded-lg bg-gradient-to-br from-primary-500 to-secondary-500 text-white shadow-lg shadow-primary-500/30">
                                 <p className="text-sm opacity-90 mb-2">Tổng conversations</p>
                                 <p className="text-3xl font-bold">--</p>
                             </div>
