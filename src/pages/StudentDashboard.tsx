@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../lib/auth';
-import { XPBar, StreakCounter, BadgeDisplay, DailyGoalCard } from '../components/gamification/GamificationComponents';
+import { XPBar, StreakCounter, DailyGoalCard } from '../components/gamification/GamificationComponents';
 
 const API_URL = (import.meta.env.VITE_API_URL || 'https://stem-vietnam-api.stu725114073.workers.dev').replace(/\/$/, '');
 

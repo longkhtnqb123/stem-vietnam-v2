@@ -12,6 +12,9 @@ export interface User {
     name: string;
     avatar_url?: string | null;
     role?: 'student' | 'teacher' | 'admin';
+    xp?: number;
+    level?: number;
+    streak?: number;
 }
 
 export type UserRole = 'student' | 'teacher' | 'admin';

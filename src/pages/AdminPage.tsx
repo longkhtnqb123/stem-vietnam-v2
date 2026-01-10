@@ -1,6 +1,8 @@
 // Chú thích: Admin Dashboard - Quản lý users và conversations với tabs
 import { useState, useEffect } from 'react';
-import { Users, MessageSquare, Trash2, Edit2, Search, RefreshCw, BarChart3, X, Save, ChevronLeft, ChevronRight, Eye, MessagesSquare } from 'lucide-react';
+import { Users, MessageSquare, Trash2, Edit2, Search, RefreshCw, BarChart3, X, Save, ChevronLeft, ChevronRight, Eye, MessagesSquare, Plus, Upload } from 'lucide-react';
+import CreateUserModal from '../components/admin/CreateUserModal';
+import UserImportModal from '../components/admin/UserImportModal';
 
 const API_URL = (import.meta.env.VITE_API_URL || 'https://stem-vietnam-api.stu725114073.workers.dev').replace(/\/$/, '');
 
@@ -10,6 +12,7 @@ interface User {
     email: string;
     name: string;
     avatar_url: string | null;
+    role: 'student' | 'teacher' | 'admin';
     created_at: number;
     updated_at: number;
 }
@@ -67,7 +70,9 @@ export default function AdminPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedUser, setSelectedUser] = useState<UserDetail | null>(null);
-    const [editingUser, setEditingUser] = useState<{ id: string; name: string; email: string } | null>(null);
+    const [editingUser, setEditingUser] = useState<{ id: string; name: string; email: string; role: string } | null>(null);
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
 
     // Chú thích: Conversations state
     const [conversations, setConversations] = useState<AdminConversation[]>([]);
@@ -168,7 +173,7 @@ export default function AdminPage() {
             const res = await fetch(`${API_URL}/api/admin/users/${editingUser.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: editingUser.name, email: editingUser.email })
+                body: JSON.stringify({ name: editingUser.name, email: editingUser.email, role: editingUser.role })
             });
             if (res.ok) {
                 setEditingUser(null);
@@ -319,9 +324,9 @@ export default function AdminPage() {
                 {/* Tab Content */}
                 {activeTab === 'users' && (
                     <div>
-                        {/* Search */}
-                        <div className="mb-4">
-                            <div className="relative max-w-md">
+                        {/* Search & Actions */}
+                        <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="relative max-w-md w-full">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                 <input
                                     type="text"
@@ -331,6 +336,22 @@ export default function AdminPage() {
                                     className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm shadow-sm"
                                 />
                             </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setShowImportModal(true)}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-emerald-300 transition-all text-sm font-medium shadow-sm"
+                                >
+                                    <Upload size={18} className="text-emerald-600" />
+                                    <span>Import</span>
+                                </button>
+                                <button
+                                    onClick={() => setShowCreateModal(true)}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl hover:shadow-lg hover:shadow-primary-500/25 transition-all text-sm font-medium shadow-sm"
+                                >
+                                    <Plus size={18} />
+                                    <span>Create User</span>
+                                </button>
+                            </div>
                         </div>
 
                         {/* Users Table */}
@@ -339,6 +360,7 @@ export default function AdminPage() {
                                 <thead className="bg-slate-50 border-b border-slate-200">
                                     <tr>
                                         <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">User</th>
+                                        <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">Role</th>
                                         <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">Email</th>
                                         <th className="text-left px-4 py-3 text-sm font-medium text-slate-600">Ngày tạo</th>
                                         <th className="text-right px-4 py-3 text-sm font-medium text-slate-600">Actions</th>
@@ -360,11 +382,19 @@ export default function AdminPage() {
                                                         <span className="font-medium text-slate-900 text-sm">{user.name}</span>
                                                     </div>
                                                 </td>
+                                                <td className="px-4 py-3">
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${user.role === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                                        user.role === 'teacher' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                                            'bg-slate-50 text-slate-600 border-slate-200'
+                                                        }`}>
+                                                        {user.role || 'student'}
+                                                    </span>
+                                                </td>
                                                 <td className="px-4 py-3 text-slate-600 text-sm">{user.email}</td>
                                                 <td className="px-4 py-3 text-slate-500 text-sm">{formatDate(user.created_at)}</td>
                                                 <td className="px-4 py-3 text-right">
                                                     <button onClick={() => viewUser(user.id)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-700 transition-all" title="Xem chi tiết"><Eye size={16} /></button>
-                                                    <button onClick={() => setEditingUser({ id: user.id, name: user.name, email: user.email })} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-blue-600 transition-all ml-1" title="Sửa"><Edit2 size={16} /></button>
+                                                    <button onClick={() => setEditingUser({ id: user.id, name: user.name, email: user.email, role: user.role || 'student' })} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-blue-600 transition-all ml-1" title="Sửa"><Edit2 size={16} /></button>
                                                     <button onClick={() => handleDeleteUser(user.id)} className="p-1.5 hover:bg-red-50 rounded-lg text-slate-500 hover:text-red-600 transition-all ml-1" title="Xóa"><Trash2 size={16} /></button>
                                                 </td>
                                             </tr>
@@ -377,6 +407,7 @@ export default function AdminPage() {
                 )}
 
                 {activeTab === 'conversations' && (
+                    // ... (keep existing)
                     <div>
                         {/* Search */}
                         <div className="mb-4">
@@ -550,6 +581,18 @@ export default function AdminPage() {
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
                                     <input type="email" value={editingUser.email} onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500" />
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
+                                    <select
+                                        value={editingUser.role || 'student'}
+                                        onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
+                                        className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 bg-white"
+                                    >
+                                        <option value="student">Student</option>
+                                        <option value="teacher">Teacher</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+                                </div>
                                 <button onClick={handleUpdateUser} className="w-full py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-primary-500/25 transition-all text-sm">
                                     <Save size={16} /> Lưu thay đổi
                                 </button>
@@ -587,6 +630,24 @@ export default function AdminPage() {
                         </div>
                     </div>
                 )}
+
+                <CreateUserModal
+                    isOpen={showCreateModal}
+                    onClose={() => setShowCreateModal(false)}
+                    onSuccess={() => {
+                        loadUsers();
+                        loadStats();
+                    }}
+                />
+
+                <UserImportModal
+                    isOpen={showImportModal}
+                    onClose={() => setShowImportModal(false)}
+                    onSuccess={() => {
+                        loadUsers();
+                        loadStats();
+                    }}
+                />
             </div>
         </div>
     );

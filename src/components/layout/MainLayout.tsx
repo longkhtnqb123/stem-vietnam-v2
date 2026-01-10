@@ -12,7 +12,6 @@ import {
     Menu,
     X,
     LogOut,
-    User,
     Settings,
     Trophy,
     HelpCircle,

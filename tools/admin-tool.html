@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 STEM Vietnam - Admin Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 500: '#10b981', 600: '#059669', 700: '#047857' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Segoe UI', system-ui, sans-serif; }
+        .modal-backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 9999px; font-size: 12px; font-weight: 500; }
+        .badge-student { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+        .badge-teacher { background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
+        .badge-admin { background: #ede9fe; color: #7c3aed; border: 1px solid #c4b5fd; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-100 to-slate-200 min-h-screen">
+    <div id="app" class="max-w-6xl mx-auto p-6">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">🔐 Admin User Management</h1>
+                <p class="text-slate-500 text-sm">STEM Vietnam - Standalone Tool</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <input type="text" id="apiUrl" value="http://localhost:8787" 
+                    class="px-3 py-2 border border-slate-300 rounded-lg text-sm w-64 focus:ring-2 focus:ring-primary-500"
+                    placeholder="API URL">
+                <button onclick="loadUsers()" class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 text-sm font-medium shadow-sm">
+                    🔄 Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div id="stats" class="grid grid-cols-3 gap-4 mb-6">
+            <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white text-xl">👥</div>
+                    <div>
+                        <p id="totalUsers" class="text-3xl font-bold text-slate-900">0</p>
+                        <p class="text-slate-500 text-sm">Total Users</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-white text-xl">👨‍🏫</div>
+                    <div>
+                        <p id="totalTeachers" class="text-3xl font-bold text-slate-900">0</p>
+                        <p class="text-slate-500 text-sm">Teachers</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center text-white text-xl">🎓</div>
+                    <div>
+                        <p id="totalStudents" class="text-3xl font-bold text-slate-900">0</p>
+                        <p class="text-slate-500 text-sm">Students</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-between mb-4">
+            <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+                <input type="text" id="searchInput" oninput="filterUsers()" placeholder="Tìm kiếm user..."
+                    class="pl-10 pr-4 py-2.5 w-80 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 text-sm">
+            </div>
+            <div class="flex gap-2">
+                <button onclick="showImportModal()" class="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-emerald-300 text-sm font-medium shadow-sm">
+                    📥 Import (JSON/Excel)
+                </button>
+                <button onclick="showCreateModal()" class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-xl hover:shadow-lg text-sm font-medium shadow-sm">
+                    ➕ Create User
+                </button>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="text-left px-4 py-3 text-sm font-medium text-slate-600">User</th>
+                        <th class="text-left px-4 py-3 text-sm font-medium text-slate-600">Role</th>
+                        <th class="text-left px-4 py-3 text-sm font-medium text-slate-600">Email</th>
+                        <th class="text-left px-4 py-3 text-sm font-medium text-slate-600">Created</th>
+                        <th class="text-right px-4 py-3 text-sm font-medium text-slate-600">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <tr><td colspan="5" class="text-center py-8 text-slate-400">Đang tải...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Status -->
+        <div id="statusBar" class="mt-4 text-center text-sm text-slate-500"></div>
+    </div>
+
+    <!-- Create User Modal -->
+    <div id="createModal" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-slate-900">➕ Create New User</h3>
+                <button onclick="hideCreateModal()" class="text-slate-400 hover:text-slate-600 text-xl">&times;</button>
+            </div>
+            <form onsubmit="createUser(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                    <input type="text" id="createName" required class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500" placeholder="Nguyen Van A">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                    <input type="email" id="createEmail" required class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500" placeholder="email@example.com">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Role</label>
+                    <select id="createRole" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 bg-white">
+                        <option value="student">Student</option>
+                        <option value="teacher">Teacher</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                    <input type="text" id="createPassword" value="StemPassword123!" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 font-mono">
+                    <p class="text-xs text-slate-500 mt-1">Default: StemPassword123!</p>
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-xl font-medium hover:shadow-lg text-sm">
+                    Create User
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="editModal" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-slate-900">✏️ Edit User</h3>
+                <button onclick="hideEditModal()" class="text-slate-400 hover:text-slate-600 text-xl">&times;</button>
+            </div>
+            <form onsubmit="updateUser(event)" class="space-y-4">
+                <input type="hidden" id="editId">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                    <input type="text" id="editName" required class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                    <input type="email" id="editEmail" required class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Role</label>
+                    <select id="editRole" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 bg-white">
+                        <option value="student">Student</option>
+                        <option value="teacher">Teacher</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">New Password (optional)</label>
+                    <input type="text" id="editPassword" placeholder="Leave empty to keep current" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500">
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-medium hover:shadow-lg text-sm">
+                    Save Changes
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-slate-900">📥 Import Users</h3>
+                <button onclick="hideImportModal()" class="text-slate-400 hover:text-slate-600 text-xl">&times;</button>
+            </div>
+            <div class="space-y-4">
+                <div id="importDropZone" onclick="document.getElementById('importFile').click()" 
+                    class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/50 transition-all">
+                    <input type="file" id="importFile" accept=".json,.xlsx,.xls" onchange="handleFileSelect(event)" class="hidden">
+                    <div class="text-4xl mb-2">📁</div>
+                    <p class="text-slate-600 font-medium">Click to upload JSON or Excel</p>
+                    <p class="text-sm text-slate-400">Supported: .json, .xlsx, .xls</p>
+                </div>
+                <div id="importPreview" class="hidden">
+                    <p class="text-sm font-medium text-slate-700 mb-2">Preview:</p>
+                    <div class="max-h-40 overflow-auto border border-slate-200 rounded-lg">
+                        <table class="w-full text-xs">
+                            <thead class="bg-slate-50 sticky top-0">
+                                <tr>
+                                    <th class="px-3 py-2 text-left border-b">Name</th>
+                                    <th class="px-3 py-2 text-left border-b">Email</th>
+                                    <th class="px-3 py-2 text-left border-b">Role</th>
+                                </tr>
+                            </thead>
+                            <tbody id="importPreviewBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div id="importResult" class="hidden p-4 rounded-xl text-center"></div>
+                <div class="flex gap-3 justify-end">
+                    <button onclick="hideImportModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium text-sm">Cancel</button>
+                    <button id="importBtn" onclick="importUsers()" disabled class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg font-medium shadow-lg text-sm disabled:opacity-50">
+                        📥 Import Users
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allUsers = [];
+        let importData = [];
+
+        function getApiUrl() {
+            return document.getElementById('apiUrl').value.replace(/\/$/, '');
+        }
+
+        async function loadUsers() {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Đang tải...</td></tr>';
+            
+            try {
+                const res = await fetch(`${getApiUrl()}/api/admin/users`);
+                if (!res.ok) throw new Error('Failed to load users');
+                const data = await res.json();
+                allUsers = data.users || [];
+                renderUsers(allUsers);
+                updateStats();
+                setStatus('✅ Loaded ' + allUsers.length + ' users');
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-500">❌ Error: ${err.message}</td></tr>`;
+                setStatus('❌ ' + err.message);
+            }
+        }
+
+        function renderUsers(users) {
+            const tbody = document.getElementById('usersTableBody');
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Không có user nào</td></tr>';
+                return;
+            }
+            tbody.innerHTML = users.map(u => `
+                <tr class="border-b border-slate-100 hover:bg-slate-50">
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-medium text-sm">
+                                ${u.name.charAt(0).toUpperCase()}
+                            </div>
+                            <span class="font-medium text-slate-900 text-sm">${escapeHtml(u.name)}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="badge badge-${u.role || 'student'}">${u.role || 'student'}</span>
+                    </td>
+                    <td class="px-4 py-3 text-slate-600 text-sm">${escapeHtml(u.email)}</td>
+                    <td class="px-4 py-3 text-slate-500 text-sm">${formatDate(u.created_at)}</td>
+                    <td class="px-4 py-3 text-right">
+                        <button onclick="showEditModal('${u.id}', '${escapeHtml(u.name)}', '${escapeHtml(u.email)}', '${u.role || 'student'}')" 
+                            class="px-2 py-1 hover:bg-blue-50 rounded text-blue-600 text-sm">✏️ Edit</button>
+                        <button onclick="deleteUser('${u.id}', '${escapeHtml(u.name)}')" 
+                            class="px-2 py-1 hover:bg-red-50 rounded text-red-600 text-sm ml-1">🗑️ Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateStats() {
+            document.getElementById('totalUsers').textContent = allUsers.length;
+            document.getElementById('totalTeachers').textContent = allUsers.filter(u => u.role === 'teacher').length;
+            document.getElementById('totalStudents').textContent = allUsers.filter(u => u.role === 'student' || !u.role).length;
+        }
+
+        function filterUsers() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allUsers.filter(u => 
+                u.name.toLowerCase().includes(query) || 
+                u.email.toLowerCase().includes(query)
+            );
+            renderUsers(filtered);
+        }
+
+        function showCreateModal() { document.getElementById('createModal').classList.remove('hidden'); }
+        function hideCreateModal() { document.getElementById('createModal').classList.add('hidden'); }
+        function showEditModal(id, name, email, role) {
+            document.getElementById('editId').value = id;
+            document.getElementById('editName').value = name;
+            document.getElementById('editEmail').value = email;
+            document.getElementById('editRole').value = role;
+            document.getElementById('editPassword').value = '';
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+        function hideEditModal() { document.getElementById('editModal').classList.add('hidden'); }
+        function showImportModal() { 
+            document.getElementById('importModal').classList.remove('hidden');
+            document.getElementById('importPreview').classList.add('hidden');
+            document.getElementById('importResult').classList.add('hidden');
+            document.getElementById('importBtn').disabled = true;
+            importData = [];
+        }
+        function hideImportModal() { document.getElementById('importModal').classList.add('hidden'); }
+
+        async function createUser(e) {
+            e.preventDefault();
+            const name = document.getElementById('createName').value;
+            const email = document.getElementById('createEmail').value;
+            const role = document.getElementById('createRole').value;
+            const password = document.getElementById('createPassword').value;
+
+            try {
+                const res = await fetch(`${getApiUrl()}/api/admin/users`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, role, password })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Failed');
+                }
+                hideCreateModal();
+                loadUsers();
+                setStatus('✅ User created: ' + email);
+            } catch (err) {
+                alert('❌ Error: ' + err.message);
+            }
+        }
+
+        async function updateUser(e) {
+            e.preventDefault();
+            const id = document.getElementById('editId').value;
+            const name = document.getElementById('editName').value;
+            const email = document.getElementById('editEmail').value;
+            const role = document.getElementById('editRole').value;
+            const password = document.getElementById('editPassword').value;
+
+            const body = { name, email, role };
+            if (password) body.password = password;
+
+            try {
+                const res = await fetch(`${getApiUrl()}/api/admin/users/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (!res.ok) throw new Error('Failed');
+                hideEditModal();
+                loadUsers();
+                setStatus('✅ User updated');
+            } catch (err) {
+                alert('❌ Error: ' + err.message);
+            }
+        }
+
+        async function deleteUser(id, name) {
+            if (!confirm(`Xóa user "${name}"? Tất cả dữ liệu sẽ bị xóa.`)) return;
+            try {
+                const res = await fetch(`${getApiUrl()}/api/admin/users/${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Failed');
+                loadUsers();
+                setStatus('✅ User deleted');
+            } catch (err) {
+                alert('❌ Error: ' + err.message);
+            }
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            if (file.name.endsWith('.json')) {
+                reader.onload = (ev) => {
+                    try {
+                        importData = JSON.parse(ev.target.result);
+                        if (!Array.isArray(importData)) throw new Error('JSON must be an array');
+                        showImportPreview();
+                    } catch (err) {
+                        alert('❌ Invalid JSON: ' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                reader.onload = (ev) => {
+                    try {
+                        const workbook = XLSX.read(ev.target.result, { type: 'array' });
+                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                        importData = XLSX.utils.sheet_to_json(sheet);
+                        showImportPreview();
+                    } catch (err) {
+                        alert('❌ Invalid Excel: ' + err.message);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        }
+
+        function showImportPreview() {
+            const preview = document.getElementById('importPreview');
+            const tbody = document.getElementById('importPreviewBody');
+            tbody.innerHTML = importData.slice(0, 5).map(row => `
+                <tr class="border-b last:border-0">
+                    <td class="px-3 py-2">${escapeHtml(row.name || row.Name || '')}</td>
+                    <td class="px-3 py-2">${escapeHtml(row.email || row.Email || '')}</td>
+                    <td class="px-3 py-2">${escapeHtml(row.role || row.Role || 'student')}</td>
+                </tr>
+            `).join('');
+            if (importData.length > 5) {
+                tbody.innerHTML += `<tr><td colspan="3" class="px-3 py-2 text-center text-slate-400 italic">... và ${importData.length - 5} dòng nữa</td></tr>`;
+            }
+            preview.classList.remove('hidden');
+            document.getElementById('importBtn').disabled = false;
+            document.getElementById('importBtn').textContent = `📥 Import ${importData.length} Users`;
+        }
+
+        async function importUsers() {
+            const normalized = importData.map(row => ({
+                name: row.name || row.Name || row['Tên'],
+                email: row.email || row.Email || row['Email'],
+                role: row.role || row.Role || row['Vai trò'] || 'student',
+                password: row.password || row.Password
+            }));
+
+            try {
+                const res = await fetch(`${getApiUrl()}/api/admin/users/bulk`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(normalized)
+                });
+                const data = await res.json();
+                const result = document.getElementById('importResult');
+                result.classList.remove('hidden');
+                result.innerHTML = `
+                    <div class="text-emerald-600 font-bold text-lg">✅ Import Complete!</div>
+                    <p class="text-slate-600">Success: ${data.results?.success || 0} | Failed: ${data.results?.failed || 0}</p>
+                    ${data.results?.errors?.length ? `<p class="text-red-500 text-xs mt-2">${data.results.errors.slice(0,3).join('<br>')}</p>` : ''}
+                `;
+                result.className = 'p-4 rounded-xl text-center bg-emerald-50 border border-emerald-200';
+                loadUsers();
+            } catch (err) {
+                alert('❌ Import failed: ' + err.message);
+            }
+        }
+
+        function formatDate(ts) {
+            if (!ts) return '-';
+            return new Date(ts).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+        }
+
+        function setStatus(msg) {
+            document.getElementById('statusBar').textContent = msg + ' | ' + new Date().toLocaleTimeString('vi-VN');
+        }
+
+        // Auto load on start
+        loadUsers();
+    </script>
+</body>
+</html>

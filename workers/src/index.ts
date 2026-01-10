@@ -27,6 +27,7 @@ import {
     getStudentDashboard
 } from './exam-online-routes';
 import { getUsers, getUser, deleteUser, updateUser, getStats, getAdminConversations, getAdminConversation, deleteAdminConversation, AdminEnv } from './admin-routes';
+import { createUser, bulkCreateUsers, updateUserDetails } from './user-management';
 import { handleStorageRequest } from './storage-routes';
 import { searchVectors, buildContextFromResults } from './vectorize';
 import { getRAGContext } from './rag-pipeline';
@@ -1013,7 +1014,9 @@ export default {
             }
             const adminUserMatch = path.match(/^\/api\/admin\/users\/([^/]+)$/);
             if (adminUserMatch) {
-                return updateUser(adminUserMatch[1], request, env as unknown as AdminEnv);
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return updateUserDetails(adminUserMatch[1], request, env);
             }
 
             // ========== EXAM ONLINE ROUTES (PUT) ==========
@@ -1034,6 +1037,20 @@ export default {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
                 if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
                 return deleteTemplate(templateDeleteMatch[1], user, env as any);
+            }
+        }
+
+        // Admin POST routes
+        if (request.method === 'POST') {
+            if (path === '/api/admin/users') {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return createUser(request, env);
+            }
+            if (path === '/api/admin/users/bulk') {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return bulkCreateUsers(request, env);
             }
         }
 

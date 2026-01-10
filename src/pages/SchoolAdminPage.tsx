@@ -9,11 +9,8 @@ import {
     BookOpen,
     TrendingUp,
     Search,
-    Edit,
     ChevronRight,
-    Building2,
-    Phone,
-    Mail
+    Building2
 } from 'lucide-react';
 import { useAuthStore } from '../lib/auth';
 
@@ -38,7 +35,7 @@ export default function SchoolAdminPage() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [selectedSchool, setSelectedSchool] = useState<SchoolData | null>(null);
+    const [_selectedSchool, setSelectedSchool] = useState<SchoolData | null>(null);
 
     // Form state for create/edit
     const [formData, setFormData] = useState({

@@ -29,6 +29,9 @@ const ClassDetailPage = lazy(() => import('./pages/ClassDetailPage'));
 // Phase 4 & 5: New Admin Pages
 const SchoolAdminPage = lazy(() => import('./pages/SchoolAdminPage'));
 const ResearchDashboard = lazy(() => import('./pages/ResearchDashboard'));
+// Phase 7: Immersive UI
+import ImmersiveLayout from './components/layout/ImmersiveLayout';
+const StudentDashboardImmersive = lazy(() => import('./pages/StudentDashboardImmersive'));
 import AuthGuard from './components/auth/AuthGuard';
 import ApiKeyWarning from './components/common/ApiKeyWarning';
 import PWAInstallPrompt from './components/common/PWAInstallPrompt';
@@ -114,6 +117,16 @@ function App() {
             <AdminPage />
           </Suspense>
         } />
+
+        <Route path="/immersive" element={<ImmersiveLayout />}>
+          <Route path="dashboard" element={
+            <AuthGuard>
+              <Suspense fallback={<PageLoader />}>
+                <StudentDashboardImmersive />
+              </Suspense>
+            </AuthGuard>
+          } />
+        </Route>
 
         {/* Main app routes with sidebar - Protected */}
         <Route element={<MainLayout />}>
