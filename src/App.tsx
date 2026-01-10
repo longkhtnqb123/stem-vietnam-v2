@@ -16,7 +16,6 @@ const SemesterExamFormPage = lazy(() => import('./components/forms/SemesterExamF
 const LibraryPage = lazy(() => import('./components/library/LibraryPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
-const AdminPage = lazy(() => import('./pages/AdminPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 // Chú thích: Thi Online pages
 const ExamOnlinePage = lazy(() => import('./pages/ExamOnlinePage'));
@@ -110,11 +109,6 @@ function App() {
         <Route path="/register" element={
           <Suspense fallback={<FullPageLoader />}>
             <RegisterPage />
-          </Suspense>
-        } />
-        <Route path="/admin" element={
-          <Suspense fallback={<FullPageLoader />}>
-            <AdminPage />
           </Suspense>
         } />
 

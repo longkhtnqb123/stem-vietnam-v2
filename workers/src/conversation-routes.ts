@@ -223,3 +223,81 @@ export async function addMessageFromRequest(
         return jsonResponse({ error: 'Invalid JSON' }, 400, env.CORS_ORIGIN);
     }
 }
+
+// --- Admin Conversation Functions ---
+
+export async function getAdminConversations(env: ConvoEnv, page: number = 1, limit: number = 20): Promise<Response> {
+    try {
+        const offset = (page - 1) * limit;
+
+        const results = await env.DB.prepare(`
+            SELECT c.id, c.user_id, c.title, c.created_at, c.updated_at, u.name as user_name, u.email as user_email
+            FROM conversations c
+            JOIN users u ON c.user_id = u.id
+            ORDER BY c.updated_at DESC
+            LIMIT ? OFFSET ?
+        `).bind(limit, offset).all();
+
+        const total = await env.DB.prepare('SELECT COUNT(*) as count FROM conversations').first<{ count: number }>();
+
+        return jsonResponse({
+            conversations: results.results || [],
+            pagination: {
+                page,
+                limit,
+                total: total?.count || 0,
+                totalPages: Math.ceil((total?.count || 0) / limit)
+            }
+        }, 200, env.CORS_ORIGIN);
+    } catch (error) {
+        console.error('[admin] get conversations error:', error);
+        return jsonResponse({ error: 'Server error' }, 500, env.CORS_ORIGIN);
+    }
+}
+
+export async function getAdminConversation(id: string, env: ConvoEnv): Promise<Response> {
+    try {
+        const convo = await env.DB.prepare(`
+            SELECT c.id, c.user_id, c.title, c.created_at, c.updated_at, u.name as user_name, u.email as user_email
+            FROM conversations c
+            JOIN users u ON c.user_id = u.id
+            WHERE c.id = ?
+        `).bind(id).first();
+
+        if (!convo) {
+            return jsonResponse({ error: 'Conversation not found' }, 404, env.CORS_ORIGIN);
+        }
+
+        const messages = await env.DB.prepare(
+            'SELECT id, role, content, attachments, created_at FROM messages WHERE conversation_id = ? ORDER BY created_at ASC'
+        ).bind(id).all<Message>();
+
+        return jsonResponse({
+            conversation: convo,
+            messages: (messages.results || []).map(m => ({
+                ...m,
+                attachments: m.attachments ? JSON.parse(m.attachments as string) : null
+            }))
+        }, 200, env.CORS_ORIGIN);
+    } catch (error) {
+        console.error('[admin] get conversation error:', error);
+        return jsonResponse({ error: 'Server error' }, 500, env.CORS_ORIGIN);
+    }
+}
+
+export async function deleteAdminConversation(id: string, env: ConvoEnv): Promise<Response> {
+    try {
+        // Delete conversation (messages cascade ideally, but D1...)
+        // Clean up messages manually first to be safe
+        await env.DB.prepare('DELETE FROM messages WHERE conversation_id = ?').bind(id).run();
+        const res = await env.DB.prepare('DELETE FROM conversations WHERE id = ?').bind(id).run();
+
+        if (res.meta.changes === 0) {
+            return jsonResponse({ error: 'Conversation not found' }, 404, env.CORS_ORIGIN);
+        }
+        return jsonResponse({ success: true }, 200, env.CORS_ORIGIN);
+    } catch (error) {
+        console.error('[admin] delete conversation error:', error);
+        return jsonResponse({ error: 'Server error' }, 500, env.CORS_ORIGIN);
+    }
+}

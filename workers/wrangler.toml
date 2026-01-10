@@ -6,15 +6,15 @@ compatibility_date = "2024-12-30"
 # Chú thích: Token budget cho mỗi request
 MAX_TOKEN_BUDGET = "50000"
 # Chú thích: CORS origins (separated by semicolon for multiple origins)
-CORS_ORIGIN = "http://localhost:5173;https://hoccongnghe.pages.dev"
+CORS_ORIGIN = "http://localhost:5173;https://hoccongnghe.pages.dev;http://127.0.0.1:5500"
 
 # Chú thích: Môi trường development
 [env.dev]
-vars = { CORS_ORIGIN = "http://localhost:5173;" }
+vars = { CORS_ORIGIN = "http://localhost:5173;http://127.0.0.1:5500;" }
 
 # Chú thích: Môi trường production
 [env.production]
-vars = { CORS_ORIGIN = "https://hoccongnghe.pages.dev" }
+vars = { CORS_ORIGIN = "https://hoccongnghe.pages.dev;http://127.0.0.1:5500" }
 
 # ============================================
 # Secrets (set via wrangler secret put)

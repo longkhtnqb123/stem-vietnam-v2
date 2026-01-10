@@ -154,3 +154,88 @@ export async function updateUserDetails(id: string, request: Request, env: Env):
         return jsonResponse({ error: 'Update failed', details: error.message }, 500);
     }
 }
+
+export async function getUsers(env: Env): Promise<Response> {
+    try {
+        const results = await env.DB.prepare(
+            'SELECT id, email, name, role, avatar_url, created_at, updated_at FROM users ORDER BY created_at DESC'
+        ).all();
+        return jsonResponse({ users: results.results || [] }, 200);
+    } catch (error: any) {
+        console.error('[admin] get users error:', error);
+        return jsonResponse({ error: 'Failed to fetch users' }, 500);
+    }
+}
+
+export async function getUser(id: string, env: Env): Promise<Response> {
+    try {
+        const user = await env.DB.prepare(
+            'SELECT id, email, name, role, avatar_url, created_at, updated_at FROM users WHERE id = ?'
+        ).bind(id).first();
+
+        if (!user) {
+            return jsonResponse({ error: 'User not found' }, 404);
+        }
+
+        // Get user stats (e.g. conversation count)
+        const convoCount = await env.DB.prepare(
+            'SELECT COUNT(*) as count FROM conversations WHERE user_id = ?'
+        ).bind(id).first<{ count: number }>();
+
+        const msgCount = await env.DB.prepare(
+            `SELECT COUNT(*) as count FROM messages 
+             JOIN conversations ON messages.conversation_id = conversations.id 
+             WHERE conversations.user_id = ?`
+        ).bind(id).first<{ count: number }>();
+
+        return jsonResponse({
+            user,
+            stats: {
+                conversations: convoCount?.count || 0,
+                messages: msgCount?.count || 0
+            }
+        }, 200);
+
+    } catch (error: any) {
+        console.error('[admin] get user error:', error);
+        return jsonResponse({ error: 'Failed to fetch user' }, 500);
+    }
+}
+
+export async function deleteUser(id: string, env: Env): Promise<Response> {
+    try {
+        // Delete related data first (though D1 doesn't support cascade fully yet, manually cleaning up is safer)
+        // Note: For now, we rely on checking user existence or just deleting.
+        // In a real app, delete conversations, messages, exam_attempts etc.
+
+        const res = await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id).run();
+
+        if (res.meta.changes === 0) {
+            return jsonResponse({ error: 'User not found' }, 404);
+        }
+
+        return jsonResponse({ success: true, message: 'User deleted' }, 200);
+    } catch (error: any) {
+        console.error('[admin] delete user error:', error);
+        return jsonResponse({ error: 'Failed to delete user' }, 500);
+    }
+}
+
+export async function getStats(env: Env): Promise<Response> {
+    try {
+        const userCount = await env.DB.prepare('SELECT COUNT(*) as count FROM users').first<{ count: number }>();
+        const convoCount = await env.DB.prepare('SELECT COUNT(*) as count FROM conversations').first<{ count: number }>();
+        const msgCount = await env.DB.prepare('SELECT COUNT(*) as count FROM messages').first<{ count: number }>();
+
+        return jsonResponse({
+            stats: {
+                total_users: userCount?.count || 0,
+                total_conversations: convoCount?.count || 0,
+                total_messages: msgCount?.count || 0
+            }
+        }, 200);
+    } catch (error: any) {
+        console.error('[admin] get stats error:', error);
+        return jsonResponse({ error: 'Failed to fetch stats' }, 500);
+    }
+}

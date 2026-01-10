@@ -4,7 +4,6 @@ import { callOpenRouter, streamOpenRouter, buildMessages, classifyQueryForModel,
 import { webSearch, formatSearchResultsAsContext } from './duckduckgo';
 import { handleRegister, handleLogin, handleMe, getUserFromToken, AuthEnv } from './auth-routes';
 import { handleGetSettings, handleUpdateSettings, handleGetModels, handleRefreshModels } from './settings-routes';
-import { getConversations, getConversation, createConversation, deleteConversation, addMessage, addMessageFromRequest, ConvoEnv } from './conversation-routes';
 import {
     getExams,
     getExam,
@@ -26,8 +25,28 @@ import {
     getTeacherDashboard,
     getStudentDashboard
 } from './exam-online-routes';
-import { getUsers, getUser, deleteUser, updateUser, getStats, getAdminConversations, getAdminConversation, deleteAdminConversation, AdminEnv } from './admin-routes';
-import { createUser, bulkCreateUsers, updateUserDetails } from './user-management';
+// Phase 8: Admin Logic transferred to user-management and conversation-routes
+import {
+    createUser,
+    bulkCreateUsers,
+    updateUserDetails,
+    getUsers,
+    getUser,
+    deleteUser,
+    getStats
+} from './user-management';
+import {
+    getConversations,
+    getConversation,
+    createConversation,
+    deleteConversation,
+    addMessage,
+    addMessageFromRequest,
+    getAdminConversations,
+    getAdminConversation,
+    deleteAdminConversation,
+    ConvoEnv
+} from './conversation-routes';
 import { handleStorageRequest } from './storage-routes';
 import { searchVectors, buildContextFromResults } from './vectorize';
 import { getRAGContext } from './rag-pipeline';
@@ -1040,31 +1059,49 @@ export default {
             }
         }
 
+        // Helper to check admin auth
+        async function checkAdminAuth(req: Request, env: Env): Promise<boolean> {
+            // 1. Check Admin Key (Bypass)
+            const adminKey = req.headers.get('X-Admin-Key');
+            // Hardcoded key as requested for easy access, in production use env.ADMIN_SECRET
+            if (adminKey === 'stem-admin-8888') return true;
+
+            // 2. Check JWT Token
+            const user = await getUserFromToken(req, env);
+            return !!(user && user.role === 'admin');
+        }
+
         // Admin POST routes
         if (request.method === 'POST') {
+            if (path.startsWith('/api/admin/')) {
+                const isAuth = await checkAdminAuth(request, env);
+                if (!isAuth) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+            }
+
             if (path === '/api/admin/users') {
-                const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
                 return createUser(request, env);
             }
             if (path === '/api/admin/users/bulk') {
-                const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
                 return bulkCreateUsers(request, env);
             }
         }
 
         // Admin GET routes
         if (request.method === 'GET') {
+            if (path.startsWith('/api/admin/')) {
+                const isAuth = await checkAdminAuth(request, env);
+                if (!isAuth) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+            }
+
             if (path === '/api/admin/users') {
-                return getUsers(env as unknown as AdminEnv);
+                return getUsers(env);
             }
             if (path === '/api/admin/stats') {
-                return getStats(env as unknown as AdminEnv);
+                return getStats(env);
             }
             const adminUserMatch = path.match(/^\/api\/admin\/users\/([^/]+)$/);
             if (adminUserMatch) {
-                return getUser(adminUserMatch[1], env as unknown as AdminEnv);
+                return getUser(adminUserMatch[1], env);
             }
 
             // Admin Conversations routes
@@ -1073,19 +1110,31 @@ export default {
                 const limitParam = url.searchParams.get('limit');
                 const page = pageParam ? parseInt(pageParam, 10) : 1;
                 const limit = limitParam ? parseInt(limitParam, 10) : 20;
-                return getAdminConversations(env as unknown as AdminEnv, page, limit);
+                return getAdminConversations(env as unknown as ConvoEnv, page, limit);
             }
             const adminConvoMatch = path.match(/^\/api\/admin\/conversations\/([^/]+)$/);
             if (adminConvoMatch) {
-                return getAdminConversation(adminConvoMatch[1], env as unknown as AdminEnv);
+                return getAdminConversation(adminConvoMatch[1], env as unknown as ConvoEnv);
             }
         }
 
-        // Admin DELETE conversation
+        // Admin DELETE user/conversation
+        // Admin DELETE user/conversation
         if (request.method === 'DELETE') {
+            if (path.startsWith('/api/admin/')) {
+                const isAuth = await checkAdminAuth(request, env);
+                if (!isAuth) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+            }
+
+            // Admin User Delete
+            const adminUserDelMatch = path.match(/^\/api\/admin\/users\/([^/]+)$/);
+            if (adminUserDelMatch) {
+                return deleteUser(adminUserDelMatch[1], env);
+            }
+
             const adminConvoMatch = path.match(/^\/api\/admin\/conversations\/([^/]+)$/);
             if (adminConvoMatch) {
-                return deleteAdminConversation(adminConvoMatch[1], env as unknown as AdminEnv);
+                return deleteAdminConversation(adminConvoMatch[1], env as unknown as ConvoEnv);
             }
         }
 
