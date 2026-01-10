@@ -13,6 +13,7 @@ import type { Conversation, FileAttachment } from '../../types/chat';
 import { useAuthStore } from '../../lib/auth';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { sendClientSideChat, type ChatMessage as ServiceChatMessage } from '../../lib/chatService';
+import { useSettings } from '../../hooks/useSettings';
 
 // Chú thích: LocalStorage key prefix
 const STORAGE_PREFIX = 'stem-vietnam-chat-history';
@@ -45,6 +46,20 @@ function generateTitle(message: string): string {
 
 export default function ChatPage() {
     const { user, token } = useAuthStore();
+    // Sync Settings from D1 to Store
+    const { settings: d1Settings } = useSettings();
+    const { setSelectedModel, setOpenRouterKey, setApiKey } = useSettingsStore();
+
+    useEffect(() => {
+        if (d1Settings) {
+            if (d1Settings.chatModel) setSelectedModel(d1Settings.chatModel);
+            if (d1Settings.apiKeys?.openRouter) {
+                setOpenRouterKey(d1Settings.apiKeys.openRouter);
+                setApiKey(d1Settings.apiKeys.openRouter);
+            }
+        }
+    }, [d1Settings, setSelectedModel, setOpenRouterKey, setApiKey]);
+
     const location = useLocation();
     // Chú thích: Đã bỏ useDefaultLibrary - Chat AI không dùng RAG nữa
     const [conversations, setConversations] = useState<Conversation[]>([]);

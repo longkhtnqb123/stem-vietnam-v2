@@ -180,26 +180,54 @@ function generateSuggestions(
 async function handleChat(request: Request, env: Env): Promise<Response> {
     const origin = getAllowedOrigin(request.headers.get('Origin'), env.CORS_ORIGIN);
     try {
-        // Chú thích: Validate API key trước
-        if (!env.OPENROUTER_API_KEY) {
-            console.error('[chat] OPENROUTER_API_KEY not configured!');
-            return jsonResponse({
-                error: 'AI service not configured',
-                details: 'OPENROUTER_API_KEY is missing. Run: wrangler secret put OPENROUTER_API_KEY'
-            }, 500, origin);
-        }
+        // Initial Key Check moved to after settings fetch
 
         const body = await request.json() as {
             message: string;
             context?: string;
             systemPrompt?: string;
-            useCoT?: boolean; // Enable Chain-of-Thought
-            useReflection?: boolean; // Enable Self-Reflection
-            userId?: string; // For rate limiting & personalization
+            useCoT?: boolean;
+            useReflection?: boolean;
+            userId?: string;
         };
 
         if (!body.message) {
             return jsonResponse({ error: 'Message is required' }, 400, origin);
+        }
+
+        // FETCH USER SETTINGS (API Key & Model)
+        let apiKey = env.OPENROUTER_API_KEY;
+        let preferredModel = '';
+
+        // Fetch from D1
+        const user = await getUserFromToken(request, env);
+        if (user) {
+            try {
+                const settingsRes = await env.DB.prepare(
+                    'SELECT preferences FROM user_settings WHERE user_id = ?'
+                ).bind(user.sub).first<{ preferences: string }>();
+
+                if (settingsRes) {
+                    const settings = JSON.parse(settingsRes.preferences);
+                    if (settings.apiKeys?.openRouter) {
+                        apiKey = settings.apiKeys.openRouter;
+                    }
+                    if (settings.chatModel) {
+                        preferredModel = settings.chatModel;
+                    }
+                }
+            } catch (err) {
+                console.warn('[chat] Failed to fetch user settings:', err);
+            }
+        }
+
+        // Validate API Key
+        if (!apiKey) {
+            console.error('[chat] No API Key configured');
+            return jsonResponse({
+                error: 'Missing API Key',
+                details: 'Vui lòng nhập OpenRouter API Key trong phần Cài đặt.'
+            }, 400, origin);
         }
 
         // ===== PRODUCTION FEATURES =====
@@ -253,11 +281,11 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
         let sources: unknown[] = [];
 
         // Chú thích: Nếu là câu hỏi học tập → tìm RAG context từ thư viện sách
-        if (queryType === 'academic' && env.VECTORIZE && env.OPENROUTER_API_KEY && env.DB) {
+        if (queryType === 'academic' && env.VECTORIZE && apiKey && env.DB) {
             try {
                 console.info('[chat] Academic query detected, using Advanced RAG...');
                 const ragResult = await getAdvancedRAGContext(
-                    env.OPENROUTER_API_KEY,
+                    apiKey,
                     env.VECTORIZE,
                     body.message,
                     env.DB
@@ -294,7 +322,8 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
 
         // Chú thích: Phân loại câu hỏi để chọn model phù hợp (OpenRouter multi-model routing)
         const modelRouting = classifyQueryForModel(body.message);
-        console.info('[chat] Model routing:', modelRouting);
+        const finalModel = preferredModel || modelRouting.model;
+        console.info('[chat] Model routing:', { auto: modelRouting.model, preferred: preferredModel, final: finalModel });
 
         // Chú thích: Nếu cần web search → dùng DuckDuckGo API (miễn phí, không cần key)
         let webSearchContext = '';
@@ -332,7 +361,7 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
                 query: body.message,
                 context: fullContext,
                 systemPrompt: body.systemPrompt || SYSTEM_PROMPTS.chat,
-                apiKey: env.OPENROUTER_API_KEY,
+                apiKey: apiKey,
                 maxIterations: 2
             });
 
@@ -341,7 +370,7 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
                 iterations: reflectionResult.iterations.length,
                 issues: reflectionResult.iterations.flatMap(it => it.critique.issues)
             };
-            usedModel = modelRouting.model; // Reflection uses the base model
+            usedModel = finalModel; // Reflection uses the base model
         } else if (body.useCoT) {
             // Chain-of-Thought mode: Show thinking process
             console.info('[chat] Chain-of-Thought mode enabled');
@@ -351,12 +380,12 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
                 query: body.message,
                 context: fullContext,
                 systemPrompt: body.systemPrompt || SYSTEM_PROMPTS.chat,
-                apiKey: env.OPENROUTER_API_KEY
+                apiKey: apiKey
             });
 
             thinkingProcess = cotResult.thinking;
             aiResponse = cotResult.answer;
-            usedModel = modelRouting.model; // CoT uses the base model
+            usedModel = finalModel; // CoT uses the base model
         } else {
             // Standard mode: Direct response
             const messages = buildMessages(
@@ -365,9 +394,9 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
                 fullContext || undefined
             );
 
-            const result = await callOpenRouter(env.OPENROUTER_API_KEY, {
+            const result = await callOpenRouter(apiKey, {
                 messages,
-                model: modelRouting.model,
+                model: finalModel,
                 useOnlineSearch: modelRouting.useOnlineSearch,
             });
 
@@ -540,8 +569,25 @@ async function handleChatStream(request: Request, env: Env): Promise<Response> {
             return jsonResponse({ error: 'Message is required' }, 400, origin);
         }
 
+        // FETCH USER SETTINGS
+        let apiKey = env.OPENROUTER_API_KEY;
+        let preferredModel = '';
+        const user = await getUserFromToken(request, env);
+        if (user) {
+            try {
+                const settingsRes = await env.DB.prepare('SELECT preferences FROM user_settings WHERE user_id = ?').bind(user.sub).first<{ preferences: string }>();
+                if (settingsRes) {
+                    const settings = JSON.parse(settingsRes.preferences);
+                    if (settings.apiKeys?.openRouter) apiKey = settings.apiKeys.openRouter;
+                    if (settings.chatModel) preferredModel = settings.chatModel;
+                }
+            } catch (e) { console.error(e); }
+        }
+        if (!apiKey) return jsonResponse({ error: 'Missing API Key' }, 400, origin);
+
         // Chú thích: Phân loại câu hỏi để chọn model (OpenRouter routing)
         const modelRouting = classifyQueryForModel(body.message);
+        const finalModel = preferredModel || modelRouting.model;
 
         // Chú thích: Build messages cho OpenRouter
         const messages = buildMessages(
@@ -557,9 +603,9 @@ async function handleChatStream(request: Request, env: Env): Promise<Response> {
 
                 try {
                     // Chú thích: Stream Chat dùng OpenRouter với multi-model routing
-                    const generator = streamOpenRouter(env.OPENROUTER_API_KEY, {
+                    const generator = streamOpenRouter(apiKey, {
                         messages,
-                        model: modelRouting.model,
+                        model: finalModel,
                         useOnlineSearch: modelRouting.useOnlineSearch,
                     });
 
