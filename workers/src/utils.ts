@@ -1,6 +1,6 @@
 export function getAllowedOrigin(requestOrigin: string | null, allowedOrigins: string): string {
     if (!requestOrigin) return '*';
-    const origins = allowedOrigins.split(';').map(o => o.trim());
+    const origins = allowedOrigins.split(/[;,]/).map(o => o.trim());
     if (origins.includes('*')) return '*';
     if (origins.includes(requestOrigin)) return requestOrigin;
     return origins[0] || '*';
@@ -9,8 +9,8 @@ export function getAllowedOrigin(requestOrigin: string | null, allowedOrigins: s
 export function corsHeaders(origin: string): HeadersInit {
     return {
         'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, DELETE',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
         'Access-Control-Allow-Credentials': 'true'
     };
 }
