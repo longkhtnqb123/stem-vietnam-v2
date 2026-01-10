@@ -378,6 +378,24 @@ export async function getTemplateStats(templateId: string): Promise<any> {
     return response.json();
 }
 
+// Teacher Dashboard
+export async function getTeacherDashboard(): Promise<any> {
+    const response = await fetch(`${API_URL}/api/teacher/dashboard`, {
+        headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to load dashboard');
+    return response.json();
+}
+
+// Student Dashboard
+export async function getStudentDashboard(): Promise<any> {
+    const response = await fetch(`${API_URL}/api/student/dashboard`, {
+        headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to load dashboard');
+    return response.json();
+}
+
 export const examOnlineApi = {
     getTemplates: getExamTemplates,
     getTemplate: getExamTemplate,

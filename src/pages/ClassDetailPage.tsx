@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useAuthStore } from '../lib/auth';
+
 import { classApi, type ClassDetailResponse } from '../lib/classApi';
 import { examOnlineApi } from '../lib/examOnlineApi';
 import type { ExamTemplate } from '../lib/examOnlineApi';
