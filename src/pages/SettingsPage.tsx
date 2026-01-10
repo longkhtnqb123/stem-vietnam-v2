@@ -12,7 +12,6 @@ export default function SettingsPage() {
 
     const tabs = [
         { id: 'models' as TabType, label: 'AI Models', icon: Cpu },
-        { id: 'api-keys' as TabType, label: 'API Keys', icon: Key },
         { id: 'preferences' as TabType, label: 'Giao diện', icon: Palette },
         { id: 'usage' as TabType, label: 'Thống kê', icon: BarChart3 },
         { id: 'security' as TabType, label: 'Bảo mật', icon: Shield },

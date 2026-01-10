@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { RefreshCw, CheckCircle, Search, Zap, DollarSign } from 'lucide-react';
 import { useAuthStore } from '../../lib/auth';
+import { useAppStore } from '../../stores/appStore';
 import { getAvailableModels, refreshModels, type OpenRouterModel, type UserSettings } from '../../lib/settingsApi';
 
 interface ModelSelectorProps {
@@ -16,6 +17,8 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState<'all' | 'free' | 'paid'>('all');
     const [selectedCategory, setSelectedCategory] = useState<'chat' | 'exam'>('chat');
+    const [previewModelId, setPreviewModelId] = useState<string | null>(null);
+    const { showNotification } = useAppStore();
 
     // Load models on mount
     useEffect(() => {
@@ -50,14 +53,25 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
         }
     };
 
-    const handleSelectModel = async (modelId: string) => {
+    // Sync preview with current setting on category change
+    useEffect(() => {
+        setPreviewModelId(selectedCategory === 'chat' ? settings.chatModel : settings.examModel);
+    }, [selectedCategory, settings]);
+
+    const handlePreviewModel = (modelId: string) => {
+        setPreviewModelId(modelId);
+    };
+
+    const handleSaveModel = async (model: OpenRouterModel) => {
         try {
             const updates = selectedCategory === 'chat'
-                ? { chatModel: modelId }
-                : { examModel: modelId };
+                ? { chatModel: model.id }
+                : { examModel: model.id };
             await onUpdate(updates);
+            showNotification('success', `Đang sử dụng model ${model.name}...`);
         } catch (err) {
             console.error('[ModelSelector] update error:', err);
+            showNotification('error', 'Lỗi khi lưu model');
         }
     };
 
@@ -202,14 +216,14 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
                                         const isFree = model.id.includes(':free') || (
                                             parseFloat(model.pricing.prompt) === 0 && parseFloat(model.pricing.completion) === 0
                                         );
-                                        const isSelected = currentModel === model.id;
+                                        const isSelected = previewModelId === model.id;
 
                                         return (
                                             <button
                                                 key={model.id}
-                                                onClick={() => handleSelectModel(model.id)}
+                                                onClick={() => handlePreviewModel(model.id)}
                                                 className={`w-full text-left p-4 rounded-lg border-2 transition-all ${isSelected
-                                                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                                                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 shadow-md ring-1 ring-primary-500'
                                                     : 'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-primary-300'
                                                     }`}
                                             >
@@ -228,6 +242,28 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
                                                                 Context: {model.context_length.toLocaleString()} tokens
                                                             </span>
                                                         </div>
+
+                                                        {/* Save Button & Status */}
+                                                        {model.id === previewModelId && model.id !== currentModel && (
+                                                            <div className="mt-4 animate-in fade-in slide-in-from-top-2">
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleSaveModel(model);
+                                                                    }}
+                                                                    className="w-full py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-lg"
+                                                                >
+                                                                    <CheckCircle size={16} />
+                                                                    Lưu & Sử dụng Model này
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                        {model.id === currentModel && (
+                                                            <div className="mt-3 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold rounded-lg inline-flex items-center gap-1.5">
+                                                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                                                                Đang sử dụng
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="flex flex-col items-end gap-2 flex-shrink-0">
                                                         {isFree ? (
