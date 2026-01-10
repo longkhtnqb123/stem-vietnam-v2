@@ -11,9 +11,9 @@ import {
     ChevronRight,
     PlayCircle,
     BarChart3,
-    PlusCircle,
     Brain,
-    Search
+    Search,
+    School
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -43,6 +43,19 @@ const STUDENT_GUIDES: GuideSection[] = [
         ],
         link: '/chat',
         linkText: 'Bắt đầu Chat →',
+    },
+    {
+        icon: <School className="w-8 h-8 text-orange-500" />,
+        title: '🏫 Lớp Học & Bài Tập',
+        description: 'Tham gia lớp học của giáo viên và làm bài tập được giao.',
+        steps: [
+            'Vào menu "Lớp Học" -> Nhấn "Tham Gia Lớp"',
+            'Nhập mã Join Code (do giáo viên cung cấp)',
+            'Xem danh sách bài tập trong lớp',
+            'Nhấn nộp bài để gửi kết quả cho giáo viên',
+        ],
+        link: '/classes',
+        linkText: 'Vào lớp học →',
     },
     {
         icon: <Trophy className="w-8 h-8 text-yellow-500" />,
@@ -104,6 +117,19 @@ const TEACHER_GUIDES: GuideSection[] = [
         ],
         link: '/exam-online',
         linkText: 'Tạo đề thi →',
+    },
+    {
+        icon: <School className="w-8 h-8 text-orange-500" />,
+        title: '🏫 Quản Lý Lớp Học',
+        description: 'Tạo lớp, quản lý học sinh và giao bài tập trắc nghiệm.',
+        steps: [
+            'Vào menu "Lớp Học" -> "Tạo Lớp Mới"',
+            'Copy mã Join Code gửi cho học sinh',
+            'Vào chi tiết lớp -> Tab "Bài Tập" -> "Giao Bài"',
+            'Chọn đề thi có sẵn để giao cho cả lớp',
+        ],
+        link: '/classes',
+        linkText: 'Quản lý lớp →',
     },
     {
         icon: <BarChart3 className="w-8 h-8 text-blue-500" />,
@@ -261,6 +287,70 @@ export default function HelpPage() {
                             </div>
                         </div>
                     ))}
+                </div>
+
+                {/* Prompt Guide Section */}
+                <div className="mt-12 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl shadow-lg p-6 text-white">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-3 bg-white/10 rounded-xl backdrop-blur-sm">
+                            <Sparkles className="w-8 h-8 text-yellow-300" />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold">Bí Kíp "Prompt" Chat AI Hiệu Quả</h2>
+                            <p className="text-indigo-100">Nghệ thuật đặt câu hỏi để khai thác tối đa sức mạnh AI</p>
+                        </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8">
+                        {/* Formula */}
+                        <div className="bg-white/10 rounded-xl p-5 backdrop-blur-sm">
+                            <h3 className="font-bold text-xl mb-4 flex items-center gap-2 text-yellow-300">
+                                🧪 Công Thức Vàng
+                            </h3>
+                            <div className="space-y-4">
+                                <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-xs font-bold">1</span>
+                                        <span className="font-bold text-blue-200">Ngữ Cảnh (Context)</span>
+                                    </div>
+                                    <p className="text-sm text-slate-200 ml-8">Bạn là ai? Môn gì? Lớp mấy? Mục tiêu là gì?</p>
+                                </div>
+                                <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-xs font-bold">2</span>
+                                        <span className="font-bold text-green-200">Nhiệm Vụ (Task)</span>
+                                    </div>
+                                    <p className="text-sm text-slate-200 ml-8">Động từ chỉ hành động rõ ràng: "Soạn", "Giải thích", "Tóm tắt", "So sánh".</p>
+                                </div>
+                                <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-xs font-bold">3</span>
+                                        <span className="font-bold text-orange-200">Định Dạng (Format)</span>
+                                    </div>
+                                    <p className="text-sm text-slate-200 ml-8">Kết quả trả về là: Bảng, Danh sách gạch đầu dòng, Code, hay Sơ đồ tư duy?</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Examples */}
+                        <div className="space-y-4">
+                            <div className="bg-red-500/10 rounded-xl p-4 border border-red-500/30">
+                                <p className="text-sm text-red-300 font-bold mb-1 flex items-center gap-1">❌ Câu hỏi Sơ Sài:</p>
+                                <p className="text-sm italic opacity-80">"Soạn bài công nghệ 10."</p>
+                                <p className="text-xs text-red-200 mt-1">-> AI không biết bài nào, mục đích gì, độ dài bao nhiêu.</p>
+                            </div>
+
+                            <div className="bg-green-500/20 rounded-xl p-4 border border-green-500/40 shadow-lg">
+                                <p className="text-sm text-green-300 font-bold mb-2 flex items-center gap-1">✅ Prompt Chuẩn (Dành cho Giáo viên):</p>
+                                <p className="text-sm italic font-medium">"Đóng vai giáo viên Công nghệ 10. Hãy soạn giáo án 45 phút cho bài 'Hệ thống bôi trơn', bao gồm: Mục tiêu bài học, Hoạt động khởi động thú vị, Nội dung chính, và 5 câu hỏi trắc nghiệm củng cố (kèm đáp án)."</p>
+                            </div>
+
+                            <div className="bg-blue-500/20 rounded-xl p-4 border border-blue-500/40 shadow-lg">
+                                <p className="text-sm text-blue-300 font-bold mb-2 flex items-center gap-1">✅ Prompt Chuẩn (Dành cho Học sinh):</p>
+                                <p className="text-sm italic font-medium">"Giải thích nguyên lý làm việc của Động cơ Diesel 4 kỳ. Hãy dùng ngôn ngữ đơn giản, dễ hiểu, lấy ví dụ thực tế so sánh với 'Xe máy', và trình bày các bước dưới dạng danh sách."</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* FAQ Section */}

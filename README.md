@@ -300,6 +300,71 @@ flowchart TD
 
 ---
 
+---
+
+## 📖 Hướng Dẫn Sử Dụng Chi Tiết (User Manual)
+
+### 👨‍🏫 Dành Cho Giáo Viên (Teacher)
+
+#### 1. Quản Lý Dashboard
+*   Truy cập **"📊 Dashboard GV"** để xem tổng quan.
+*   **Chỉ số:** "Tổng số đề thi", "Tổng lượt làm bài", "Điểm trung bình" của học sinh.
+*   **Biểu đồ:** Xem phân bổ điểm (0-2, 2-4, ..., 8-10) để đánh giá chất lượng đề thi.
+*   **Top Học Sinh:** Xem danh sách 10 học sinh có điểm cao nhất.
+
+#### 2. Tạo Đề Thi Thông Minh (AI)
+1.  Vào menu **"Tạo Câu Hỏi"**.
+2.  Chọn tab **"Tạo đề bằng AI"**.
+3.  Điền thông tin:
+    *   **Khối:** 10, 11, hoặc 12.
+    *   **Phân môn:** Công nghiệp hoặc Nông nghiệp.
+    *   **Loại đề:** 15 phút, Giữa kỳ, Cuối kỳ (hệ thống tự chỉnh số câu).
+    *   **Độ khó:** Dễ, Trung bình, Khó.
+    *   **Chủ đề/Chương:** Nhập tên bài học (VD: "Mạch điện xoay chiều").
+4.  Bấm **"Tạo đề thi"**. Hệ thống sẽ tìm kiến thức trong SGK và sinh câu hỏi.
+5.  **Quan trọng:** Review lại từng câu hỏi -> Bấm **"Lưu đề thi"**.
+
+#### 3. Quản Lý Lớp Học
+*   **Tạo Lớp:** Vào menu **"Lớp Học"** -> Bấm "+ Tạo Lớp Mới" -> Nhập tên & mô tả.
+*   **Mã Join Code:** Sau khi tạo, copy mã 6 ký tự (VD: `X7Y9Z2`) gửi cho học sinh.
+*   **Giao Bài:**
+    1.  Vào chi tiết lớp -> Chọn tab **"Bài Tập"**.
+    2.  Bấm "+ Giao Bài Tập".
+    3.  Chọn đề thi từ danh sách đã tạo.
+    4.  Học sinh trong lớp sẽ thấy bài tập này ngay lập tức.
+
+---
+
+### 👨‍🎓 Dành Cho Học Sinh (Student)
+
+#### 1. Theo Dõi Tiến Độ
+*   Truy cập **"📈 Tiến Độ"**.
+*   Xem biểu đồ điểm số 7 ngày gần đây.
+*   **Radar Chart:** Xem kỹ năng tư duy (Nhận biết, Thông hiểu...).
+*   **Gợi ý:** Hệ thống tự động đề xuất bài học cần ôn tập dựa trên câu sai.
+
+#### 2. Tham Gia Lớp Học & Làm Bài
+1.  Vào menu **"Lớp Học"**.
+2.  Bấm **"Tham Gia Lớp"** -> Nhập mã Code giáo viên cung cấp.
+3.  Vào chi tiết lớp, tab **"Bài Tập"** sẽ hiện danh sách bài được giao.
+4.  Bấm **"Làm bài ngay"** (hoặc xem điểm nếu đã làm).
+
+#### 3. Thi Online & Tự Luyện
+*   Vào menu **"🔥 Thi Online"**.
+*   Chọn một đề thi công khai bất kỳ.
+*   **Giao diện thi:**
+    *   Đồng hồ đếm ngược (tự nộp khi hết giờ).
+    *   Danh sách câu hỏi bên phải để chuyển nhanh.
+    *   Hệ thống **Auto-save** sau mỗi câu trả lời.
+*   **Nộp bài:** Xem ngay điểm số, thời gian làm bài, và đáp án chi tiết.
+
+#### 4. Chat AI Gia Sư
+*   Vào menu **"Chat AI"**.
+*   Hỏi bất kỳ kiến thức nào (VD: "Giải thích định luật Ohm").
+*   AI sẽ tìm trong SGK và trả lời kèm trích dẫn (nếu có).
+
+---
+
 ## 🛠️ Cài Đặt & Triển Khai (Setup)
 
 ### 1. Yêu Cầu
