@@ -746,7 +746,7 @@ export default {
     async fetch(request: Request, env: Env): Promise<Response> {
         const url = new URL(request.url);
         const path = url.pathname;
-        const allowedOrigin = getAllowedOrigin(request.headers.get('Origin'), env.CORS_ORIGIN);
+        const allowedOrigin = getAllowedOrigin(request.headers.get('Origin'), allowedOrigin);
 
         // Chú thích: Handle CORS preflight
         if (request.method === 'OPTIONS') {
@@ -816,13 +816,13 @@ export default {
                 // Conversation routes
                 case '/api/conversations': {
                     const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                     return createConversation(request, user, env as unknown as ConvoEnv);
                 }
                 // Exam routes
                 case '/api/exams': {
                     const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                     return createExam(request, user, env as unknown as ConvoEnv);
                 }
             }
@@ -831,7 +831,7 @@ export default {
             const msgMatch = path.match(/^\/api\/conversations\/([^/]+)\/messages$/);
             if (msgMatch) {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return addMessageFromRequest(msgMatch[1], request, user, env as unknown as ConvoEnv);
             }
 
@@ -839,26 +839,26 @@ export default {
             // Tạo đề thi mới (manual)
             if (path === '/api/exam-online/templates') {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return createTemplate(request, user, env as any);
             }
             // Tạo đề thi bằng AI (RAG)
             if (path === '/api/exam-online/generate') {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return generateTemplateWithAI(request, user, env as any);
             }
             // Bắt đầu làm bài
             if (path === '/api/exam-online/attempts') {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return startAttempt(request, user, env as any);
             }
             // Nộp bài
             const submitMatch = path.match(/^\/api\/exam-online\/attempts\/([^/]+)\/submit$/);
             if (submitMatch) {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return submitAttempt(submitMatch[1], request, user, env as any);
             }
 
@@ -866,7 +866,7 @@ export default {
             // POST /api/ingest - Ingest SGK từ R2 vào Vectorize
             if (path === '/api/ingest') {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 // Chú thích: Có thể thêm role check admin ở đây
                 return ingestFromR2(request, user, env as any);
             }
@@ -875,20 +875,20 @@ export default {
             // Tạo lớp mới
             if (path === '/api/classes') {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return createClass(request, user, env as any);
             }
             // Tham gia lớp
             if (path === '/api/classes/join') {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return joinClass(request, user, env as any);
             }
             // Giao bài tập
             const assignMatch = path.match(/^\/api\/classes\/([^/]+)\/assignments$/);
             if (assignMatch) {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return createAssignment(request, assignMatch[1], user, env as any);
             }
         }
@@ -909,27 +909,27 @@ export default {
             // Get all conversations
             if (path === '/api/conversations') {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return getConversations(user, env as unknown as ConvoEnv);
             }
             // Get all exams
             if (path === '/api/exams') {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return getExams(user, env as unknown as ConvoEnv);
             }
             // Get single conversation
             const convoMatch = path.match(/^\/api\/conversations\/([^/]+)$/);
             if (convoMatch) {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return getConversation(convoMatch[1], user, env as unknown as ConvoEnv);
             }
             // Get single exam
             const examMatch = path.match(/^\/api\/exams\/([^/]+)$/);
             if (examMatch) {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return getExam(examMatch[1], user, env as unknown as ConvoEnv);
             }
 
@@ -942,7 +942,7 @@ export default {
             const statsMatch = path.match(/^\/api\/exam-online\/templates\/([^/]+)\/stats$/);
             if (statsMatch) {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return getTemplateStats(statsMatch[1], user, env as any);
             }
             // Lấy chi tiết 1 template
@@ -953,28 +953,28 @@ export default {
             // Lấy lịch sử làm bài của user
             if (path === '/api/exam-online/attempts') {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return getAttempts(request, user, env as any);
             }
             // Lấy chi tiết 1 bài làm (xem lại)
             const attemptMatch = path.match(/^\/api\/exam-online\/attempts\/([^/]+)$/);
             if (attemptMatch) {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return getAttempt(attemptMatch[1], user, env as any);
             }
 
             // ========== TEACHER DASHBOARD ==========
             if (path === '/api/teacher/dashboard') {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return getTeacherDashboard(user, env as any);
             }
 
             // ========== STUDENT DASHBOARD ==========
             if (path === '/api/student/dashboard') {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return getStudentDashboard(user, env as any);
             }
 
@@ -982,14 +982,14 @@ export default {
             // Lấy danh sách lớp
             if (path === '/api/classes') {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return getClasses(user, env as any);
             }
             // Chi tiết lớp
             const classMatch = path.match(/^\/api\/classes\/([^/]+)$/);
             if (classMatch) {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return getClassDetails(classMatch[1], user, env as any);
             }
         }
@@ -999,14 +999,14 @@ export default {
             const convoMatch = path.match(/^\/api\/conversations\/([^/]+)$/);
             if (convoMatch) {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return deleteConversation(convoMatch[1], user, env as unknown as ConvoEnv);
             }
             // Delete exam
             const examMatch = path.match(/^\/api\/exams\/([^/]+)$/);
             if (examMatch) {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return deleteExam(examMatch[1], user, env as unknown as ConvoEnv);
             }
             // Admin: Delete user
@@ -1020,7 +1020,7 @@ export default {
             const deleteClassMatch = path.match(/^\/api\/classes\/([^/]+)$/);
             if (deleteClassMatch) {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return deleteClass(deleteClassMatch[1], user, env as any);
             }
         }
@@ -1034,7 +1034,7 @@ export default {
             const adminUserMatch = path.match(/^\/api\/admin\/users\/([^/]+)$/);
             if (adminUserMatch) {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return updateUserDetails(adminUserMatch[1], request, env);
             }
 
@@ -1043,7 +1043,7 @@ export default {
             const attemptUpdateMatch = path.match(/^\/api\/exam-online\/attempts\/([^/]+)$/);
             if (attemptUpdateMatch) {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return updateAttempt(attemptUpdateMatch[1], request, user, env as any);
             }
         }
@@ -1054,7 +1054,7 @@ export default {
             const templateDeleteMatch = path.match(/^\/api\/exam-online\/templates\/([^/]+)$/);
             if (templateDeleteMatch) {
                 const user = await getUserFromToken(request, env as unknown as AuthEnv);
-                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
                 return deleteTemplate(templateDeleteMatch[1], user, env as any);
             }
         }
@@ -1075,7 +1075,7 @@ export default {
         if (request.method === 'POST') {
             if (path.startsWith('/api/admin/')) {
                 const isAuth = await checkAdminAuth(request, env);
-                if (!isAuth) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!isAuth) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
             }
 
             if (path === '/api/admin/users') {
@@ -1090,7 +1090,7 @@ export default {
         if (request.method === 'GET') {
             if (path.startsWith('/api/admin/')) {
                 const isAuth = await checkAdminAuth(request, env);
-                if (!isAuth) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!isAuth) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
             }
 
             if (path === '/api/admin/users') {
@@ -1123,7 +1123,7 @@ export default {
         if (request.method === 'DELETE') {
             if (path.startsWith('/api/admin/')) {
                 const isAuth = await checkAdminAuth(request, env);
-                if (!isAuth) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                if (!isAuth) return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
             }
 
             // Admin User Delete
@@ -1144,12 +1144,12 @@ export default {
         if (request.method === 'POST' && path === '/api/admin/rag/search') {
             // Test RAG search (dùng HuggingFace embeddings)
             if (!env.HF_API_TOKEN) {
-                return jsonResponse({ error: 'HF_API_TOKEN not configured' }, 400, env.CORS_ORIGIN);
+                return jsonResponse({ error: 'HF_API_TOKEN not configured' }, 400, allowedOrigin);
             }
 
             const body = await request.json() as { query: string; filters?: { grade?: string; subject?: string } };
             if (!body.query) {
-                return jsonResponse({ error: 'query is required' }, 400, env.CORS_ORIGIN);
+                return jsonResponse({ error: 'query is required' }, 400, allowedOrigin);
             }
 
             try {
@@ -1159,19 +1159,19 @@ export default {
                     body.query,
                     body.filters
                 );
-                return jsonResponse({ success: true, context, sources }, 200, env.CORS_ORIGIN);
+                return jsonResponse({ success: true, context, sources }, 200, allowedOrigin);
             } catch (error) {
                 return jsonResponse({
                     error: 'Search failed',
                     details: error instanceof Error ? error.message : 'Unknown error'
-                }, 500, env.CORS_ORIGIN);
+                }, 500, allowedOrigin);
             }
         }
 
         // Chú thích: Upload file route (đơn giản hoá, không dùng Document AI OCR)
         if (request.method === 'POST' && path === '/api/admin/rag/upload') {
             if (!env.HF_API_TOKEN) {
-                return jsonResponse({ error: 'HF_API_TOKEN not configured' }, 400, env.CORS_ORIGIN);
+                return jsonResponse({ error: 'HF_API_TOKEN not configured' }, 400, allowedOrigin);
             }
 
             try {
@@ -1181,21 +1181,21 @@ export default {
                 const metadataStr = formData.get('metadata') as string | null;
 
                 if (!file) {
-                    return jsonResponse({ error: 'No file provided' }, 400, env.CORS_ORIGIN);
+                    return jsonResponse({ error: 'No file provided' }, 400, allowedOrigin);
                 }
 
                 // Kiểm tra file type
                 if (!isFileTypeSupported(file.name)) {
                     return jsonResponse({
                         error: `Unsupported file type. Supported: ${getSupportedExtensions().join(', ')}`
-                    }, 400, env.CORS_ORIGIN);
+                    }, 400, allowedOrigin);
                 }
 
                 // Kiểm tra file size
                 if (!isFileSizeValid(file.size)) {
                     return jsonResponse({
                         error: `File too large. Max size: ${MAX_FILE_SIZE / 1024 / 1024}MB`
-                    }, 400, env.CORS_ORIGIN);
+                    }, 400, allowedOrigin);
                 }
 
                 // Parse metadata
@@ -1206,7 +1206,7 @@ export default {
                     // Auto-generate metadata từ filename
                     const parsed = parseMetadataFromFilename(`upload-${Date.now()}`, file.name);
                     if (!parsed) {
-                        return jsonResponse({ error: 'Could not parse metadata. Please provide metadata.' }, 400, env.CORS_ORIGIN);
+                        return jsonResponse({ error: 'Could not parse metadata. Please provide metadata.' }, 400, allowedOrigin);
                     }
                     metadata = parsed;
                 }
@@ -1226,18 +1226,18 @@ export default {
                 return jsonResponse({
                     success: true,
                     result,
-                }, 200, env.CORS_ORIGIN);
+                }, 200, allowedOrigin);
 
             } catch (error) {
                 console.error('[rag-upload] error:', error);
                 return jsonResponse({
                     error: 'Upload failed',
                     details: error instanceof Error ? error.message : 'Unknown error'
-                }, 500, env.CORS_ORIGIN);
+                }, 500, allowedOrigin);
             }
         }
 
         // Chú thích: 404 for unknown routes
-        return jsonResponse({ error: 'Not found' }, 404, env.CORS_ORIGIN);
+        return jsonResponse({ error: 'Not found' }, 404, allowedOrigin);
     },
 };

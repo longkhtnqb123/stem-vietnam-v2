@@ -31302,7 +31302,7 @@ var src_default = {
   async fetch(request, env2) {
     const url = new URL(request.url);
     const path = url.pathname;
-    const allowedOrigin = getAllowedOrigin(request.headers.get("Origin"), env2.CORS_ORIGIN);
+    const allowedOrigin = getAllowedOrigin(request.headers.get("Origin"), allowedOrigin);
     if (request.method === "OPTIONS") {
       return new Response(null, {
         headers: corsHeaders(allowedOrigin)
@@ -31361,62 +31361,62 @@ var src_default = {
         // Conversation routes
         case "/api/conversations": {
           const user = await getUserFromToken(request, env2);
-          if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+          if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
           return createConversation(request, user, env2);
         }
         // Exam routes
         case "/api/exams": {
           const user = await getUserFromToken(request, env2);
-          if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+          if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
           return createExam(request, user, env2);
         }
       }
       const msgMatch = path.match(/^\/api\/conversations\/([^/]+)\/messages$/);
       if (msgMatch) {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return addMessageFromRequest(msgMatch[1], request, user, env2);
       }
       if (path === "/api/exam-online/templates") {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return createTemplate(request, user, env2);
       }
       if (path === "/api/exam-online/generate") {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return generateTemplateWithAI(request, user, env2);
       }
       if (path === "/api/exam-online/attempts") {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return startAttempt(request, user, env2);
       }
       const submitMatch = path.match(/^\/api\/exam-online\/attempts\/([^/]+)\/submit$/);
       if (submitMatch) {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return submitAttempt(submitMatch[1], request, user, env2);
       }
       if (path === "/api/ingest") {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return ingestFromR2(request, user, env2);
       }
       if (path === "/api/classes") {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return createClass(request, user, env2);
       }
       if (path === "/api/classes/join") {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return joinClass(request, user, env2);
       }
       const assignMatch = path.match(/^\/api\/classes\/([^/]+)\/assignments$/);
       if (assignMatch) {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return createAssignment(request, assignMatch[1], user, env2);
       }
     }
@@ -31432,24 +31432,24 @@ var src_default = {
       }
       if (path === "/api/conversations") {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return getConversations(user, env2);
       }
       if (path === "/api/exams") {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return getExams(user, env2);
       }
       const convoMatch = path.match(/^\/api\/conversations\/([^/]+)$/);
       if (convoMatch) {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return getConversation(convoMatch[1], user, env2);
       }
       const examMatch = path.match(/^\/api\/exams\/([^/]+)$/);
       if (examMatch) {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return getExam(examMatch[1], user, env2);
       }
       if (path === "/api/exam-online/templates") {
@@ -31458,7 +31458,7 @@ var src_default = {
       const statsMatch = path.match(/^\/api\/exam-online\/templates\/([^/]+)\/stats$/);
       if (statsMatch) {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return getTemplateStats(statsMatch[1], user, env2);
       }
       const templateMatch = path.match(/^\/api\/exam-online\/templates\/([^/]+)$/);
@@ -31467,34 +31467,34 @@ var src_default = {
       }
       if (path === "/api/exam-online/attempts") {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return getAttempts(request, user, env2);
       }
       const attemptMatch = path.match(/^\/api\/exam-online\/attempts\/([^/]+)$/);
       if (attemptMatch) {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return getAttempt(attemptMatch[1], user, env2);
       }
       if (path === "/api/teacher/dashboard") {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return getTeacherDashboard(user, env2);
       }
       if (path === "/api/student/dashboard") {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return getStudentDashboard(user, env2);
       }
       if (path === "/api/classes") {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return getClasses(user, env2);
       }
       const classMatch = path.match(/^\/api\/classes\/([^/]+)$/);
       if (classMatch) {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return getClassDetails(classMatch[1], user, env2);
       }
     }
@@ -31502,13 +31502,13 @@ var src_default = {
       const convoMatch = path.match(/^\/api\/conversations\/([^/]+)$/);
       if (convoMatch) {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return deleteConversation(convoMatch[1], user, env2);
       }
       const examMatch = path.match(/^\/api\/exams\/([^/]+)$/);
       if (examMatch) {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return deleteExam(examMatch[1], user, env2);
       }
       const adminUserMatch = path.match(/^\/api\/admin\/users\/([^/]+)$/);
@@ -31518,7 +31518,7 @@ var src_default = {
       const deleteClassMatch = path.match(/^\/api\/classes\/([^/]+)$/);
       if (deleteClassMatch) {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return deleteClass(deleteClassMatch[1], user, env2);
       }
     }
@@ -31529,13 +31529,13 @@ var src_default = {
       const adminUserMatch = path.match(/^\/api\/admin\/users\/([^/]+)$/);
       if (adminUserMatch) {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return updateUserDetails(adminUserMatch[1], request, env2);
       }
       const attemptUpdateMatch = path.match(/^\/api\/exam-online\/attempts\/([^/]+)$/);
       if (attemptUpdateMatch) {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return updateAttempt(attemptUpdateMatch[1], request, user, env2);
       }
     }
@@ -31543,7 +31543,7 @@ var src_default = {
       const templateDeleteMatch = path.match(/^\/api\/exam-online\/templates\/([^/]+)$/);
       if (templateDeleteMatch) {
         const user = await getUserFromToken(request, env2);
-        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
         return deleteTemplate(templateDeleteMatch[1], user, env2);
       }
     }
@@ -31557,7 +31557,7 @@ var src_default = {
     if (request.method === "POST") {
       if (path.startsWith("/api/admin/")) {
         const isAuth = await checkAdminAuth(request, env2);
-        if (!isAuth) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!isAuth) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
       }
       if (path === "/api/admin/users") {
         return createUser(request, env2);
@@ -31569,7 +31569,7 @@ var src_default = {
     if (request.method === "GET") {
       if (path.startsWith("/api/admin/")) {
         const isAuth = await checkAdminAuth(request, env2);
-        if (!isAuth) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!isAuth) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
       }
       if (path === "/api/admin/users") {
         return getUsers(env2);
@@ -31596,7 +31596,7 @@ var src_default = {
     if (request.method === "DELETE") {
       if (path.startsWith("/api/admin/")) {
         const isAuth = await checkAdminAuth(request, env2);
-        if (!isAuth) return jsonResponse({ error: "Unauthorized" }, 401, env2.CORS_ORIGIN);
+        if (!isAuth) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
       }
       const adminUserDelMatch = path.match(/^\/api\/admin\/users\/([^/]+)$/);
       if (adminUserDelMatch) {
@@ -31609,11 +31609,11 @@ var src_default = {
     }
     if (request.method === "POST" && path === "/api/admin/rag/search") {
       if (!env2.HF_API_TOKEN) {
-        return jsonResponse({ error: "HF_API_TOKEN not configured" }, 400, env2.CORS_ORIGIN);
+        return jsonResponse({ error: "HF_API_TOKEN not configured" }, 400, allowedOrigin);
       }
       const body = await request.json();
       if (!body.query) {
-        return jsonResponse({ error: "query is required" }, 400, env2.CORS_ORIGIN);
+        return jsonResponse({ error: "query is required" }, 400, allowedOrigin);
       }
       try {
         const { context, sources } = await getRAGContext(
@@ -31622,34 +31622,34 @@ var src_default = {
           body.query,
           body.filters
         );
-        return jsonResponse({ success: true, context, sources }, 200, env2.CORS_ORIGIN);
+        return jsonResponse({ success: true, context, sources }, 200, allowedOrigin);
       } catch (error) {
         return jsonResponse({
           error: "Search failed",
           details: error instanceof Error ? error.message : "Unknown error"
-        }, 500, env2.CORS_ORIGIN);
+        }, 500, allowedOrigin);
       }
     }
     if (request.method === "POST" && path === "/api/admin/rag/upload") {
       if (!env2.HF_API_TOKEN) {
-        return jsonResponse({ error: "HF_API_TOKEN not configured" }, 400, env2.CORS_ORIGIN);
+        return jsonResponse({ error: "HF_API_TOKEN not configured" }, 400, allowedOrigin);
       }
       try {
         const formData = await request.formData();
         const file = formData.get("file");
         const metadataStr = formData.get("metadata");
         if (!file) {
-          return jsonResponse({ error: "No file provided" }, 400, env2.CORS_ORIGIN);
+          return jsonResponse({ error: "No file provided" }, 400, allowedOrigin);
         }
         if (!isFileTypeSupported(file.name)) {
           return jsonResponse({
             error: `Unsupported file type. Supported: ${getSupportedExtensions().join(", ")}`
-          }, 400, env2.CORS_ORIGIN);
+          }, 400, allowedOrigin);
         }
         if (!isFileSizeValid(file.size)) {
           return jsonResponse({
             error: `File too large. Max size: ${MAX_FILE_SIZE / 1024 / 1024}MB`
-          }, 400, env2.CORS_ORIGIN);
+          }, 400, allowedOrigin);
         }
         let metadata;
         if (metadataStr) {
@@ -31657,7 +31657,7 @@ var src_default = {
         } else {
           const parsed = parseMetadataFromFilename(`upload-${Date.now()}`, file.name);
           if (!parsed) {
-            return jsonResponse({ error: "Could not parse metadata. Please provide metadata." }, 400, env2.CORS_ORIGIN);
+            return jsonResponse({ error: "Could not parse metadata. Please provide metadata." }, 400, allowedOrigin);
           }
           metadata = parsed;
         }
@@ -31672,16 +31672,16 @@ var src_default = {
         return jsonResponse({
           success: true,
           result
-        }, 200, env2.CORS_ORIGIN);
+        }, 200, allowedOrigin);
       } catch (error) {
         console.error("[rag-upload] error:", error);
         return jsonResponse({
           error: "Upload failed",
           details: error instanceof Error ? error.message : "Unknown error"
-        }, 500, env2.CORS_ORIGIN);
+        }, 500, allowedOrigin);
       }
     }
-    return jsonResponse({ error: "Not found" }, 404, env2.CORS_ORIGIN);
+    return jsonResponse({ error: "Not found" }, 404, allowedOrigin);
   }
 };
 
