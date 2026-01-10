@@ -337,7 +337,7 @@ export default function HelpPage() {
                             <div className="bg-red-500/10 rounded-xl p-4 border border-red-500/30">
                                 <p className="text-sm text-red-300 font-bold mb-1 flex items-center gap-1">❌ Câu hỏi Sơ Sài:</p>
                                 <p className="text-sm italic opacity-80">"Soạn bài công nghệ 10."</p>
-                                <p className="text-xs text-red-200 mt-1">-> AI không biết bài nào, mục đích gì, độ dài bao nhiêu.</p>
+                                <p className="text-xs text-red-200 mt-1">➜ AI không biết bài nào, mục đích gì, độ dài bao nhiêu.</p>
                             </div>
 
                             <div className="bg-green-500/20 rounded-xl p-4 border border-green-500/40 shadow-lg">
