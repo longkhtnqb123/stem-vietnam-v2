@@ -11,12 +11,28 @@ import {
     createExam,
     deleteExam
 } from './exam-routes';
+import {
+    getTemplates,
+    getTemplate,
+    createTemplate,
+    startAttempt,
+    updateAttempt,
+    submitAttempt,
+    getAttempts,
+    getAttempt,
+    deleteTemplate,
+    generateTemplateWithAI,
+    getTemplateStats,
+    getTeacherDashboard,
+    getStudentDashboard
+} from './exam-online-routes';
 import { getUsers, getUser, deleteUser, updateUser, getStats, getAdminConversations, getAdminConversation, deleteAdminConversation, AdminEnv } from './admin-routes';
 import { handleStorageRequest } from './storage-routes';
 import { searchVectors, buildContextFromResults } from './vectorize';
 import { getRAGContext } from './rag-pipeline';
 import { getAdvancedRAGContext } from './rag/advanced-rag-pipeline';
 import { isFileTypeSupported, isFileSizeValid, MAX_FILE_SIZE, getSupportedExtensions } from './file-parser';
+import { ingestFromR2 } from './ingest';
 
 // Chú thích: Environment interface (đã xoá Vertex AI, chuyển sang HuggingFace)
 export interface Env {
@@ -724,6 +740,42 @@ export default {
                 if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
                 return addMessageFromRequest(msgMatch[1], request, user, env as unknown as ConvoEnv);
             }
+
+            // ========== EXAM ONLINE ROUTES (POST) ==========
+            // Tạo đề thi mới (manual)
+            if (path === '/api/exam-online/templates') {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return createTemplate(request, user, env as any);
+            }
+            // Tạo đề thi bằng AI (RAG)
+            if (path === '/api/exam-online/generate') {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return generateTemplateWithAI(request, user, env as any);
+            }
+            // Bắt đầu làm bài
+            if (path === '/api/exam-online/attempts') {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return startAttempt(request, user, env as any);
+            }
+            // Nộp bài
+            const submitMatch = path.match(/^\/api\/exam-online\/attempts\/([^/]+)\/submit$/);
+            if (submitMatch) {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return submitAttempt(submitMatch[1], request, user, env as any);
+            }
+
+            // ========== INGEST ROUTE (Admin) ==========
+            // POST /api/ingest - Ingest SGK từ R2 vào Vectorize
+            if (path === '/api/ingest') {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                // Chú thích: Có thể thêm role check admin ở đây
+                return ingestFromR2(request, user, env as any);
+            }
         }
 
         // GET routes
@@ -765,6 +817,51 @@ export default {
                 if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
                 return getExam(examMatch[1], user, env as unknown as ConvoEnv);
             }
+
+            // ========== EXAM ONLINE ROUTES (GET) ==========
+            // Lấy danh sách đề thi templates (public)
+            if (path === '/api/exam-online/templates') {
+                return getTemplates(request, env as any);
+            }
+            // Lấy thống kê đề thi (cho giáo viên/admin)
+            const statsMatch = path.match(/^\/api\/exam-online\/templates\/([^/]+)\/stats$/);
+            if (statsMatch) {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return getTemplateStats(statsMatch[1], user, env as any);
+            }
+            // Lấy chi tiết 1 template
+            const templateMatch = path.match(/^\/api\/exam-online\/templates\/([^/]+)$/);
+            if (templateMatch) {
+                return getTemplate(templateMatch[1], env as any);
+            }
+            // Lấy lịch sử làm bài của user
+            if (path === '/api/exam-online/attempts') {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return getAttempts(request, user, env as any);
+            }
+            // Lấy chi tiết 1 bài làm (xem lại)
+            const attemptMatch = path.match(/^\/api\/exam-online\/attempts\/([^/]+)$/);
+            if (attemptMatch) {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return getAttempt(attemptMatch[1], user, env as any);
+            }
+
+            // ========== TEACHER DASHBOARD ==========
+            if (path === '/api/teacher/dashboard') {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return getTeacherDashboard(user, env as any);
+            }
+
+            // ========== STUDENT DASHBOARD ==========
+            if (path === '/api/student/dashboard') {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return getStudentDashboard(user, env as any);
+            }
         }
 
         // DELETE routes
@@ -798,6 +895,26 @@ export default {
             const adminUserMatch = path.match(/^\/api\/admin\/users\/([^/]+)$/);
             if (adminUserMatch) {
                 return updateUser(adminUserMatch[1], request, env as unknown as AdminEnv);
+            }
+
+            // ========== EXAM ONLINE ROUTES (PUT) ==========
+            // Cập nhật bài làm (auto-save)
+            const attemptUpdateMatch = path.match(/^\/api\/exam-online\/attempts\/([^/]+)$/);
+            if (attemptUpdateMatch) {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return updateAttempt(attemptUpdateMatch[1], request, user, env as any);
+            }
+        }
+
+        // ========== EXAM ONLINE DELETE ROUTES ==========
+        if (request.method === 'DELETE') {
+            // Xóa template (chỉ owner)
+            const templateDeleteMatch = path.match(/^\/api\/exam-online\/templates\/([^/]+)$/);
+            if (templateDeleteMatch) {
+                const user = await getUserFromToken(request, env as unknown as AuthEnv);
+                if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, env.CORS_ORIGIN);
+                return deleteTemplate(templateDeleteMatch[1], user, env as any);
             }
         }
 

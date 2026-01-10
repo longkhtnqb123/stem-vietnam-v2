@@ -18,9 +18,16 @@ const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+// Chú thích: Thi Online pages
+const ExamOnlinePage = lazy(() => import('./pages/ExamOnlinePage'));
+const ExamTakingPage = lazy(() => import('./pages/ExamTakingPage'));
+const HelpPage = lazy(() => import('./pages/HelpPage'));
+const TeacherDashboard = lazy(() => import('./pages/TeacherDashboard'));
+const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
 import AuthGuard from './components/auth/AuthGuard';
 import ApiKeyWarning from './components/common/ApiKeyWarning';
 import PWAInstallPrompt from './components/common/PWAInstallPrompt';
+import TourGuide, { useTourGuide } from './components/common/TourGuide';
 
 // Chú thích: Loading fallback component
 function PageLoader() {
@@ -45,6 +52,7 @@ function FullPageLoader() {
 
 function App() {
   const { notification, clearNotification } = useAppStore();
+  const { showTour, completeTour } = useTourGuide();
 
   // Chú thích: Apply dark mode class on mount từ localStorage
   useEffect(() => {
@@ -61,6 +69,7 @@ function App() {
       <VersionCheck />
       <ApiKeyWarning />
       <PWAInstallPrompt />
+      <TourGuide isOpen={showTour} onComplete={completeTour} />
       {/* Notification Toast */}
       {notification && (
         <div className={`
@@ -147,6 +156,46 @@ function App() {
             <AuthGuard>
               <Suspense fallback={<PageLoader />}>
                 <SettingsPage />
+              </Suspense>
+            </AuthGuard>
+          } />
+
+          {/* Thi Online */}
+          <Route path="exam-online" element={
+            <Suspense fallback={<PageLoader />}>
+              <ExamOnlinePage />
+            </Suspense>
+          } />
+
+          <Route path="exam-online/attempt/:attemptId" element={
+            <AuthGuard>
+              <Suspense fallback={<PageLoader />}>
+                <ExamTakingPage />
+              </Suspense>
+            </AuthGuard>
+          } />
+
+          {/* Hướng dẫn sử dụng */}
+          <Route path="help" element={
+            <Suspense fallback={<PageLoader />}>
+              <HelpPage />
+            </Suspense>
+          } />
+
+          {/* Teacher Dashboard */}
+          <Route path="teacher-dashboard" element={
+            <AuthGuard>
+              <Suspense fallback={<PageLoader />}>
+                <TeacherDashboard />
+              </Suspense>
+            </AuthGuard>
+          } />
+
+          {/* Student Dashboard */}
+          <Route path="student-dashboard" element={
+            <AuthGuard>
+              <Suspense fallback={<PageLoader />}>
+                <StudentDashboard />
               </Suspense>
             </AuthGuard>
           } />

@@ -12,12 +12,16 @@ function getOrigin(request: Request, env: Env): string {
 export async function handleRegister(request: Request, env: AuthEnv): Promise<Response> {
     const origin = getOrigin(request, env);
     try {
-        const body = await request.json() as { email?: string; password?: string; name?: string };
-        const { email, password, name } = body;
+        const body = await request.json() as { email?: string; password?: string; name?: string; role?: string };
+        const { email, password, name, role } = body;
 
         if (!email || !password || !name) {
             return jsonResponse({ error: 'Email, password và name là bắt buộc' }, 400, origin);
         }
+
+        // Chú thích: Validate role (mặc định là student)
+        const validRoles = ['student', 'teacher'];
+        const userRole = role && validRoles.includes(role) ? role : 'student';
 
         if (password.length < 6) {
             return jsonResponse({ error: 'Password phải có ít nhất 6 ký tự' }, 400, origin);
@@ -34,8 +38,8 @@ export async function handleRegister(request: Request, env: AuthEnv): Promise<Re
         const now = Date.now();
 
         await env.DB.prepare(
-            'INSERT INTO users (id, email, password_hash, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
-        ).bind(userId, email.toLowerCase(), passwordHash, name, now, now).run();
+            'INSERT INTO users (id, email, password_hash, name, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        ).bind(userId, email.toLowerCase(), passwordHash, name, userRole, now, now).run();
 
         return jsonResponse({ success: true, message: 'Đăng ký thành công!' }, 201, origin);
 
@@ -56,17 +60,19 @@ export async function handleLogin(request: Request, env: AuthEnv): Promise<Respo
         }
 
         const user = await env.DB.prepare(
-            'SELECT id, email, password_hash, name, avatar_url FROM users WHERE email = ?'
-        ).bind(email.toLowerCase()).first<{ id: string; email: string; password_hash: string; name: string; avatar_url: string | null }>();
+            'SELECT id, email, password_hash, name, avatar_url, role FROM users WHERE email = ?'
+        ).bind(email.toLowerCase()).first<{ id: string; email: string; password_hash: string; name: string; avatar_url: string | null; role: string }>();
 
         if (!user || !(await verifyPassword(password, user.password_hash))) {
             return jsonResponse({ error: 'Email hoặc password không đúng' }, 401, origin);
         }
 
+        // Chú thích: Thêm role vào JWT token
         const token = await createJWT({
             sub: user.id,
             email: user.email,
-            name: user.name
+            name: user.name,
+            role: user.role || 'student'
         }, env.JWT_SECRET);
 
         return jsonResponse({
@@ -76,7 +82,8 @@ export async function handleLogin(request: Request, env: AuthEnv): Promise<Respo
                 id: user.id,
                 email: user.email,
                 name: user.name,
-                avatar_url: user.avatar_url
+                avatar_url: user.avatar_url,
+                role: user.role || 'student'
             }
         }, 200, origin);
 
@@ -95,14 +102,14 @@ export async function handleMe(request: Request, env: AuthEnv): Promise<Response
         }
 
         const user = await env.DB.prepare(
-            'SELECT id, email, name, avatar_url FROM users WHERE id = ?'
-        ).bind(payload.sub).first<{ id: string; email: string; name: string; avatar_url: string | null }>();
+            'SELECT id, email, name, avatar_url, role FROM users WHERE id = ?'
+        ).bind(payload.sub).first<{ id: string; email: string; name: string; avatar_url: string | null; role: string }>();
 
         if (!user) {
             return jsonResponse({ error: 'User không tồn tại' }, 404, origin);
         }
 
-        return jsonResponse({ user }, 200, origin);
+        return jsonResponse({ user: { ...user, role: user.role || 'student' } }, 200, origin);
 
     } catch (error: any) {
         console.error('[auth] me error:', error);

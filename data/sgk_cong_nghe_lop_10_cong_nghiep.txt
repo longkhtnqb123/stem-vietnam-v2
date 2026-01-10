@@ -1,0 +1,118 @@
+# Sách Giáo Khoa Công Nghệ Lớp 10 - Định Hướng Công Nghiệp
+
+## Chương 1: Khái quát về Công nghệ
+
+### Bài 1: Công nghệ và đời sống
+
+Công nghệ là tập hợp các phương pháp, quy trình, kỹ năng, thiết bị và hệ thống được sử dụng để tạo ra sản phẩm hoặc dịch vụ nhằm đáp ứng nhu cầu của con người.
+
+**Vai trò của công nghệ trong đời sống:**
+- Nâng cao năng suất lao động
+- Cải thiện chất lượng cuộc sống
+- Tạo ra việc làm mới
+- Thúc đẩy phát triển kinh tế
+- Bảo vệ môi trường bền vững
+
+**Các lĩnh vực công nghệ phổ biến:**
+1. Công nghệ cơ khí: chế tạo máy, gia công kim loại
+2. Công nghệ điện - điện tử: thiết bị điện, mạch điện tử
+3. Công nghệ thông tin: phần mềm, mạng máy tính, AI
+4. Công nghệ sinh học: y tế, nông nghiệp
+5. Công nghệ vật liệu: vật liệu mới, nano
+
+### Bài 2: An toàn lao động
+
+**Khái niệm an toàn lao động:**
+An toàn lao động là các biện pháp phòng ngừa tai nạn, bảo vệ sức khỏe người lao động trong quá trình làm việc.
+
+**Các nguyên tắc an toàn cơ bản:**
+- Trang bị bảo hộ lao động đầy đủ
+- Tuân thủ quy trình làm việc an toàn
+- Kiểm tra thiết bị trước khi sử dụng
+- Cảnh báo nguy hiểm cho người xung quanh
+- Không sử dụng chất kích thích khi làm việc
+
+**Dấu hiệu cảnh báo nguy hiểm:**
+- Màu đỏ: cấm, nguy hiểm cao
+- Màu vàng: cảnh báo, chú ý
+- Màu xanh lá: an toàn, cho phép
+- Màu xanh dương: chỉ dẫn, thông tin
+
+## Chương 2: Vật liệu cơ khí
+
+### Bài 3: Tính chất của vật liệu
+
+**Các loại vật liệu cơ khí phổ biến:**
+
+1. **Kim loại đen:**
+   - Gang: hàm lượng carbon > 2.14%, cứng nhưng giòn
+   - Thép: hàm lượng carbon < 2.14%, bền và dẻo
+   - Thép không gỉ: chứa Crom, chống ăn mòn tốt
+
+2. **Kim loại màu:**
+   - Nhôm: nhẹ, dẫn điện tốt, dễ gia công
+   - Đồng: dẫn điện, dẫn nhiệt tốt nhất
+   - Kẽm: chống ăn mòn, mạ bảo vệ
+
+3. **Vật liệu phi kim loại:**
+   - Nhựa: nhẹ, cách điện, dễ tạo hình
+   - Gốm: chịu nhiệt, cứng, giòn
+   - Composite: kết hợp nhiều vật liệu, nhẹ và bền
+
+**Tính chất cơ học:**
+- Độ bền: khả năng chịu lực không bị phá hủy
+- Độ cứng: khả năng chống lại biến dạng bề mặt
+- Độ dẻo: khả năng biến dạng mà không bị nứt gãy
+- Độ dai: khả năng chịu va đập
+
+### Bài 4: Gia công cơ khí
+
+**Các phương pháp gia công:**
+
+1. **Gia công cắt gọt:**
+   - Tiện: gia công chi tiết tròn xoay
+   - Phay: tạo mặt phẳng, rãnh
+   - Khoan: tạo lỗ trụ
+   - Mài: gia công tinh, đạt độ chính xác cao
+
+2. **Gia công áp lực:**
+   - Rèn: gia công nóng bằng búa
+   - Dập: tạo hình bằng khuôn
+   - Cán: làm mỏng vật liệu
+
+3. **Gia công nhiệt luyện:**
+   - Tôi: làm cứng thép
+   - Ram: giảm độ giòn
+   - Ủ: làm mềm vật liệu
+
+## Chương 3: Chi tiết máy và cơ cấu
+
+### Bài 5: Mối ghép cơ khí
+
+**Mối ghép tháo được:**
+- Mối ghép ren (bu lông, đai ốc)
+- Mối ghép then
+- Mối ghép chốt
+
+**Mối ghép không tháo được:**
+- Mối ghép hàn
+- Mối ghép đinh tán
+- Mối ghép dán
+
+### Bài 6: Truyền động cơ khí
+
+**Các loại truyền động:**
+
+1. **Truyền động ma sát:**
+   - Truyền động đai: êm, trượt khi quá tải
+   - Tỷ số truyền: i = n1/n2 = D2/D1
+
+2. **Truyền động ăn khớp:**
+   - Truyền động bánh răng: chính xác, công suất lớn
+   - Truyền động xích: khoảng cách trục lớn
+   - Tỷ số truyền: i = Z2/Z1
+
+**Công thức tính tỷ số truyền:**
+- Tỷ số truyền i = số vòng quay trục dẫn / số vòng quay trục bị dẫn
+- Nếu i > 1: truyền động giảm tốc
+- Nếu i < 1: truyền động tăng tốc

@@ -13,19 +13,33 @@ import {
     X,
     LogOut,
     User,
-    Settings
+    Settings,
+    Trophy,
+    HelpCircle,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { useAuthStore } from '../../lib/auth';
 
-// Chú thích: Navigation items
-const navItems = [
+// Chú thích: Navigation items với role filter
+// roles: undefined = all, ['teacher', 'admin'] = chỉ teacher và admin
+interface NavItem {
+    path: string;
+    icon: React.ComponentType<{ size?: number }>;
+    label: string;
+    roles?: string[];
+}
+
+const navItems: NavItem[] = [
     { path: '/chat', icon: MessageCircle, label: 'Chat AI' },
-    { path: '/questions', icon: FileQuestion, label: 'Tạo Câu Hỏi' },
-    { path: '/exam/thpt', icon: ClipboardList, label: 'Đề Thi THPT' },
-    { path: '/exam/semester', icon: GraduationCap, label: 'Đề Giữa/Cuối Kỳ' },
+    { path: '/exam-online', icon: Trophy, label: '🔥 Thi Online' },
+    { path: '/student-dashboard', icon: GraduationCap, label: '📈 Tiến Độ', roles: ['student'] },
+    { path: '/teacher-dashboard', icon: ClipboardList, label: '📊 Dashboard GV', roles: ['teacher', 'admin'] },
+    { path: '/questions', icon: FileQuestion, label: 'Tạo Câu Hỏi', roles: ['teacher', 'admin'] },
+    { path: '/exam/thpt', icon: ClipboardList, label: 'Đề Thi THPT', roles: ['teacher', 'admin'] },
+    { path: '/exam/semester', icon: GraduationCap, label: 'Đề Giữa/Cuối Kỳ', roles: ['teacher', 'admin'] },
     { path: '/library', icon: Library, label: 'Thư Viện' },
     { path: '/settings', icon: Settings, label: 'Cài Đặt' },
+    { path: '/help', icon: HelpCircle, label: '📖 Hướng Dẫn' },
 ];
 
 export default function MainLayout() {
@@ -33,6 +47,13 @@ export default function MainLayout() {
     const { user, logout } = useAuthStore();
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = React.useState(false);
+
+    // Chú thích: Filter menu items theo role
+    const userRole = user?.role || 'student';
+    const filteredNavItems = navItems.filter(item => {
+        if (!item.roles) return true; // Không filter = hiện cho tất cả
+        return item.roles.includes(userRole);
+    });
 
     const handleLogout = () => {
         logout();
@@ -71,7 +92,7 @@ export default function MainLayout() {
 
                     {/* Navigation */}
                     <nav className="flex-1 p-4 space-y-1">
-                        {navItems.map(({ path, icon: Icon, label }) => (
+                        {filteredNavItems.map(({ path, icon: Icon, label }) => (
                             <NavLink
                                 key={path}
                                 to={path}

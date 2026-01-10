@@ -1,8 +1,8 @@
 // Chú thích: Register Page - Giao diện nhẹ nhàng, nền trắng
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Check } from 'lucide-react';
-import { useAuthStore } from '../lib/auth';
+import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Check, GraduationCap, Users } from 'lucide-react';
+import { useAuthStore, type UserRole } from '../lib/auth';
 
 export default function RegisterPage() {
     const [name, setName] = useState('');
@@ -11,6 +11,7 @@ export default function RegisterPage() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [role, setRole] = useState<UserRole>('student');
     const { register, isLoading, error, clearError } = useAuthStore();
     const navigate = useNavigate();
 
@@ -21,7 +22,7 @@ export default function RegisterPage() {
             return;
         }
 
-        const result = await register(name, email, password);
+        const result = await register(name, email, password, role);
         if (result) {
             setSuccess(true);
             // Chú thích: Redirect về home vì đã tự động login sau khi đăng ký
@@ -67,6 +68,35 @@ export default function RegisterPage() {
                             {error}
                         </div>
                     )}
+
+                    {/* Chú thích: Chọn role (Học sinh / Giáo viên) */}
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-slate-700 mb-3">Bạn là:</label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setRole('student')}
+                                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${role === 'student'
+                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                                    }`}
+                            >
+                                <GraduationCap size={28} />
+                                <span className="font-medium text-sm">🎓 Học sinh</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setRole('teacher')}
+                                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${role === 'teacher'
+                                        ? 'border-purple-500 bg-purple-50 text-purple-700'
+                                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                                    }`}
+                            >
+                                <Users size={28} />
+                                <span className="font-medium text-sm">👩‍🏫 Giáo viên</span>
+                            </button>
+                        </div>
+                    </div>
 
                     <div className="space-y-4">
                         {/* Name */}

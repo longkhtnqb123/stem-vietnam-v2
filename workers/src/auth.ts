@@ -70,6 +70,7 @@ export interface JWTPayload {
     sub: string; // user id
     email: string;
     name: string;
+    role?: string; // student | teacher | admin
     iat: number;
     exp: number;
 }

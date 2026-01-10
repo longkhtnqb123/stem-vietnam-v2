@@ -139,8 +139,8 @@ export default function SettingsPage() {
                                         <p className="font-medium text-slate-900 dark:text-white">Tối</p>
                                     </button>
                                     <button
-                                        onClick={() => updateSettings({ ...settings, theme: 'system' })}
-                                        className={`p-4 rounded-lg border-2 transition-all ${settings.theme === 'system'
+                                        onClick={() => updateSettings({ ...settings, theme: 'auto' })}
+                                        className={`p-4 rounded-lg border-2 transition-all ${settings.theme === 'auto'
                                             ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
                                             : 'border-slate-200 dark:border-slate-600 hover:border-primary-300'
                                             }`}

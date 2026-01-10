@@ -11,7 +11,10 @@ export interface User {
     email: string;
     name: string;
     avatar_url?: string | null;
+    role?: 'student' | 'teacher' | 'admin';
 }
+
+export type UserRole = 'student' | 'teacher' | 'admin';
 
 // Chú thích: Auth state
 interface AuthState {
@@ -22,7 +25,7 @@ interface AuthState {
 
     // Actions
     login: (email: string, password: string) => Promise<boolean>;
-    register: (name: string, email: string, password: string) => Promise<boolean>;
+    register: (name: string, email: string, password: string, role?: UserRole) => Promise<boolean>;
     logout: () => void;
     checkAuth: () => Promise<void>;
     clearError: () => void;
@@ -66,13 +69,13 @@ export const useAuthStore = create<AuthState>()(
                 }
             },
 
-            register: async (name: string, email: string, password: string) => {
+            register: async (name: string, email: string, password: string, role: UserRole = 'student') => {
                 set({ isLoading: true, error: null });
                 try {
                     const res = await fetch(`${API_URL}/api/auth/register`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, email, password }),
+                        body: JSON.stringify({ name, email, password, role }),
                     });
 
                     const data = await res.json();

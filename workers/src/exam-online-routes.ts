@@ -1,0 +1,1389 @@
+// Chú thích: Exam Online Routes - API cho hệ thống thi trắc nghiệm online
+// Bao gồm: quản lý đề thi, làm bài, chấm điểm, lịch sử
+
+import { generateId, JWTPayload } from './auth';
+
+// ==================== Types ====================
+interface ExamEnv {
+    DB: D1Database;
+    CORS_ORIGIN: string;
+    OPENROUTER_API_KEY: string;
+    HF_API_TOKEN: string;
+}
+
+// Cấu trúc 1 câu hỏi
+export interface ExamQuestion {
+    id: string;
+    content: string;           // Nội dung câu hỏi
+    options: string[];         // 4 đáp án A, B, C, D
+    answer: string;            // Đáp án đúng: 'A', 'B', 'C', 'D'
+    explanation?: string;      // Giải thích (hiển thị sau khi nộp)
+    level: 'remember' | 'understand' | 'apply' | 'analyze'; // Mức độ tư duy
+    chapter?: string;          // Chương (optional)
+}
+
+// Đề thi template
+export interface ExamTemplate {
+    id: string;
+    grade: '10' | '11' | '12';
+    branch?: 'cong_nghiep' | 'nong_nghiep';
+    exam_type: '15min' | 'midterm' | 'final' | 'thpt';
+    title: string;
+    description?: string;
+    questions: ExamQuestion[];
+    total_questions: number;
+    duration_minutes: number;
+    difficulty: 'easy' | 'medium' | 'hard';
+    chapters?: string[];
+    publisher?: string;
+    created_at: number;
+    created_by?: string;
+    is_public: boolean;
+    times_taken: number;
+}
+
+// Lượt làm bài
+export interface ExamAttempt {
+    id: string;
+    user_id: string;
+    template_id: string;
+    answers: Record<string, string>; // {questionId: 'A' | 'B' | 'C' | 'D'}
+    score?: number;
+    correct_count?: number;
+    total_questions: number;
+    started_at: number;
+    submitted_at?: number;
+    time_spent_seconds?: number;
+    status: 'in_progress' | 'submitted' | 'reviewed';
+    analysis?: {
+        remember: { correct: number; total: number };
+        understand: { correct: number; total: number };
+        apply: { correct: number; total: number };
+        analyze: { correct: number; total: number };
+    };
+}
+
+// ==================== Helper Functions ====================
+
+function jsonResponse(data: unknown, status: number, origin: string): Response {
+    return new Response(JSON.stringify(data), {
+        status,
+        headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': origin || '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS, DELETE',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+    });
+}
+
+// Chấm điểm tự động
+function gradeExam(
+    questions: ExamQuestion[],
+    answers: Record<string, string>
+): {
+    score: number;
+    correct_count: number;
+    analysis: ExamAttempt['analysis'];
+    detailed_results: Array<{
+        questionId: string;
+        userAnswer: string;
+        correctAnswer: string;
+        isCorrect: boolean;
+        level: string;
+    }>;
+} {
+    // Khởi tạo phân tích theo mức độ
+    const analysis = {
+        remember: { correct: 0, total: 0 },
+        understand: { correct: 0, total: 0 },
+        apply: { correct: 0, total: 0 },
+        analyze: { correct: 0, total: 0 },
+    };
+
+    const detailed_results: Array<{
+        questionId: string;
+        userAnswer: string;
+        correctAnswer: string;
+        isCorrect: boolean;
+        level: string;
+    }> = [];
+
+    let correct_count = 0;
+
+    for (const q of questions) {
+        const userAnswer = answers[q.id] || '';
+        const isCorrect = userAnswer.toUpperCase() === q.answer.toUpperCase();
+
+        if (isCorrect) correct_count++;
+
+        // Cập nhật phân tích theo mức độ
+        if (q.level && analysis[q.level]) {
+            analysis[q.level].total++;
+            if (isCorrect) analysis[q.level].correct++;
+        }
+
+        detailed_results.push({
+            questionId: q.id,
+            userAnswer,
+            correctAnswer: q.answer,
+            isCorrect,
+            level: q.level,
+        });
+    }
+
+    // Tính điểm thang 10
+    const score = (correct_count / questions.length) * 10;
+
+    return {
+        score: Math.round(score * 100) / 100, // Làm tròn 2 chữ số
+        correct_count,
+        analysis,
+        detailed_results,
+    };
+}
+
+// ==================== API Handlers ====================
+
+// GET /api/exam-online/templates
+// Lấy danh sách đề thi
+export async function getTemplates(
+    request: Request,
+    env: ExamEnv
+): Promise<Response> {
+    try {
+        const url = new URL(request.url);
+        const grade = url.searchParams.get('grade');
+        const branch = url.searchParams.get('branch');
+        const exam_type = url.searchParams.get('type');
+        const limit = parseInt(url.searchParams.get('limit') || '20');
+        const offset = parseInt(url.searchParams.get('offset') || '0');
+
+        // Build query động
+        let query = 'SELECT * FROM exam_templates WHERE is_public = 1';
+        const bindings: any[] = [];
+
+        if (grade) {
+            query += ' AND grade = ?';
+            bindings.push(grade);
+        }
+        if (branch) {
+            query += ' AND (branch = ? OR branch IS NULL)';
+            bindings.push(branch);
+        }
+        if (exam_type) {
+            query += ' AND exam_type = ?';
+            bindings.push(exam_type);
+        }
+
+        query += ' ORDER BY times_taken DESC, created_at DESC LIMIT ? OFFSET ?';
+        bindings.push(limit, offset);
+
+        const result = await env.DB.prepare(query).bind(...bindings).all();
+
+        // Parse JSON fields
+        const templates = (result.results || []).map((row: any) => ({
+            ...row,
+            questions: undefined, // Không trả về questions trong list
+            chapters: row.chapters ? JSON.parse(row.chapters) : null,
+            is_public: row.is_public === 1,
+        }));
+
+        return jsonResponse({ templates }, 200, env.CORS_ORIGIN);
+    } catch (error) {
+        console.error('[exam-online] get templates error:', error);
+        return jsonResponse({ error: 'Lỗi server' }, 500, env.CORS_ORIGIN);
+    }
+}
+
+// GET /api/exam-online/templates/:id
+// Lấy chi tiết 1 đề thi (CHỈ khi bắt đầu làm bài)
+export async function getTemplate(
+    templateId: string,
+    env: ExamEnv
+): Promise<Response> {
+    try {
+        const template = await env.DB.prepare(
+            'SELECT * FROM exam_templates WHERE id = ?'
+        ).bind(templateId).first();
+
+        if (!template) {
+            return jsonResponse({ error: 'Đề thi không tồn tại' }, 404, env.CORS_ORIGIN);
+        }
+
+        // Parse JSON fields
+        const parsed = {
+            ...template,
+            questions: JSON.parse(template.questions as string),
+            chapters: template.chapters ? JSON.parse(template.chapters as string) : null,
+            is_public: template.is_public === 1,
+        };
+
+        return jsonResponse({ template: parsed }, 200, env.CORS_ORIGIN);
+    } catch (error) {
+        console.error('[exam-online] get template error:', error);
+        return jsonResponse({ error: 'Lỗi server' }, 500, env.CORS_ORIGIN);
+    }
+}
+
+// POST /api/exam-online/templates
+// Tạo đề thi mới (từ AI hoặc manual)
+export async function createTemplate(
+    request: Request,
+    user: JWTPayload,
+    env: ExamEnv
+): Promise<Response> {
+    try {
+        const body = await request.json() as Partial<ExamTemplate> & { questions: ExamQuestion[] };
+
+        // Validate required fields
+        if (!body.grade || !body.exam_type || !body.title || !body.questions || body.questions.length === 0) {
+            return jsonResponse({ error: 'Thiếu thông tin bắt buộc (grade, exam_type, title, questions)' }, 400, env.CORS_ORIGIN);
+        }
+
+        const id = generateId();
+        const now = Date.now();
+
+        // Xác định duration dựa trên exam_type
+        const durations: Record<string, number> = {
+            '15min': 15,
+            'midterm': 45,
+            'final': 60,
+            'thpt': 50,
+        };
+
+        const template = {
+            id,
+            grade: body.grade,
+            branch: body.branch || null,
+            exam_type: body.exam_type,
+            title: body.title,
+            description: body.description || null,
+            questions: JSON.stringify(body.questions),
+            total_questions: body.questions.length,
+            duration_minutes: body.duration_minutes || durations[body.exam_type] || 45,
+            difficulty: body.difficulty || 'medium',
+            chapters: body.chapters ? JSON.stringify(body.chapters) : null,
+            publisher: body.publisher || null,
+            created_at: now,
+            created_by: user.sub,
+            is_public: body.is_public !== false ? 1 : 0,
+            times_taken: 0,
+        };
+
+        await env.DB.prepare(`
+            INSERT INTO exam_templates 
+            (id, grade, branch, exam_type, title, description, questions, total_questions, 
+             duration_minutes, difficulty, chapters, publisher, created_at, created_by, is_public, times_taken)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+            template.id, template.grade, template.branch, template.exam_type,
+            template.title, template.description, template.questions, template.total_questions,
+            template.duration_minutes, template.difficulty, template.chapters, template.publisher,
+            template.created_at, template.created_by, template.is_public, template.times_taken
+        ).run();
+
+        return jsonResponse({
+            success: true,
+            template: {
+                id: template.id,
+                title: template.title,
+                total_questions: template.total_questions,
+                duration_minutes: template.duration_minutes
+            }
+        }, 201, env.CORS_ORIGIN);
+    } catch (error) {
+        console.error('[exam-online] create template error:', error);
+        return jsonResponse({ error: 'Lỗi server' }, 500, env.CORS_ORIGIN);
+    }
+}
+
+// POST /api/exam-online/attempts
+// Bắt đầu làm bài
+export async function startAttempt(
+    request: Request,
+    user: JWTPayload,
+    env: ExamEnv
+): Promise<Response> {
+    try {
+        const body = await request.json() as { templateId: string };
+
+        if (!body.templateId) {
+            return jsonResponse({ error: 'Thiếu templateId' }, 400, env.CORS_ORIGIN);
+        }
+
+        // Lấy template
+        const template = await env.DB.prepare(
+            'SELECT * FROM exam_templates WHERE id = ?'
+        ).bind(body.templateId).first();
+
+        if (!template) {
+            return jsonResponse({ error: 'Đề thi không tồn tại' }, 404, env.CORS_ORIGIN);
+        }
+
+        // Tăng times_taken
+        await env.DB.prepare(
+            'UPDATE exam_templates SET times_taken = times_taken + 1 WHERE id = ?'
+        ).bind(body.templateId).run();
+
+        // Tạo attempt mới
+        const attemptId = generateId();
+        const now = Date.now();
+
+        const questions: ExamQuestion[] = JSON.parse(template.questions as string);
+
+        // Shuffle câu hỏi
+        const shuffledQuestions = [...questions].sort(() => Math.random() - 0.5);
+
+        // Chú thích: Shuffle options cho mỗi câu hỏi (chống copy đáp án)
+        // Lưu mapping để chấm điểm đúng
+        interface ShuffledQuestion {
+            id: string;
+            content: string;
+            options: string[];
+            level: string;
+            chapter?: string;
+            // originalAnswer lưu để chấm điểm
+            originalAnswer: string;
+            // shuffleMap: mapping index mới -> index cũ
+            shuffleMap: number[];
+        }
+
+        const shuffledQuestionsWithMapping: ShuffledQuestion[] = shuffledQuestions.map(q => {
+            // Tạo array indices [0, 1, 2, 3]
+            const indices = [0, 1, 2, 3];
+            // Shuffle indices
+            const shuffledIndices = [...indices].sort(() => Math.random() - 0.5);
+
+            // Áp dụng shuffle vào options
+            const shuffledOptions = shuffledIndices.map(i => q.options[i]);
+
+            // Tìm vị trí mới của đáp án đúng
+            const originalAnswerIndex = ['A', 'B', 'C', 'D'].indexOf(q.answer.toUpperCase());
+            const newAnswerIndex = shuffledIndices.indexOf(originalAnswerIndex);
+            const newAnswer = ['A', 'B', 'C', 'D'][newAnswerIndex];
+
+            return {
+                id: q.id,
+                content: q.content,
+                options: shuffledOptions,
+                level: q.level,
+                chapter: q.chapter,
+                originalAnswer: newAnswer, // Đáp án sau shuffle
+                shuffleMap: shuffledIndices,
+            };
+        });
+
+        // Lưu mapping vào attempt để chấm điểm đúng
+        await env.DB.prepare(`
+            INSERT INTO exam_attempts 
+            (id, user_id, template_id, answers, total_questions, started_at, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+            attemptId,
+            user.sub,
+            body.templateId,
+            JSON.stringify({ _shuffleMapping: shuffledQuestionsWithMapping.map(q => ({ id: q.id, answer: q.originalAnswer })) }),
+            template.total_questions,
+            now,
+            'in_progress'
+        ).run();
+
+        // Trả về câu hỏi (KHÔNG có đáp án đúng)
+        const questionsForUser = shuffledQuestionsWithMapping.map(q => ({
+            id: q.id,
+            content: q.content,
+            options: q.options,
+            level: q.level,
+            chapter: q.chapter,
+            // KHÔNG trả về: answer, explanation, shuffleMap
+        }));
+
+        return jsonResponse({
+            success: true,
+            attempt: {
+                id: attemptId,
+                template_id: body.templateId,
+                title: template.title,
+                total_questions: template.total_questions,
+                duration_minutes: template.duration_minutes,
+                started_at: now,
+            },
+            questions: questionsForUser,
+        }, 201, env.CORS_ORIGIN);
+    } catch (error) {
+        console.error('[exam-online] start attempt error:', error);
+        return jsonResponse({ error: 'Lỗi server' }, 500, env.CORS_ORIGIN);
+    }
+}
+
+// PUT /api/exam-online/attempts/:id
+// Lưu tiến độ làm bài (auto-save)
+export async function updateAttempt(
+    attemptId: string,
+    request: Request,
+    user: JWTPayload,
+    env: ExamEnv
+): Promise<Response> {
+    try {
+        const body = await request.json() as { answers: Record<string, string> };
+
+        // Kiểm tra quyền
+        const attempt = await env.DB.prepare(
+            'SELECT * FROM exam_attempts WHERE id = ? AND user_id = ?'
+        ).bind(attemptId, user.sub).first();
+
+        if (!attempt) {
+            return jsonResponse({ error: 'Bài làm không tồn tại' }, 404, env.CORS_ORIGIN);
+        }
+
+        if (attempt.status !== 'in_progress') {
+            return jsonResponse({ error: 'Bài làm đã nộp, không thể chỉnh sửa' }, 400, env.CORS_ORIGIN);
+        }
+
+        // Update answers
+        await env.DB.prepare(
+            'UPDATE exam_attempts SET answers = ? WHERE id = ?'
+        ).bind(JSON.stringify(body.answers), attemptId).run();
+
+        return jsonResponse({ success: true }, 200, env.CORS_ORIGIN);
+    } catch (error) {
+        console.error('[exam-online] update attempt error:', error);
+        return jsonResponse({ error: 'Lỗi server' }, 500, env.CORS_ORIGIN);
+    }
+}
+
+// POST /api/exam-online/attempts/:id/submit
+// Nộp bài và chấm điểm
+export async function submitAttempt(
+    attemptId: string,
+    request: Request,
+    user: JWTPayload,
+    env: ExamEnv
+): Promise<Response> {
+    try {
+        const body = await request.json() as { answers?: Record<string, string> };
+
+        // Lấy attempt
+        const attempt = await env.DB.prepare(
+            'SELECT * FROM exam_attempts WHERE id = ? AND user_id = ?'
+        ).bind(attemptId, user.sub).first() as any;
+
+        if (!attempt) {
+            return jsonResponse({ error: 'Bài làm không tồn tại' }, 404, env.CORS_ORIGIN);
+        }
+
+        if (attempt.status === 'submitted') {
+            return jsonResponse({ error: 'Bài làm đã được nộp trước đó' }, 400, env.CORS_ORIGIN);
+        }
+
+        // Lấy template để có đáp án đúng
+        const template = await env.DB.prepare(
+            'SELECT questions FROM exam_templates WHERE id = ?'
+        ).bind(attempt.template_id).first() as any;
+
+        if (!template) {
+            return jsonResponse({ error: 'Đề thi không tồn tại' }, 404, env.CORS_ORIGIN);
+        }
+
+        const questions: ExamQuestion[] = JSON.parse(template.questions);
+
+        // Merge answers từ request với answers đã lưu
+        const savedAnswers = JSON.parse(attempt.answers || '{}');
+
+        // Chú thích: Lấy shuffle mapping nếu có (để chấm điểm đúng sau khi shuffle options)
+        const shuffleMapping = savedAnswers._shuffleMapping as Array<{ id: string; answer: string }> | undefined;
+        delete savedAnswers._shuffleMapping; // Xóa metadata khỏi answers
+
+        const finalAnswers = { ...savedAnswers, ...body.answers };
+
+        // Chấm điểm với shuffle mapping
+        let gradeResult;
+        if (shuffleMapping && shuffleMapping.length > 0) {
+            // Tạo map id -> shuffled answer
+            const shuffledAnswerMap = new Map(shuffleMapping.map(m => [m.id, m.answer]));
+
+            // Build questions với shuffled answers
+            const questionsWithShuffledAnswers = questions.map(q => ({
+                ...q,
+                answer: shuffledAnswerMap.get(q.id) || q.answer, // Dùng shuffled answer nếu có
+            }));
+            gradeResult = gradeExam(questionsWithShuffledAnswers, finalAnswers);
+        } else {
+            gradeResult = gradeExam(questions, finalAnswers);
+        }
+
+        const now = Date.now();
+        const timeSpent = Math.floor((now - attempt.started_at) / 1000);
+
+        // Cập nhật attempt
+        await env.DB.prepare(`
+            UPDATE exam_attempts 
+            SET answers = ?, score = ?, correct_count = ?, submitted_at = ?, 
+                time_spent_seconds = ?, status = ?, analysis = ?
+            WHERE id = ?
+        `).bind(
+            JSON.stringify(finalAnswers),
+            gradeResult.score,
+            gradeResult.correct_count,
+            now,
+            timeSpent,
+            'submitted',
+            JSON.stringify(gradeResult.analysis),
+            attemptId
+        ).run();
+
+        // Trả về kết quả (bao gồm đáp án đúng)
+        return jsonResponse({
+            success: true,
+            result: {
+                score: gradeResult.score,
+                correct_count: gradeResult.correct_count,
+                total_questions: questions.length,
+                time_spent_seconds: timeSpent,
+                analysis: gradeResult.analysis,
+                detailed_results: gradeResult.detailed_results,
+                // Trả về questions với explanation
+                questions_with_answers: questions.map(q => ({
+                    id: q.id,
+                    content: q.content,
+                    options: q.options,
+                    answer: q.answer,
+                    explanation: q.explanation,
+                    level: q.level,
+                    userAnswer: finalAnswers[q.id] || null,
+                    isCorrect: (finalAnswers[q.id] || '').toUpperCase() === q.answer.toUpperCase(),
+                })),
+            },
+        }, 200, env.CORS_ORIGIN);
+    } catch (error) {
+        console.error('[exam-online] submit attempt error:', error);
+        return jsonResponse({ error: 'Lỗi server' }, 500, env.CORS_ORIGIN);
+    }
+}
+
+// GET /api/exam-online/attempts
+// Lịch sử làm bài của user
+export async function getAttempts(
+    request: Request,
+    user: JWTPayload,
+    env: ExamEnv
+): Promise<Response> {
+    try {
+        const url = new URL(request.url);
+        const limit = parseInt(url.searchParams.get('limit') || '20');
+        const offset = parseInt(url.searchParams.get('offset') || '0');
+        const status = url.searchParams.get('status'); // 'in_progress', 'submitted'
+
+        let query = `
+            SELECT a.*, t.title, t.grade, t.branch, t.exam_type, t.duration_minutes
+            FROM exam_attempts a
+            JOIN exam_templates t ON a.template_id = t.id
+            WHERE a.user_id = ?
+        `;
+        const bindings: any[] = [user.sub];
+
+        if (status) {
+            query += ' AND a.status = ?';
+            bindings.push(status);
+        }
+
+        query += ' ORDER BY a.started_at DESC LIMIT ? OFFSET ?';
+        bindings.push(limit, offset);
+
+        const result = await env.DB.prepare(query).bind(...bindings).all();
+
+        const attempts = (result.results || []).map((row: any) => ({
+            id: row.id,
+            template_id: row.template_id,
+            title: row.title,
+            grade: row.grade,
+            branch: row.branch,
+            exam_type: row.exam_type,
+            score: row.score,
+            correct_count: row.correct_count,
+            total_questions: row.total_questions,
+            duration_minutes: row.duration_minutes,
+            started_at: row.started_at,
+            submitted_at: row.submitted_at,
+            time_spent_seconds: row.time_spent_seconds,
+            status: row.status,
+        }));
+
+        return jsonResponse({ attempts }, 200, env.CORS_ORIGIN);
+    } catch (error) {
+        console.error('[exam-online] get attempts error:', error);
+        return jsonResponse({ error: 'Lỗi server' }, 500, env.CORS_ORIGIN);
+    }
+}
+
+// GET /api/exam-online/attempts/:id
+// Chi tiết 1 bài làm (xem lại)
+export async function getAttempt(
+    attemptId: string,
+    user: JWTPayload,
+    env: ExamEnv
+): Promise<Response> {
+    try {
+        const attempt = await env.DB.prepare(
+            'SELECT * FROM exam_attempts WHERE id = ? AND user_id = ?'
+        ).bind(attemptId, user.sub).first() as any;
+
+        if (!attempt) {
+            return jsonResponse({ error: 'Bài làm không tồn tại' }, 404, env.CORS_ORIGIN);
+        }
+
+        // Lấy template
+        const template = await env.DB.prepare(
+            'SELECT * FROM exam_templates WHERE id = ?'
+        ).bind(attempt.template_id).first() as any;
+
+        // Parse JSON
+        const questions: ExamQuestion[] = JSON.parse(template.questions);
+        const answers = JSON.parse(attempt.answers || '{}');
+
+        // Nếu đã nộp, trả về với đáp án
+        if (attempt.status === 'submitted') {
+            return jsonResponse({
+                attempt: {
+                    id: attempt.id,
+                    template_id: attempt.template_id,
+                    title: template.title,
+                    grade: template.grade,
+                    branch: template.branch,
+                    exam_type: template.exam_type,
+                    score: attempt.score,
+                    correct_count: attempt.correct_count,
+                    total_questions: attempt.total_questions,
+                    duration_minutes: template.duration_minutes,
+                    started_at: attempt.started_at,
+                    submitted_at: attempt.submitted_at,
+                    time_spent_seconds: attempt.time_spent_seconds,
+                    status: attempt.status,
+                    analysis: attempt.analysis ? JSON.parse(attempt.analysis) : null,
+                },
+                questions_with_answers: questions.map(q => ({
+                    id: q.id,
+                    content: q.content,
+                    options: q.options,
+                    answer: q.answer,
+                    explanation: q.explanation,
+                    level: q.level,
+                    userAnswer: answers[q.id] || null,
+                    isCorrect: (answers[q.id] || '').toUpperCase() === q.answer.toUpperCase(),
+                })),
+            }, 200, env.CORS_ORIGIN);
+        }
+
+        // Nếu đang làm, chỉ trả về câu hỏi (không có đáp án)
+        return jsonResponse({
+            attempt: {
+                id: attempt.id,
+                template_id: attempt.template_id,
+                title: template.title,
+                total_questions: attempt.total_questions,
+                duration_minutes: template.duration_minutes,
+                started_at: attempt.started_at,
+                status: attempt.status,
+            },
+            answers,
+            questions: questions.map(q => ({
+                id: q.id,
+                content: q.content,
+                options: q.options,
+                level: q.level,
+            })),
+        }, 200, env.CORS_ORIGIN);
+    } catch (error) {
+        console.error('[exam-online] get attempt error:', error);
+        return jsonResponse({ error: 'Lỗi server' }, 500, env.CORS_ORIGIN);
+    }
+}
+
+// DELETE /api/exam-online/templates/:id
+// Xóa đề thi (chỉ owner)
+export async function deleteTemplate(
+    templateId: string,
+    user: JWTPayload,
+    env: ExamEnv
+): Promise<Response> {
+    try {
+        const res = await env.DB.prepare(
+            'DELETE FROM exam_templates WHERE id = ? AND created_by = ?'
+        ).bind(templateId, user.sub).run() as any;
+
+        if (res.meta?.changes === 0) {
+            return jsonResponse({ error: 'Không tìm thấy đề thi hoặc không có quyền xóa' }, 404, env.CORS_ORIGIN);
+        }
+
+        return jsonResponse({ success: true }, 200, env.CORS_ORIGIN);
+    } catch (error) {
+        console.error('[exam-online] delete template error:', error);
+        return jsonResponse({ error: 'Lỗi server' }, 500, env.CORS_ORIGIN);
+    }
+}
+
+// ==================== Statistics (Dashboard) ====================
+// GET /api/exam-online/templates/:id/stats
+// Thống kê cho giáo viên: số lượt làm, điểm TB, phân bổ điểm, leaderboard
+
+export async function getTemplateStats(
+    templateId: string,
+    user: JWTPayload,
+    env: ExamEnv
+): Promise<Response> {
+    try {
+        // Kiểm tra template tồn tại và user là owner
+        const template = await env.DB.prepare(
+            'SELECT id, title, created_by, times_taken FROM exam_templates WHERE id = ?'
+        ).bind(templateId).first() as any;
+
+        if (!template) {
+            return jsonResponse({ error: 'Đề thi không tồn tại' }, 404, env.CORS_ORIGIN);
+        }
+
+        // Lấy tất cả attempts đã submitted
+        const attemptsResult = await env.DB.prepare(`
+            SELECT score, correct_count, total_questions, time_spent_seconds, submitted_at
+            FROM exam_attempts 
+            WHERE template_id = ? AND status = 'submitted'
+            ORDER BY score DESC
+        `).bind(templateId).all() as any;
+
+        const attempts = attemptsResult.results || [];
+
+        if (attempts.length === 0) {
+            return jsonResponse({
+                stats: {
+                    totalAttempts: 0,
+                    averageScore: 0,
+                    highestScore: 0,
+                    lowestScore: 0,
+                    averageTime: 0,
+                    scoreDistribution: { '0-2': 0, '2-4': 0, '4-6': 0, '6-8': 0, '8-10': 0 },
+                    bloomAnalysis: null,
+                },
+                template: { id: template.id, title: template.title },
+            }, 200, env.CORS_ORIGIN);
+        }
+
+        // Tính thống kê
+        const scores = attempts.map((a: any) => a.score);
+        const times = attempts.map((a: any) => a.time_spent_seconds).filter((t: any) => t > 0);
+
+        const averageScore = scores.reduce((sum: number, s: number) => sum + s, 0) / scores.length;
+        const highestScore = Math.max(...scores);
+        const lowestScore = Math.min(...scores);
+        const averageTime = times.length > 0 ? times.reduce((sum: number, t: number) => sum + t, 0) / times.length : 0;
+
+        // Phân bổ điểm
+        const scoreDistribution = { '0-2': 0, '2-4': 0, '4-6': 0, '6-8': 0, '8-10': 0 };
+        for (const score of scores) {
+            if (score < 2) scoreDistribution['0-2']++;
+            else if (score < 4) scoreDistribution['2-4']++;
+            else if (score < 6) scoreDistribution['4-6']++;
+            else if (score < 8) scoreDistribution['6-8']++;
+            else scoreDistribution['8-10']++;
+        }
+
+        // Leaderboard (top 10)
+        const leaderboardResult = await env.DB.prepare(`
+            SELECT a.score, a.correct_count, a.total_questions, a.time_spent_seconds, a.submitted_at, a.user_id
+            FROM exam_attempts a
+            WHERE a.template_id = ? AND a.status = 'submitted'
+            ORDER BY a.score DESC, a.time_spent_seconds ASC
+            LIMIT 10
+        `).bind(templateId).all() as any;
+
+        const leaderboard = (leaderboardResult.results || []).map((a: any, idx: number) => ({
+            rank: idx + 1,
+            userId: a.user_id?.substring(0, 8) + '***', // Ẩn bớt ID
+            score: a.score,
+            correctCount: a.correct_count,
+            totalQuestions: a.total_questions,
+            timeSpent: a.time_spent_seconds,
+            submittedAt: a.submitted_at,
+        }));
+
+        return jsonResponse({
+            stats: {
+                totalAttempts: attempts.length,
+                averageScore: Math.round(averageScore * 100) / 100,
+                highestScore,
+                lowestScore,
+                averageTime: Math.round(averageTime),
+                scoreDistribution,
+            },
+            leaderboard,
+            template: { id: template.id, title: template.title },
+        }, 200, env.CORS_ORIGIN);
+
+    } catch (error) {
+        console.error('[exam-online] get stats error:', error);
+        return jsonResponse({ error: 'Lỗi server' }, 500, env.CORS_ORIGIN);
+    }
+}
+
+// ==================== Teacher Dashboard ====================
+// GET /api/teacher/dashboard
+// Lấy tổng quan thống kê cho giáo viên
+
+export async function getTeacherDashboard(
+    user: JWTPayload,
+    env: ExamEnv
+): Promise<Response> {
+    try {
+        // Chú thích: Chỉ teacher/admin mới truy cập được
+        const userRole = (user as any).role || 'student';
+        if (userRole === 'student') {
+            return jsonResponse({ error: 'Chỉ giáo viên mới xem được dashboard' }, 403, env.CORS_ORIGIN);
+        }
+
+        // Lấy tất cả đề mà user đã tạo
+        const templatesResult = await env.DB.prepare(`
+            SELECT id, title, grade, branch, exam_type, difficulty, total_questions, 
+                   duration_minutes, times_taken, created_at, is_public
+            FROM exam_templates 
+            WHERE created_by = ?
+            ORDER BY created_at DESC
+        `).bind(user.sub).all() as any;
+
+        const templates = templatesResult.results || [];
+
+        // Thống kê tổng quan
+        const totalTemplates = templates.length;
+        const totalTimesToken = templates.reduce((sum: number, t: any) => sum + (t.times_taken || 0), 0);
+
+        // Lấy thống kê điểm từ tất cả attempts của các đề đã tạo
+        let overallStats = {
+            totalAttempts: 0,
+            averageScore: 0,
+            passRate: 0, // % học sinh >= 5 điểm
+            scoreDistribution: { '0-2': 0, '2-4': 0, '4-6': 0, '6-8': 0, '8-10': 0 } as Record<string, number>,
+        };
+
+        if (templates.length > 0) {
+            const templateIds = templates.map((t: any) => t.id);
+            const placeholders = templateIds.map(() => '?').join(',');
+
+            const attemptsResult = await env.DB.prepare(`
+                SELECT score FROM exam_attempts 
+                WHERE template_id IN (${placeholders}) AND status = 'submitted'
+            `).bind(...templateIds).all() as any;
+
+            const attempts = attemptsResult.results || [];
+            if (attempts.length > 0) {
+                const scores = attempts.map((a: any) => a.score);
+                overallStats.totalAttempts = scores.length;
+                overallStats.averageScore = Math.round((scores.reduce((s: number, v: number) => s + v, 0) / scores.length) * 100) / 100;
+                overallStats.passRate = Math.round((scores.filter((s: number) => s >= 5).length / scores.length) * 100);
+
+                for (const score of scores) {
+                    if (score < 2) overallStats.scoreDistribution['0-2']++;
+                    else if (score < 4) overallStats.scoreDistribution['2-4']++;
+                    else if (score < 6) overallStats.scoreDistribution['4-6']++;
+                    else if (score < 8) overallStats.scoreDistribution['6-8']++;
+                    else overallStats.scoreDistribution['8-10']++;
+                }
+            }
+        }
+
+        // Top 10 học sinh xuất sắc nhất (tất cả đề của teacher)
+        let topStudents: any[] = [];
+        if (templates.length > 0) {
+            const templateIds = templates.map((t: any) => t.id);
+            const placeholders = templateIds.map(() => '?').join(',');
+
+            const topResult = await env.DB.prepare(`
+                SELECT a.user_id, u.name, u.email, a.score, a.template_id, t.title as template_title, a.submitted_at
+                FROM exam_attempts a
+                LEFT JOIN users u ON a.user_id = u.id
+                LEFT JOIN exam_templates t ON a.template_id = t.id
+                WHERE a.template_id IN (${placeholders}) AND a.status = 'submitted'
+                ORDER BY a.score DESC, a.submitted_at ASC
+                LIMIT 10
+            `).bind(...templateIds).all() as any;
+
+            topStudents = (topResult.results || []).map((s: any, idx: number) => ({
+                rank: idx + 1,
+                name: s.name || 'Ẩn danh',
+                email: s.email ? s.email.substring(0, 3) + '***' : null,
+                score: s.score,
+                templateTitle: s.template_title,
+                submittedAt: s.submitted_at,
+            }));
+        }
+
+        // Format templates cho response
+        const formattedTemplates = templates.map((t: any) => ({
+            id: t.id,
+            title: t.title,
+            grade: t.grade,
+            branch: t.branch,
+            examType: t.exam_type,
+            difficulty: t.difficulty,
+            totalQuestions: t.total_questions,
+            durationMinutes: t.duration_minutes,
+            timesTaken: t.times_taken || 0,
+            createdAt: t.created_at,
+            isPublic: t.is_public,
+        }));
+
+        return jsonResponse({
+            overview: {
+                totalTemplates,
+                totalAttempts: overallStats.totalAttempts,
+                averageScore: overallStats.averageScore,
+                passRate: overallStats.passRate,
+            },
+            scoreDistribution: overallStats.scoreDistribution,
+            templates: formattedTemplates,
+            topStudents,
+        }, 200, env.CORS_ORIGIN);
+
+    } catch (error) {
+        console.error('[exam-online] teacher dashboard error:', error);
+        return jsonResponse({ error: 'Lỗi server' }, 500, env.CORS_ORIGIN);
+    }
+}
+
+// ==================== Student Dashboard ====================
+// GET /api/student/dashboard
+// Lấy thống kê cá nhân cho học sinh
+
+export async function getStudentDashboard(
+    user: JWTPayload,
+    env: ExamEnv
+): Promise<Response> {
+    try {
+        // Lấy tất cả attempts của user
+        const attemptsResult = await env.DB.prepare(`
+            SELECT a.id, a.template_id, a.score, a.correct_count, a.total_questions, 
+                   a.time_spent_seconds, a.submitted_at, a.analysis,
+                   t.title as template_title, t.grade, t.exam_type, t.difficulty
+            FROM exam_attempts a
+            LEFT JOIN exam_templates t ON a.template_id = t.id
+            WHERE a.user_id = ? AND a.status = 'submitted'
+            ORDER BY a.submitted_at DESC
+        `).bind(user.sub).all() as any;
+
+        const attempts = attemptsResult.results || [];
+
+        // Thống kê tổng quan
+        const totalAttempts = attempts.length;
+        let averageScore = 0;
+        let passRate = 0;
+        let streak = 0;
+        let highestScore = 0;
+
+        if (attempts.length > 0) {
+            const scores = attempts.map((a: any) => a.score);
+            averageScore = Math.round((scores.reduce((s: number, v: number) => s + v, 0) / scores.length) * 100) / 100;
+            passRate = Math.round((scores.filter((s: number) => s >= 5).length / scores.length) * 100);
+            highestScore = Math.max(...scores);
+
+            // Tính streak (số ngày liên tiếp có làm bài)
+            const now = Date.now();
+            const oneDay = 24 * 60 * 60 * 1000;
+            const submittedDates = attempts.map((a: any) => Math.floor(a.submitted_at / oneDay));
+            const uniqueDates = [...new Set(submittedDates)].sort((a: number, b: number) => b - a);
+
+            const today = Math.floor(now / oneDay);
+            if (uniqueDates[0] === today || uniqueDates[0] === today - 1) {
+                streak = 1;
+                for (let i = 1; i < uniqueDates.length; i++) {
+                    if (uniqueDates[i] === uniqueDates[i - 1] - 1) {
+                        streak++;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Tiến độ theo thời gian (7 ngày gần nhất)
+        const progressData: { date: string; score: number; count: number }[] = [];
+        const now = Date.now();
+        const oneDay = 24 * 60 * 60 * 1000;
+
+        for (let i = 6; i >= 0; i--) {
+            const dayStart = now - (i * oneDay);
+            const dayEnd = dayStart + oneDay;
+            const dayAttempts = attempts.filter((a: any) => a.submitted_at >= dayStart && a.submitted_at < dayEnd);
+
+            const date = new Date(dayStart);
+            const dateStr = `${date.getDate()}/${date.getMonth() + 1}`;
+
+            if (dayAttempts.length > 0) {
+                const avgScore = dayAttempts.reduce((s: number, a: any) => s + a.score, 0) / dayAttempts.length;
+                progressData.push({ date: dateStr, score: Math.round(avgScore * 10) / 10, count: dayAttempts.length });
+            } else {
+                progressData.push({ date: dateStr, score: 0, count: 0 });
+            }
+        }
+
+        // Phân tích điểm mạnh/yếu theo mức độ tư duy
+        const bloomStats = {
+            remember: { correct: 0, total: 0 },
+            understand: { correct: 0, total: 0 },
+            apply: { correct: 0, total: 0 },
+            analyze: { correct: 0, total: 0 },
+        };
+
+        for (const attempt of attempts) {
+            if (attempt.analysis) {
+                try {
+                    const analysis = typeof attempt.analysis === 'string' ? JSON.parse(attempt.analysis) : attempt.analysis;
+                    if (analysis.byLevel) {
+                        for (const [level, data] of Object.entries(analysis.byLevel) as any) {
+                            if (bloomStats[level as keyof typeof bloomStats]) {
+                                bloomStats[level as keyof typeof bloomStats].correct += data.correct || 0;
+                                bloomStats[level as keyof typeof bloomStats].total += data.total || 0;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // Ignore parse error
+                }
+            }
+        }
+
+        const bloomAnalysis = Object.entries(bloomStats).map(([level, data]) => ({
+            level,
+            label: level === 'remember' ? 'Nhận biết' : level === 'understand' ? 'Thông hiểu' : level === 'apply' ? 'Vận dụng' : 'Phân tích',
+            percentage: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
+            total: data.total,
+        }));
+
+        // Gợi ý ôn tập dựa trên điểm yếu
+        const recommendations: string[] = [];
+        const weakAreas = bloomAnalysis.filter(b => b.total >= 3 && b.percentage < 60);
+        for (const area of weakAreas.slice(0, 2)) {
+            recommendations.push(`Cần ôn thêm dạng câu hỏi ${area.label} (hiện đạt ${area.percentage}%)`);
+        }
+        if (averageScore < 5) {
+            recommendations.push('Điểm trung bình còn thấp, nên làm thêm đề dễ để củng cố kiến thức cơ bản');
+        }
+        if (attempts.length < 5) {
+            recommendations.push('Luyện tập thêm để có kết quả đánh giá chính xác hơn');
+        }
+
+        // Recent attempts (5 bài gần nhất)
+        const recentAttempts = attempts.slice(0, 5).map((a: any) => ({
+            id: a.id,
+            templateTitle: a.template_title,
+            grade: a.grade,
+            examType: a.exam_type,
+            score: a.score,
+            correctCount: a.correct_count,
+            totalQuestions: a.total_questions,
+            submittedAt: a.submitted_at,
+        }));
+
+        return jsonResponse({
+            overview: {
+                totalAttempts,
+                averageScore,
+                passRate,
+                highestScore,
+                streak,
+            },
+            progressData,
+            bloomAnalysis,
+            recommendations,
+            recentAttempts,
+        }, 200, env.CORS_ORIGIN);
+
+    } catch (error) {
+        console.error('[exam-online] student dashboard error:', error);
+        return jsonResponse({ error: 'Lỗi server' }, 500, env.CORS_ORIGIN);
+    }
+}
+
+// ==================== AI Generation ====================
+// POST /api/exam-online/generate
+// Tạo đề thi bằng AI từ SGK (RAG)
+
+interface AIGenerateRequest {
+    grade: '10' | '11' | '12';
+    branch?: 'cong_nghiep' | 'nong_nghiep';
+    exam_type: '15min' | 'midterm' | 'final' | 'thpt';
+    difficulty: 'easy' | 'medium' | 'hard';
+    chapters?: string[];      // Các chương cần ra đề
+    topic?: string;           // Chủ đề cụ thể (optional)
+    publisher?: string;       // Bộ sách
+    save?: boolean;           // Có lưu vào DB không (default: true)
+}
+
+// Prompt để AI generate đề theo format mới - Cập nhật theo chương trình Công nghệ THPT
+const AI_EXAM_PROMPT = `Bạn là Chuyên gia Khảo thí Việt Nam. Tạo đề thi trắc nghiệm môn Công nghệ THPT.
+
+## NỘI DUNG CHƯƠNG TRÌNH CÔNG NGHỆ THPT:
+
+### ĐỊNH HƯỚNG CÔNG NGHIỆP:
+**Lớp 10 - Thiết kế và Công nghệ:**
+- Giới thiệu chung về công nghệ, đổi mới công nghệ và cách mạng công nghiệp 4.0
+- Vẽ kỹ thuật: Tiêu chuẩn trình bày bản vẽ, hình chiếu vuông góc, hình chiếu trục đo
+- Quy trình thiết kế kỹ thuật: Phát hiện nhu cầu, lập hồ sơ kỹ thuật, chế tạo mẫu
+
+**Lớp 11 - Công nghệ Cơ khí:**
+- Cơ khí chế tạo: Phương pháp gia công (tiện, phay, bào, hàn)
+- Vật liệu cơ khí và tính chất
+- Cơ cấu truyền và biến đổi chuyển động
+- Động cơ đốt trong: Cấu tạo, nguyên lý, ứng dụng
+
+**Lớp 12 - Công nghệ Điện - Điện tử:**
+- Kỹ thuật điện: Mạch xoay chiều, hệ thống điện quốc gia, an toàn điện
+- Kỹ thuật điện tử: Linh kiện điện tử, mạch điều khiển, vi điều khiển
+- Công nghệ tự động hóa và Robot
+
+### ĐỊNH HƯỚNG NÔNG NGHIỆP:
+**Lớp 10 - Công nghệ Trồng trọt:**
+- Giới thiệu trồng trọt và nhóm cây trồng chính
+- Đất trồng và phân bón (cải tạo đất, phân bón thông minh)
+- Công nghệ giống cây trồng: Chọn lọc, nhân giống, nuôi cấy mô
+- Kỹ thuật trồng trọt, chăm sóc, phòng trừ sâu bệnh
+- Thu hoạch, chế biến, bảo quản nông sản
+
+**Lớp 11 - Công nghệ Chăn nuôi:**
+- Giống vật nuôi phổ biến, thụ tinh nhân tạo
+- Dinh dưỡng và thức ăn chăn nuôi
+- Công nghệ chuồng trại và vệ sinh thú y
+- Phòng trị bệnh và bảo vệ môi trường
+
+**Lớp 12 - Lâm nghiệp & Thủy sản:**
+- Lâm nghiệp: Trồng và chăm sóc rừng, khai thác bền vững
+- Thủy sản: Môi trường nuôi, giống tôm/cá, nuôi trồng công nghệ cao
+- Quản lý nguồn lợi và bảo vệ môi trường nước
+
+## YÊU CẦU OUTPUT:
+Trả về JSON array CHÍNH XÁC format sau (KHÔNG có text ngoài JSON):
+
+[
+  {
+    "id": "q1",
+    "content": "Nội dung câu hỏi đầy đủ, rõ ràng",
+    "options": ["Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D"],
+    "answer": "A",
+    "explanation": "Giải thích chi tiết tại sao đáp án này đúng",
+    "level": "remember"
+  }
+]
+
+## QUY TẮC:
+1. "id": Từ "q1" đến "q40" theo thứ tự
+2. "answer": CHỈ là "A", "B", "C", hoặc "D" (chữ in hoa)
+3. "level": Phải là 1 trong: "remember" (25%), "understand" (35%), "apply" (30%), "analyze" (10%)
+4. Mỗi câu hỏi phải có đúng 4 đáp án trong "options"
+5. "explanation" phải giải thích CHI TIẾT tại sao đáp án đúng
+6. Nội dung câu hỏi PHẢI PHÙ HỢP với lớp và định hướng được yêu cầu
+
+## PHÂN BỔ THEO LOẠI ĐỀ:
+- 15min: 15 câu (4 remember, 5 understand, 4 apply, 2 analyze)
+- midterm: 30 câu (8 remember, 10 understand, 9 apply, 3 analyze)
+- final: 40 câu (10 remember, 14 understand, 12 apply, 4 analyze)
+- thpt: 40 câu (10 remember, 14 understand, 12 apply, 4 analyze)`;
+
+export async function generateTemplateWithAI(
+    request: Request,
+    user: JWTPayload,
+    env: ExamEnv & { VECTORIZE?: VectorizeIndex }
+): Promise<Response> {
+    try {
+        const body = await request.json() as AIGenerateRequest;
+
+        // Validate
+        if (!body.grade || !body.exam_type) {
+            return jsonResponse({ error: 'Thiếu grade hoặc exam_type' }, 400, env.CORS_ORIGIN);
+        }
+
+        console.info('[exam-ai] Generating exam...', { grade: body.grade, type: body.exam_type });
+
+        // 1. Tìm kiến thức từ RAG
+        let ragContext = '';
+        const topicSearch = body.topic ||
+            `Công nghệ lớp ${body.grade} ${body.branch === 'cong_nghiep' ? 'Công nghiệp' : body.branch === 'nong_nghiep' ? 'Nông nghiệp' : ''}`;
+
+        if (env.VECTORIZE && env.HF_API_TOKEN) {
+            try {
+                // Import động để tránh circular dependency
+                const { getRAGContext } = await import('./rag-pipeline');
+                const ragResult = await getRAGContext(
+                    env.HF_API_TOKEN,
+                    env.VECTORIZE,
+                    topicSearch,
+                    { grade: body.grade }
+                );
+                ragContext = ragResult.context;
+                console.info('[exam-ai] RAG context found:', ragResult.sources?.length || 0, 'sources');
+            } catch (err) {
+                console.warn('[exam-ai] RAG failed, continuing without context:', err);
+            }
+        }
+
+        // 2. Build prompt với thông tin chi tiết về nội dung môn học
+        const questionCounts: Record<string, number> = {
+            '15min': 15,
+            'midterm': 30,
+            'final': 40,
+            'thpt': 40,
+        };
+        const numQuestions = questionCounts[body.exam_type] || 30;
+
+        // Xác định nội dung theo lớp và định hướng
+        const getSubjectContent = (grade: string, branch?: string) => {
+            const isCN = branch === 'cong_nghiep';
+            const isNN = branch === 'nong_nghiep';
+
+            switch (grade) {
+                case '10':
+                    if (isCN) return 'Thiết kế và Công nghệ: Vẽ kỹ thuật, hình chiếu vuông góc, hình chiếu trục đo, quy trình thiết kế, cách mạng công nghiệp 4.0';
+                    if (isNN) return 'Công nghệ Trồng trọt: Đất trồng, phân bón, giống cây trồng, nuôi cấy mô, kỹ thuật trồng trọt, phòng trừ sâu bệnh, thu hoạch bảo quản';
+                    return 'Thiết kế và Công nghệ hoặc Công nghệ Trồng trọt';
+                case '11':
+                    if (isCN) return 'Công nghệ Cơ khí: Gia công cơ khí (tiện, phay, bào, hàn), vật liệu cơ khí, cơ cấu truyền động, động cơ đốt trong';
+                    if (isNN) return 'Công nghệ Chăn nuôi: Giống vật nuôi, thụ tinh nhân tạo, dinh dưỡng thức ăn, chuồng trại, vệ sinh thú y, phòng trị bệnh';
+                    return 'Công nghệ Cơ khí hoặc Công nghệ Chăn nuôi';
+                case '12':
+                    if (isCN) return 'Công nghệ Điện - Điện tử: Mạch điện xoay chiều, hệ thống điện quốc gia, an toàn điện, linh kiện điện tử, vi điều khiển, tự động hóa, robot';
+                    if (isNN) return 'Lâm nghiệp & Thủy sản: Trồng chăm sóc rừng, khai thác bền vững, môi trường nuôi thủy sản, giống tôm cá, nuôi trồng công nghệ cao';
+                    return 'Công nghệ Điện - Điện tử hoặc Lâm nghiệp & Thủy sản';
+                default:
+                    return '';
+            }
+        };
+
+        const subjectContent = getSubjectContent(body.grade, body.branch);
+        const branchName = body.branch === 'cong_nghiep' ? 'Định hướng Công nghiệp' :
+            body.branch === 'nong_nghiep' ? 'Định hướng Nông nghiệp' : '';
+
+        const userPrompt = `Tạo đề thi ${body.exam_type} môn Công nghệ lớp ${body.grade}${branchName ? ` - ${branchName}` : ''}.
+
+**THÔNG TIN ĐỀ THI:**
+- Lớp: ${body.grade}
+- Định hướng: ${branchName || 'Không xác định'}
+- Nội dung chính: ${subjectContent}
+- Số câu: ${numQuestions} câu
+- Độ khó: ${body.difficulty === 'easy' ? 'Dễ' : body.difficulty === 'hard' ? 'Khó' : 'Trung bình'}
+${body.chapters?.length ? `- Chương cụ thể: ${body.chapters.join(', ')}` : ''}
+${body.topic ? `- Chủ đề trọng tâm: ${body.topic}` : ''}
+
+=== KIẾN THỨC SGK (RAG Context) ===
+${ragContext || '(Không có context SGK - sử dụng kiến thức chuẩn chương trình)'}
+
+**LƯU Ý QUAN TRỌNG:** Câu hỏi PHẢI liên quan đến nội dung "${subjectContent}" của lớp ${body.grade}.
+
+Trả về JSON array đúng format.`;
+
+        // 3. Gọi AI (OpenRouter)
+        const { callOpenRouter, buildMessages, MODEL_ROUTES } = await import('./openrouter');
+
+        const messages = buildMessages(AI_EXAM_PROMPT, userPrompt);
+        const aiResult = await callOpenRouter(env.OPENROUTER_API_KEY, {
+            messages,
+            model: MODEL_ROUTES.examGeneration,
+            temperature: 0.7,
+            useOnlineSearch: true,
+        });
+
+        // 4. Parse JSON từ AI response
+        let questions: ExamQuestion[];
+        try {
+            const jsonMatch = aiResult.text.match(/\[[\s\S]*\]/);
+            if (!jsonMatch) {
+                throw new Error('No JSON array found in AI response');
+            }
+            questions = JSON.parse(jsonMatch[0]);
+
+            // Validate và normalize
+            questions = questions.map((q, idx) => ({
+                id: q.id || `q${idx + 1}`,
+                content: q.content || q.question || '',
+                options: Array.isArray(q.options) ? q.options : [],
+                answer: (q.answer || 'A').toUpperCase(),
+                explanation: q.explanation || '',
+                level: ['remember', 'understand', 'apply', 'analyze'].includes(q.level)
+                    ? q.level as ExamQuestion['level']
+                    : 'remember',
+            }));
+
+        } catch (parseError) {
+            console.error('[exam-ai] Parse error:', parseError, aiResult.text.substring(0, 500));
+            return jsonResponse({
+                error: 'AI trả về format không hợp lệ',
+                raw: aiResult.text.substring(0, 1000),
+            }, 500, env.CORS_ORIGIN);
+        }
+
+        // 5. Tạo title và lưu vào DB nếu save=true
+        const title = `Đề ${body.exam_type === '15min' ? 'kiểm tra 15 phút' :
+            body.exam_type === 'midterm' ? 'giữa kì' :
+                body.exam_type === 'final' ? 'cuối kì' : 'THPT QG'} - Công nghệ ${body.grade}${body.branch ? ` (${body.branch === 'cong_nghiep' ? 'CN' : 'NN'})` : ''}`;
+
+        const durations: Record<string, number> = {
+            '15min': 15,
+            'midterm': 45,
+            'final': 60,
+            'thpt': 50,
+        };
+
+        const templateId = generateId();
+        const now = Date.now();
+
+        const template = {
+            id: templateId,
+            grade: body.grade,
+            branch: body.branch || null,
+            exam_type: body.exam_type,
+            title,
+            description: `Đề được tạo tự động bởi AI từ SGK${body.chapters?.length ? ` - Chương: ${body.chapters.join(', ')}` : ''}`,
+            questions: JSON.stringify(questions),
+            total_questions: questions.length,
+            duration_minutes: durations[body.exam_type] || 45,
+            difficulty: body.difficulty || 'medium',
+            chapters: body.chapters ? JSON.stringify(body.chapters) : null,
+            publisher: body.publisher || null,
+            created_at: now,
+            created_by: user.sub,
+            is_public: 1,
+            times_taken: 0,
+        };
+
+        // Lưu vào DB (default: true)
+        if (body.save !== false) {
+            await env.DB.prepare(`
+                INSERT INTO exam_templates 
+                (id, grade, branch, exam_type, title, description, questions, total_questions, 
+                 duration_minutes, difficulty, chapters, publisher, created_at, created_by, is_public, times_taken)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(
+                template.id, template.grade, template.branch, template.exam_type,
+                template.title, template.description, template.questions, template.total_questions,
+                template.duration_minutes, template.difficulty, template.chapters, template.publisher,
+                template.created_at, template.created_by, template.is_public, template.times_taken
+            ).run();
+
+            console.info('[exam-ai] Template saved:', templateId);
+        }
+
+        return jsonResponse({
+            success: true,
+            template: {
+                id: template.id,
+                title: template.title,
+                total_questions: template.total_questions,
+                duration_minutes: template.duration_minutes,
+                difficulty: template.difficulty,
+            },
+            questions, // Trả về luôn để preview
+        }, 201, env.CORS_ORIGIN);
+
+    } catch (error) {
+        console.error('[exam-ai] Generate error:', error);
+        return jsonResponse({
+            error: 'Lỗi tạo đề thi',
+            details: error instanceof Error ? error.message : 'Unknown error',
+        }, 500, env.CORS_ORIGIN);
+    }
+}
+

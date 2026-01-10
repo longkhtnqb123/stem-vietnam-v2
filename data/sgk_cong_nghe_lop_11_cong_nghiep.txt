@@ -1,0 +1,141 @@
+# Sách Giáo Khoa Công Nghệ Lớp 11 - Định Hướng Công Nghiệp
+
+## Chương 1: Thiết kế và Bản vẽ kỹ thuật
+
+### Bài 1: Tiêu chuẩn trình bày bản vẽ
+
+**Khổ giấy tiêu chuẩn (TCVN):**
+- A0: 841 x 1189 mm (diện tích 1m²)
+- A1: 594 x 841 mm
+- A2: 420 x 594 mm
+- A3: 297 x 420 mm
+- A4: 210 x 297 mm
+
+**Tỷ lệ bản vẽ:**
+- Tỷ lệ nguyên: 1:1 (kích thước thật)
+- Tỷ lệ thu nhỏ: 1:2, 1:5, 1:10, 1:20, 1:50, 1:100
+- Tỷ lệ phóng to: 2:1, 5:1, 10:1
+
+**Các loại nét vẽ:**
+- Nét liền đậm: đường bao thấy
+- Nét liền mảnh: đường kích thước, đường gióng
+- Nét đứt: đường bao khuất
+- Nét chấm gạch mảnh: đường tâm, đường đối xứng
+
+### Bài 2: Hình chiếu vuông góc
+
+**Ba hình chiếu cơ bản:**
+1. Hình chiếu đứng (mặt trước): nhìn từ phía trước
+2. Hình chiếu bằng (mặt trên): nhìn từ phía trên xuống
+3. Hình chiếu cạnh (mặt bên): nhìn từ bên trái
+
+**Cách bố trí hình chiếu:**
+- Hình chiếu bằng đặt dưới hình chiếu đứng
+- Hình chiếu cạnh đặt bên phải hình chiếu đứng
+- Các hình chiếu thẳng hàng theo phương chiếu
+
+### Bài 3: Hình cắt và mặt cắt
+
+**Mặt cắt:** Hình biểu diễn phần vật thể nằm trên mặt phẳng cắt
+
+**Hình cắt:** Hình biểu diễn gồm mặt cắt và phần vật thể sau mặt phẳng cắt
+
+**Các loại hình cắt:**
+- Hình cắt toàn phần: cắt hết vật thể
+- Hình cắt một nửa: 1/2 hình chiếu + 1/2 hình cắt
+- Hình cắt cục bộ: chỉ cắt một phần nhỏ
+- Hình cắt bậc: nhiều mặt phẳng cắt song song
+
+## Chương 2: Điện - Điện tử
+
+### Bài 4: Mạch điện cơ bản
+
+**Định luật Ohm:**
+U = I × R
+- U: hiệu điện thế (V)
+- I: cường độ dòng điện (A)
+- R: điện trở (Ω)
+
+**Mạch điện nối tiếp:**
+- I₁ = I₂ = I₃ = ... = I (dòng điện bằng nhau)
+- U = U₁ + U₂ + U₃ + ... (điện áp cộng dồn)
+- R_tổng = R₁ + R₂ + R₃ + ...
+
+**Mạch điện song song:**
+- U₁ = U₂ = U₃ = ... = U (điện áp bằng nhau)
+- I = I₁ + I₂ + I₃ + ... (dòng điện cộng dồn)
+- 1/R_tổng = 1/R₁ + 1/R₂ + 1/R₃ + ...
+
+### Bài 5: Linh kiện điện tử
+
+**Điện trở:**
+- Chức năng: hạn chế dòng điện, phân áp
+- Đọc giá trị qua vạch màu hoặc số in
+- Đơn vị: Ω, kΩ, MΩ
+
+**Tụ điện:**
+- Chức năng: lưu trữ điện tích, lọc nhiễu
+- Tụ phân cực: có (+) (-), tụ hóa
+- Tụ không phân cực: tụ gốm, tụ mica
+- Đơn vị: F, μF, nF, pF
+
+**Cuộn cảm:**
+- Chức năng: lọc tần số, tạo từ trường
+- Độ tự cảm L (Henry - H)
+
+**Diode:**
+- Cho dòng điện đi theo một chiều
+- Diode thường: chỉnh lưu
+- LED: phát sáng
+- Zener: ổn áp
+
+**Transistor:**
+- Khuếch đại tín hiệu
+- Đóng ngắt mạch (công tắc điện tử)
+- 3 chân: B (base), C (collector), E (emitter)
+- Loại NPN và PNP
+
+### Bài 6: Mạch điều khiển
+
+**Relay (rơ le):**
+- Sử dụng dòng điện nhỏ điều khiển dòng lớn
+- Có cuộn dây và tiếp điểm
+- Cách ly mạch điều khiển và mạch lực
+
+**IC 555:**
+- Tạo xung vuông
+- Đếm thời gian
+- Dao động đa hài
+
+## Chương 3: Kỹ thuật điện
+
+### Bài 7: Động cơ điện
+
+**Động cơ điện một chiều (DC):**
+- Nguyên lý: lực từ tác dụng lên dây dẫn mang dòng điện
+- Ưu điểm: dễ điều khiển tốc độ
+- Ứng dụng: xe điện, robot, đồ chơi
+
+**Động cơ điện xoay chiều (AC):**
+- Động cơ không đồng bộ: rotor quay chậm hơn từ trường
+- Động cơ đồng bộ: rotor quay cùng tốc độ từ trường
+- Ứng dụng: quạt, máy bơm, máy công nghiệp
+
+### Bài 8: Máy biến áp
+
+**Nguyên lý hoạt động:**
+- Dựa trên hiện tượng cảm ứng điện từ
+- Biến đổi điện áp AC, giữ nguyên tần số
+
+**Công thức biến áp:**
+U₁/U₂ = N₁/N₂ = I₂/I₁
+
+Trong đó:
+- U: điện áp
+- N: số vòng dây
+- I: cường độ dòng điện
+- Chỉ số 1: cuộn sơ cấp
+- Chỉ số 2: cuộn thứ cấp
+
+**Máy biến áp tăng áp:** N₂ > N₁ → U₂ > U₁
+**Máy biến áp hạ áp:** N₂ < N₁ → U₂ < U₁
