@@ -34,6 +34,11 @@ export interface UserSettings {
         chat?: string;
         exam?: string;
     };
+    apiKeys?: {
+        openRouter?: string;
+        huggingFace?: string;
+        gemini?: string;
+    };
 }
 
 /**

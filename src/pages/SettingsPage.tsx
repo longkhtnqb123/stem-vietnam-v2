@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Settings, Cpu, Key, Palette, BarChart3, Shield } from 'lucide-react';
 import { useSettings } from '../hooks/useSettings';
 import ModelSelector from '../components/settings/ModelSelector';
+import ApiManagement from '../components/settings/ApiManagement';
 
 type TabType = 'models' | 'api-keys' | 'preferences' | 'usage' | 'security';
 
@@ -12,6 +13,7 @@ export default function SettingsPage() {
 
     const tabs = [
         { id: 'models' as TabType, label: 'AI Models', icon: Cpu },
+        { id: 'api-keys' as TabType, label: 'API Keys', icon: Key },
         { id: 'preferences' as TabType, label: 'Giao diện', icon: Palette },
         { id: 'usage' as TabType, label: 'Thống kê', icon: BarChart3 },
         { id: 'security' as TabType, label: 'Bảo mật', icon: Shield },
@@ -68,35 +70,8 @@ export default function SettingsPage() {
                     <ModelSelector settings={settings} onUpdate={updateSettings} />
                 )}
 
-                {activeTab === 'api-keys' && (
-                    <div className="space-y-6">
-                        <div>
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
-                                API Keys
-                            </h2>
-                            <p className="text-slate-600 dark:text-slate-400 mb-6">
-                                Quản lý các API keys của bên thứ ba (OpenRouter, HuggingFace, v.v.)
-                            </p>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                                <p className="text-sm text-blue-700 dark:text-blue-400">
-                                    💡 <strong>Lưu ý:</strong> API keys được lưu bảo mật trên server. Không ai có thể xem được keys của bạn.
-                                </p>
-                            </div>
-
-                            <div className="p-6 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 text-center">
-                                <Key size={48} className="mx-auto mb-4 text-slate-400" />
-                                <p className="text-slate-600 dark:text-slate-400 mb-4">
-                                    Tính năng quản lý API Keys đang được phát triển
-                                </p>
-                                <p className="text-sm text-slate-500">
-                                    Hiện tại hệ thống sử dụng API keys được cấu hình sẵn
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                {activeTab === 'api-keys' && settings && (
+                    <ApiManagement settings={settings} onUpdate={updateSettings} />
                 )}
 
                 {activeTab === 'preferences' && settings && (
