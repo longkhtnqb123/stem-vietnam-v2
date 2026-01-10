@@ -1,8 +1,14 @@
 export function getAllowedOrigin(requestOrigin: string | null, allowedOrigins: string): string {
-    if (!requestOrigin) return '*';
-    const origins = allowedOrigins.split(/[;,]/).map(o => o.trim());
+    if (!requestOrigin || !allowedOrigins) return '*';
+
+    // Robust splitting: handle semicolon, comma, space, and remove quotes
+    const cleanOrigins = allowedOrigins.replace(/['"]/g, '');
+    const origins = cleanOrigins.split(/[;,| ]+/).map(o => o.trim()).filter(o => o.length > 0);
+
     if (origins.includes('*')) return '*';
     if (origins.includes(requestOrigin)) return requestOrigin;
+
+    // Fallback logic
     return origins[0] || '*';
 }
 

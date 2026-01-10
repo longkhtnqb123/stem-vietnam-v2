@@ -265,7 +265,12 @@ function classifyQueryForModel(query) {
 }
 function buildMessages(systemPrompt, userMessage, context, images) {
   const messages = [];
-  let fullSystemPrompt = systemPrompt;
+  const now = (/* @__PURE__ */ new Date()).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
+  let fullSystemPrompt = systemPrompt + `
+
+=== TH\u1EDCI GIAN H\u1EC6 TH\u1ED0NG ===
+H\xF4m nay l\xE0: ${now}
+S\u1EED d\u1EE5ng th\xF4ng tin ng\xE0y gi\u1EDD n\xE0y \u0111\u1EC3 tr\u1EA3 l\u1EDDi c\xE1c c\xE2u h\u1ECFi li\xEAn quan \u0111\u1EBFn th\u1EDDi gian th\u1EF1c.`;
   if (context) {
     fullSystemPrompt += `
 
@@ -309,8 +314,8 @@ var init_openrouter = __esm({
       // Web Search - dùng suffix :online để kích hoạt Exa/Perplexity plugin
       // Có thể append vào bất kỳ model nào
       ONLINE_SUFFIX: ":online",
-      // File Search, URL Context, Multimodal - Gemini 2.0 Flash
-      GEMINI_FLASH: "google/gemini-2.0-flash-exp:free",
+      // File Search, URL Context, Multimodal - Gemini 2.0 Flash/Pro
+      GEMINI_FLASH: "google/gemini-2.0-pro-exp-02-05:free",
       // Code Execution - Xiaomi MiMo (ngang Claude 4.5 Sonnet)
       MIMO_CODE: "xiaomi/mimo-v2-flash:free",
       // Agentic Coding - Devstral (xử lý codebase lớn)  
@@ -24710,8 +24715,9 @@ __name(generateId, "generateId");
 // src/utils.ts
 init_modules_watch_stub();
 function getAllowedOrigin(requestOrigin, allowedOrigins) {
-  if (!requestOrigin) return "*";
-  const origins = allowedOrigins.split(/[;,]/).map((o) => o.trim());
+  if (!requestOrigin || !allowedOrigins) return "*";
+  const cleanOrigins = allowedOrigins.replace(/['"]/g, "");
+  const origins = cleanOrigins.split(/[;,| ]+/).map((o) => o.trim()).filter((o) => o.length > 0);
   if (origins.includes("*")) return "*";
   if (origins.includes(requestOrigin)) return requestOrigin;
   return origins[0] || "*";

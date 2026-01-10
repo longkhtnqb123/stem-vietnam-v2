@@ -11,8 +11,8 @@ export const MODELS = {
     // Có thể append vào bất kỳ model nào
     ONLINE_SUFFIX: ':online',
 
-    // File Search, URL Context, Multimodal - Gemini 2.0 Flash
-    GEMINI_FLASH: 'google/gemini-2.0-flash-exp:free',
+    // File Search, URL Context, Multimodal - Gemini 2.0 Flash/Pro
+    GEMINI_FLASH: 'google/gemini-2.0-pro-exp-02-05:free',
 
     // Code Execution - Xiaomi MiMo (ngang Claude 4.5 Sonnet)
     MIMO_CODE: 'xiaomi/mimo-v2-flash:free',
@@ -332,7 +332,9 @@ export function buildMessages(
     const messages: OpenRouterMessage[] = [];
 
     // System message
-    let fullSystemPrompt = systemPrompt;
+    const now = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+    let fullSystemPrompt = systemPrompt + `\n\n=== THỜI GIAN HỆ THỐNG ===\nHôm nay là: ${now}\nSử dụng thông tin ngày giờ này để trả lời các câu hỏi liên quan đến thời gian thực.`;
+
     if (context) {
         fullSystemPrompt += `\n\n--- CONTEXT TỪ TÀI LIỆU ---\n${context}\n--- HẾT CONTEXT ---`;
     }
