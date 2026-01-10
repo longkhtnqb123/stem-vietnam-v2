@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Key, Save, Eye, EyeOff, ExternalLink, ShieldCheck } from 'lucide-react';
-import { UserSettings } from '../../lib/settingsApi';
+import type { UserSettings } from '../../lib/settingsApi';
 import { useAppStore } from '../../stores/appStore';
 
 interface Props {
