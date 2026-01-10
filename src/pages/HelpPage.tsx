@@ -13,7 +13,8 @@ import {
     BarChart3,
     Brain,
     Search,
-    School
+    School,
+    PlusCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
