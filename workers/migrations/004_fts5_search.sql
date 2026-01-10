@@ -1,6 +1,16 @@
 -- Migration 004: FTS5 for BM25 Sparse Search
 -- Enable full-text search for hybrid RAG
 
+-- Create book_chunks table if not exists (required for triggers)
+CREATE TABLE IF NOT EXISTS book_chunks (
+    id TEXT PRIMARY KEY,
+    content TEXT NOT NULL,
+    metadata TEXT,
+    book_id TEXT,
+    chunk_index INTEGER,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+);
+
 -- Create FTS5 virtual table for book chunks
 CREATE VIRTUAL TABLE IF NOT EXISTS book_chunks_fts USING fts5(
     id UNINDEXED,

@@ -2,10 +2,10 @@
 // Xử lý quản lý trường học cho Phase 4 Multi-School
 
 import { Hono } from 'hono';
-import { Bindings } from './types';
-import { verifyJWT } from './auth-routes';
+import { Env } from './index';
+import { verifyJWT } from './auth';
 
-const app = new Hono<{ Bindings: Bindings }>();
+const app = new Hono<{ Bindings: Env }>();
 
 // GET /api/schools - Danh sách trường (Admin only)
 app.get('/', async (c) => {

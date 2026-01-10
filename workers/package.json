@@ -8,5 +8,9 @@
         "test": "pwsh scripts/test-features.ps1",
         "migrate": "bash scripts/migrate.sh",
         "cf-typegen": "wrangler types"
+    },
+    "dependencies": {
+        "hono": "^4.11.3",
+        "mammoth": "^1.11.0"
     }
 }

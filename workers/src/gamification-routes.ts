@@ -2,10 +2,11 @@
 // Xử lý XP, Badges, Daily Goals, Leaderboard
 
 import { Hono } from 'hono';
-import { Bindings } from './types';
-import { verifyJWT } from './auth-routes';
+import { Env } from './index';
+import { verifyJWT } from './auth';
 
-const app = new Hono<{ Bindings: Bindings }>();
+const app = new Hono<{ Bindings: Env }>();
+
 
 // XP Configuration
 const XP_CONFIG = {

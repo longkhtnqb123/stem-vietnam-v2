@@ -26,6 +26,9 @@ const TeacherDashboard = lazy(() => import('./pages/TeacherDashboard'));
 const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
 const ClassesPage = lazy(() => import('./pages/ClassesPage'));
 const ClassDetailPage = lazy(() => import('./pages/ClassDetailPage'));
+// Phase 4 & 5: New Admin Pages
+const SchoolAdminPage = lazy(() => import('./pages/SchoolAdminPage'));
+const ResearchDashboard = lazy(() => import('./pages/ResearchDashboard'));
 import AuthGuard from './components/auth/AuthGuard';
 import ApiKeyWarning from './components/common/ApiKeyWarning';
 import PWAInstallPrompt from './components/common/PWAInstallPrompt';
@@ -215,6 +218,24 @@ function App() {
             <AuthGuard>
               <Suspense fallback={<PageLoader />}>
                 <ClassDetailPage />
+              </Suspense>
+            </AuthGuard>
+          } />
+
+          {/* Admin: School Management */}
+          <Route path="school-admin" element={
+            <AuthGuard>
+              <Suspense fallback={<PageLoader />}>
+                <SchoolAdminPage />
+              </Suspense>
+            </AuthGuard>
+          } />
+
+          {/* Admin: Research Analytics */}
+          <Route path="research" element={
+            <AuthGuard>
+              <Suspense fallback={<PageLoader />}>
+                <ResearchDashboard />
               </Suspense>
             </AuthGuard>
           } />

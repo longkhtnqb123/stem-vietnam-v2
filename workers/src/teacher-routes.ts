@@ -2,10 +2,10 @@
 // Xử lý cấp và sử dụng mã mời giáo viên
 
 import { Hono } from 'hono';
-import { Bindings } from './types';
-import { verifyJWT } from './auth-routes';
+import { Env } from './index';
+import { verifyJWT } from './auth';
 
-const app = new Hono<{ Bindings: Bindings }>();
+const app = new Hono<{ Bindings: Env }>();
 
 // Tạo mã mời ngẫu nhiên
 function generateInviteCode(): string {

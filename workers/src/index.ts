@@ -34,6 +34,11 @@ import { getAdvancedRAGContext } from './rag/advanced-rag-pipeline';
 import { isFileTypeSupported, isFileSizeValid, MAX_FILE_SIZE, getSupportedExtensions } from './file-parser';
 import { ingestFromR2 } from './ingest';
 import { getClasses, createClass, joinClass, getClassDetails, createAssignment, deleteClass, ClassesEnv } from './class-routes';
+// Phase 3-5: New Routes
+import { gamificationRoutes } from './gamification-routes';
+import { teacherRoutes } from './teacher-routes';
+import { schoolRoutes } from './school-routes';
+import { researchRoutes } from './research-routes';
 
 // Chú thích: Environment interface (đã xoá Vertex AI, chuyển sang HuggingFace)
 export interface Env {
@@ -744,6 +749,28 @@ export default {
         // Match: /api/storage/books/...
         if (path.startsWith('/api/storage/')) {
             return handleStorageRequest(request, env);
+        }
+
+        // Phase 3-5: New Hono Sub-App Routes
+        if (path.startsWith('/api/gamification')) {
+            const newPath = path.replace('/api/gamification', '') || '/';
+            const newRequest = new Request(new URL(newPath, request.url), request);
+            return gamificationRoutes.fetch(newRequest, env);
+        }
+        if (path.startsWith('/api/teachers')) {
+            const newPath = path.replace('/api/teachers', '') || '/';
+            const newRequest = new Request(new URL(newPath, request.url), request);
+            return teacherRoutes.fetch(newRequest, env);
+        }
+        if (path.startsWith('/api/schools')) {
+            const newPath = path.replace('/api/schools', '') || '/';
+            const newRequest = new Request(new URL(newPath, request.url), request);
+            return schoolRoutes.fetch(newRequest, env);
+        }
+        if (path.startsWith('/api/research')) {
+            const newPath = path.replace('/api/research', '') || '/';
+            const newRequest = new Request(new URL(newPath, request.url), request);
+            return researchRoutes.fetch(newRequest, env);
         }
 
         // Chú thích: API routes
