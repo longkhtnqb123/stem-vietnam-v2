@@ -3,8 +3,6 @@ import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
     MessageCircle,
-    FileQuestion,
-    ClipboardList,
     GraduationCap,
     Library,
     Moon,
@@ -15,7 +13,6 @@ import {
     Settings,
     Trophy,
     HelpCircle,
-    School,
     ChevronLeft,
     ChevronRight,
     Sparkles,
@@ -32,18 +29,14 @@ interface NavItem {
     badge?: string;
 }
 
+// Chú thích: Menu gọn lại - tập trung user, ẩn school features
 const navItems: NavItem[] = [
     { path: '/chat', icon: MessageCircle, label: 'Chat AI' },
-    { path: '/exam-online', icon: Trophy, label: 'Thi Online', badge: '🔥' },
-    { path: '/student-dashboard', icon: GraduationCap, label: 'Tiến Độ', roles: ['student'] },
-    { path: '/teacher-dashboard', icon: ClipboardList, label: 'Dashboard GV', roles: ['teacher', 'admin'] },
-    { path: '/classes', icon: School, label: 'Lớp Học' },
-    { path: '/questions', icon: FileQuestion, label: 'Tạo Câu Hỏi', roles: ['teacher', 'admin'] },
-    { path: '/exam/thpt', icon: ClipboardList, label: 'Đề Thi THPT', roles: ['teacher', 'admin'] },
-    { path: '/exam/semester', icon: GraduationCap, label: 'Đề Giữa/Cuối Kỳ', roles: ['teacher', 'admin'] },
+    { path: '/exam', icon: Trophy, label: 'Thi Online', badge: '🔥' },
+    { path: '/practice', icon: GraduationCap, label: 'Ôn Tập', badge: '📚' },
     { path: '/library', icon: Library, label: 'Thư Viện' },
     { path: '/settings', icon: Settings, label: 'Cài Đặt' },
-    { path: '/help', icon: HelpCircle, label: 'Hướng Dẫn', badge: '📖' },
+    { path: '/help', icon: HelpCircle, label: 'Hướng Dẫn' },
 ];
 
 // Tooltip component for collapsed sidebar

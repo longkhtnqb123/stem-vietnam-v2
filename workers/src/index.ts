@@ -746,7 +746,7 @@ export default {
     async fetch(request: Request, env: Env): Promise<Response> {
         const url = new URL(request.url);
         const path = url.pathname;
-        const allowedOrigin = getAllowedOrigin(request.headers.get('Origin'), allowedOrigin);
+        const allowedOrigin = getAllowedOrigin(request.headers.get('Origin'), env.CORS_ORIGIN);
 
         // Chú thích: Handle CORS preflight
         if (request.method === 'OPTIONS') {

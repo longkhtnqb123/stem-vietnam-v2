@@ -17,6 +17,10 @@ var __esm = (fn, res) => function __init() {
 var __commonJS = (cb, mod) => function __require2() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
@@ -45,6 +49,525 @@ var init_wrangler_modules_watch = __esm({
 var init_modules_watch_stub = __esm({
   "node_modules/wrangler/templates/modules-watch-stub.js"() {
     init_wrangler_modules_watch();
+  }
+});
+
+// src/openrouter.ts
+var openrouter_exports = {};
+__export(openrouter_exports, {
+  MODELS: () => MODELS,
+  MODEL_ROUTES: () => MODEL_ROUTES,
+  buildMessages: () => buildMessages,
+  callOpenRouter: () => callOpenRouter,
+  classifyQueryForModel: () => classifyQueryForModel,
+  streamOpenRouter: () => streamOpenRouter
+});
+async function callOpenRouter(apiKey, params) {
+  const {
+    messages,
+    model = MODEL_ROUTES.chat,
+    temperature = 0.7,
+    maxTokens = 8192,
+    useOnlineSearch = false
+  } = params;
+  const finalModel = useOnlineSearch && !model.includes(":online") ? model + MODELS.ONLINE_SUFFIX : model;
+  const t0 = Date.now();
+  try {
+    const response = await fetch(OPENROUTER_API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://stem-vietnam.vercel.app",
+        // Required by OpenRouter
+        "X-Title": "STEM Vietnam AI"
+        // Optional, for analytics
+      },
+      body: JSON.stringify({
+        model: finalModel,
+        messages,
+        temperature,
+        max_tokens: maxTokens
+      })
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenRouter error: ${response.status} - ${errorText}`);
+    }
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content || "";
+    const latency = Date.now() - t0;
+    console.log("[openrouter] call done", {
+      latency,
+      model: finalModel,
+      textLen: text.length,
+      tokensIn: data.usage?.prompt_tokens,
+      tokensOut: data.usage?.completion_tokens
+    });
+    return {
+      text,
+      model: data.model || finalModel,
+      tokensIn: data.usage?.prompt_tokens || 0,
+      tokensOut: data.usage?.completion_tokens || 0
+    };
+  } catch (error) {
+    console.error("[openrouter] error:", error);
+    throw error;
+  }
+}
+async function* streamOpenRouter(apiKey, params) {
+  const {
+    messages,
+    model = MODEL_ROUTES.chat,
+    temperature = 0.7,
+    maxTokens = 8192,
+    useOnlineSearch = false
+  } = params;
+  const finalModel = useOnlineSearch && !model.includes(":online") ? model + MODELS.ONLINE_SUFFIX : model;
+  const response = await fetch(OPENROUTER_API_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://stem-vietnam.vercel.app",
+      "X-Title": "STEM Vietnam AI"
+    },
+    body: JSON.stringify({
+      model: finalModel,
+      messages,
+      temperature,
+      max_tokens: maxTokens,
+      stream: true
+      // Enable streaming
+    })
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenRouter stream error: ${response.status} - ${errorText}`);
+  }
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error("No response body");
+  }
+  const decoder = new TextDecoder();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = decoder.decode(value);
+    const lines = chunk.split("\n");
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        const dataStr = line.slice(6).trim();
+        if (dataStr === "[DONE]") {
+          return;
+        }
+        try {
+          const data = JSON.parse(dataStr);
+          const content = data.choices?.[0]?.delta?.content;
+          if (content) {
+            yield content;
+          }
+        } catch {
+        }
+      }
+    }
+  }
+}
+function classifyQueryForModel(query) {
+  const queryLower = query.toLowerCase();
+  const searchKeywords = [
+    "h\xF4m nay",
+    "ng\xE0y nay",
+    "b\xE2y gi\u1EDD",
+    "hi\u1EC7n t\u1EA1i",
+    "m\u1EDBi nh\u1EA5t",
+    "tin t\u1EE9c",
+    "th\u1EDDi ti\u1EBFt",
+    "gi\xE1",
+    "t\u1EF7 gi\xE1",
+    "ch\u1EE9ng kho\xE1n",
+    "b\xF3ng \u0111\xE1",
+    "th\u1EC3 thao",
+    "k\u1EBFt qu\u1EA3",
+    "l\u1ECBch thi \u0111\u1EA5u",
+    "s\u1EF1 ki\u1EC7n",
+    "news",
+    "today",
+    "current",
+    "latest"
+  ];
+  const codeKeywords = [
+    "code",
+    "l\u1EADp tr\xECnh",
+    "debug",
+    "fix bug",
+    "vi\u1EBFt h\xE0m",
+    "function",
+    "class",
+    "algorithm",
+    "thu\u1EADt to\xE1n",
+    "javascript",
+    "python",
+    "typescript",
+    "java",
+    "c++",
+    "ch\u1EA1y code",
+    "execute",
+    "compile",
+    "run"
+  ];
+  const reasoningKeywords = [
+    "suy lu\u1EADn",
+    "logic",
+    "ch\u1EE9ng minh",
+    "ph\xE2n t\xEDch",
+    "t\u1EA1i sao",
+    "gi\u1EA3i th\xEDch",
+    "so s\xE1nh",
+    "\u0111\xE1nh gi\xE1",
+    "\u01B0u \u0111i\u1EC3m",
+    "nh\u01B0\u1EE3c \u0111i\u1EC3m",
+    "pros",
+    "cons"
+  ];
+  for (const kw of searchKeywords) {
+    if (queryLower.includes(kw)) {
+      return {
+        model: MODEL_ROUTES.chatWithSearch,
+        useOnlineSearch: true,
+        reason: `C\u1EA7n web search: "${kw}"`
+      };
+    }
+  }
+  for (const kw of codeKeywords) {
+    if (queryLower.includes(kw)) {
+      return {
+        model: MODEL_ROUTES.codeExecution,
+        useOnlineSearch: false,
+        reason: `Code execution: "${kw}"`
+      };
+    }
+  }
+  for (const kw of reasoningKeywords) {
+    if (queryLower.includes(kw)) {
+      return {
+        model: MODEL_ROUTES.reasoning,
+        useOnlineSearch: false,
+        reason: `Reasoning: "${kw}"`
+      };
+    }
+  }
+  return {
+    model: MODEL_ROUTES.chat,
+    useOnlineSearch: false,
+    reason: "Default: Gemini Flash"
+  };
+}
+function buildMessages(systemPrompt, userMessage, context, images) {
+  const messages = [];
+  const now = (/* @__PURE__ */ new Date()).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
+  let fullSystemPrompt = systemPrompt + `
+
+=== TH\u1EDCI GIAN H\u1EC6 TH\u1ED0NG ===
+H\xF4m nay l\xE0: ${now}
+S\u1EED d\u1EE5ng th\xF4ng tin ng\xE0y gi\u1EDD n\xE0y \u0111\u1EC3 tr\u1EA3 l\u1EDDi c\xE1c c\xE2u h\u1ECFi li\xEAn quan \u0111\u1EBFn th\u1EDDi gian th\u1EF1c.`;
+  if (context) {
+    fullSystemPrompt += `
+
+--- CONTEXT T\u1EEA T\xC0I LI\u1EC6U ---
+${context}
+--- H\u1EBET CONTEXT ---`;
+  }
+  messages.push({
+    role: "system",
+    content: fullSystemPrompt
+  });
+  if (images && images.length > 0) {
+    const content = [
+      { type: "text", text: userMessage }
+    ];
+    for (const img of images) {
+      content.push({
+        type: "image_url",
+        image_url: { url: img }
+        // Expecting data URI like data:image/png;base64,...
+      });
+    }
+    messages.push({
+      role: "user",
+      content
+    });
+  } else {
+    messages.push({
+      role: "user",
+      content: userMessage
+    });
+  }
+  return messages;
+}
+var MODELS, MODEL_ROUTES, OPENROUTER_API_URL;
+var init_openrouter = __esm({
+  "src/openrouter.ts"() {
+    "use strict";
+    init_modules_watch_stub();
+    MODELS = {
+      // Web Search - dùng suffix :online để kích hoạt Exa/Perplexity plugin
+      // Có thể append vào bất kỳ model nào
+      ONLINE_SUFFIX: ":online",
+      // File Search, URL Context, Multimodal - Gemini 2.0 Flash/Pro
+      GEMINI_FLASH: "google/gemini-2.0-pro-exp-02-05:free",
+      // Code Execution - Xiaomi MiMo (ngang Claude 4.5 Sonnet)
+      MIMO_CODE: "xiaomi/mimo-v2-flash:free",
+      // Agentic Coding - Devstral (xử lý codebase lớn)  
+      DEVSTRAL: "mistralai/devstral-2-2512:free",
+      // Reasoning/Logic - DeepSeek R1 Chimera
+      DEEPSEEK_REASON: "tngtech/deepseek-r1t2-chimera:free"
+    };
+    MODEL_ROUTES = {
+      // Chat thông thường - Gemini Flash (nhanh, đa năng)
+      chat: MODELS.GEMINI_FLASH,
+      // Chat cần web search - thêm :online suffix
+      chatWithSearch: MODELS.GEMINI_FLASH + MODELS.ONLINE_SUFFIX,
+      // Tạo đề thi - Gemini Flash (cần đọc file/context)
+      examGeneration: MODELS.GEMINI_FLASH,
+      // Giải bài tập code - MiMo
+      codeExecution: MODELS.MIMO_CODE,
+      // Suy luận logic phức tạp - DeepSeek
+      reasoning: MODELS.DEEPSEEK_REASON
+    };
+    OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+    __name(callOpenRouter, "callOpenRouter");
+    __name(streamOpenRouter, "streamOpenRouter");
+    __name(classifyQueryForModel, "classifyQueryForModel");
+    __name(buildMessages, "buildMessages");
+  }
+});
+
+// src/huggingface.ts
+var huggingface_exports = {};
+__export(huggingface_exports, {
+  EMBEDDING_DIMENSIONS: () => EMBEDDING_DIMENSIONS,
+  EMBEDDING_MODEL: () => EMBEDDING_MODEL,
+  createEmbedding: () => createEmbedding,
+  createEmbeddingsBatch: () => createEmbeddingsBatch
+});
+async function createEmbedding(apiToken, text, model = EMBEDDING_MODEL) {
+  const t0 = Date.now();
+  try {
+    const response = await fetch(`${HF_API_URL}/${model}`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        inputs: text,
+        options: {
+          wait_for_model: true
+          // Chờ nếu model đang loading
+        }
+      })
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HuggingFace API error: ${response.status} - ${errorText}`);
+    }
+    const data = await response.json();
+    let embedding;
+    if (Array.isArray(data) && Array.isArray(data[0])) {
+      const numTokens = data.length;
+      const dims = data[0].length;
+      embedding = new Array(dims).fill(0);
+      for (const tokenEmb of data) {
+        for (let i = 0; i < dims; i++) {
+          embedding[i] += tokenEmb[i];
+        }
+      }
+      for (let i = 0; i < dims; i++) {
+        embedding[i] /= numTokens;
+      }
+    } else if (Array.isArray(data) && typeof data[0] === "number") {
+      embedding = data;
+    } else {
+      throw new Error("Unexpected embedding response format");
+    }
+    const latency = Date.now() - t0;
+    console.log("[huggingface] embedding done", {
+      latency,
+      model,
+      dimensions: embedding.length,
+      textLen: text.length
+    });
+    return {
+      embedding,
+      model,
+      dimensions: embedding.length
+    };
+  } catch (error) {
+    console.error("[huggingface] embedding error:", error);
+    throw error;
+  }
+}
+async function createEmbeddingsBatch(apiToken, texts, model = EMBEDDING_MODEL) {
+  const t0 = Date.now();
+  try {
+    const response = await fetch(`${HF_API_URL}/${model}`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        inputs: texts,
+        options: {
+          wait_for_model: true
+        }
+      })
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HuggingFace API error: ${response.status} - ${errorText}`);
+    }
+    const data = await response.json();
+    const results = [];
+    for (const textData of data) {
+      let embedding;
+      if (Array.isArray(textData) && Array.isArray(textData[0])) {
+        const numTokens = textData.length;
+        const dims = textData[0].length;
+        embedding = new Array(dims).fill(0);
+        for (const tokenEmb of textData) {
+          for (let i = 0; i < dims; i++) {
+            embedding[i] += tokenEmb[i];
+          }
+        }
+        for (let i = 0; i < dims; i++) {
+          embedding[i] /= numTokens;
+        }
+      } else if (Array.isArray(textData) && typeof textData[0] === "number") {
+        embedding = textData;
+      } else {
+        throw new Error("Unexpected batch embedding response format");
+      }
+      results.push({
+        embedding,
+        model,
+        dimensions: embedding.length
+      });
+    }
+    const latency = Date.now() - t0;
+    console.log("[huggingface] batch embedding done", {
+      latency,
+      model,
+      count: results.length
+    });
+    return results;
+  } catch (error) {
+    console.error("[huggingface] batch embedding error:", error);
+    throw error;
+  }
+}
+var EMBEDDING_MODEL, EMBEDDING_DIMENSIONS, HF_API_URL;
+var init_huggingface = __esm({
+  "src/huggingface.ts"() {
+    "use strict";
+    init_modules_watch_stub();
+    EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2";
+    EMBEDDING_DIMENSIONS = 384;
+    HF_API_URL = "https://router.huggingface.co/pipeline/feature-extraction";
+    __name(createEmbedding, "createEmbedding");
+    __name(createEmbeddingsBatch, "createEmbeddingsBatch");
+  }
+});
+
+// src/vectorize.ts
+var vectorize_exports = {};
+__export(vectorize_exports, {
+  EMBEDDING_DIMENSIONS: () => EMBEDDING_DIMENSIONS,
+  buildContextFromResults: () => buildContextFromResults,
+  createEmbedding: () => createEmbedding2,
+  createEmbeddingsBatch: () => createEmbeddingsBatch2,
+  deleteVectors: () => deleteVectors,
+  getVector: () => getVector,
+  insertVectors: () => insertVectors,
+  searchVectors: () => searchVectors
+});
+async function createEmbedding2(hfApiToken, text) {
+  const result = await createEmbedding(hfApiToken, text);
+  return result.embedding;
+}
+async function createEmbeddingsBatch2(hfApiToken, texts) {
+  const results = await createEmbeddingsBatch(hfApiToken, texts);
+  return results.map((r) => r.embedding);
+}
+async function insertVectors(vectorize, records) {
+  const vectors = records.map((record) => ({
+    id: record.id,
+    values: record.values,
+    metadata: record.metadata
+  }));
+  const result = await vectorize.insert(vectors);
+  console.log("[vectorize] inserted", { count: result.count });
+  return { inserted: result.count };
+}
+async function searchVectors(vectorize, hfApiToken, query, filters, topK = 5) {
+  const queryVector = await createEmbedding2(hfApiToken, query);
+  const filterObj = {};
+  if (filters?.grade) filterObj.grade = filters.grade;
+  if (filters?.subject) filterObj.subject = filters.subject;
+  if (filters?.type) filterObj.type = filters.type;
+  const results = await vectorize.query(queryVector, {
+    topK,
+    filter: Object.keys(filterObj).length > 0 ? filterObj : void 0,
+    returnMetadata: "all"
+  });
+  console.log("[vectorize] search done", {
+    query: query.slice(0, 50),
+    matches: results.matches.length
+  });
+  return results.matches.map((match2) => ({
+    id: match2.id,
+    score: match2.score,
+    metadata: match2.metadata
+  }));
+}
+async function deleteVectors(vectorize, ids) {
+  const result = await vectorize.deleteByIds(ids);
+  console.log("[vectorize] deleted", { count: result.count });
+  return { deleted: result.count };
+}
+async function getVector(vectorize, id) {
+  const result = await vectorize.getByIds([id]);
+  if (result.length === 0) return null;
+  const record = result[0];
+  return {
+    id: record.id,
+    // Chú thích: Convert VectorFloatArray to number[]
+    values: Array.from(record.values),
+    metadata: record.metadata
+  };
+}
+function buildContextFromResults(results) {
+  if (results.length === 0) return "";
+  return results.map((result, index) => {
+    const meta = result.metadata;
+    const source = `[${meta.title}${meta.chapter ? ` - ${meta.chapter}` : ""}]`;
+    return `--- Ngu\u1ED3n ${index + 1}: ${source} (relevance: ${(result.score * 100).toFixed(1)}%) ---
+${meta.content}`;
+  }).join("\n\n");
+}
+var init_vectorize = __esm({
+  "src/vectorize.ts"() {
+    "use strict";
+    init_modules_watch_stub();
+    init_huggingface();
+    __name(createEmbedding2, "createEmbedding");
+    __name(createEmbeddingsBatch2, "createEmbeddingsBatch");
+    __name(insertVectors, "insertVectors");
+    __name(searchVectors, "searchVectors");
+    __name(deleteVectors, "deleteVectors");
+    __name(getVector, "getVector");
+    __name(buildContextFromResults, "buildContextFromResults");
   }
 });
 
@@ -16899,9 +17422,9 @@ var require_XMLStreamWriter = __commonJS({
       XMLWriterBase = require_XMLWriterBase();
       module2.exports = XMLStreamWriter = (function(superClass) {
         extend(XMLStreamWriter2, superClass);
-        function XMLStreamWriter2(stream2, options) {
+        function XMLStreamWriter2(stream, options) {
           XMLStreamWriter2.__super__.constructor.call(this, options);
-          this.stream = stream2;
+          this.stream = stream;
         }
         __name(XMLStreamWriter2, "XMLStreamWriter");
         XMLStreamWriter2.prototype.document = function(doc) {
@@ -17177,8 +17700,8 @@ var require_lib2 = __commonJS({
       module2.exports.stringWriter = function(options) {
         return new XMLStringWriter(options);
       };
-      module2.exports.streamWriter = function(stream2, options) {
-        return new XMLStreamWriter(stream2, options);
+      module2.exports.streamWriter = function(stream, options) {
+        return new XMLStreamWriter(stream, options);
       };
     }).call(exports2);
   }
@@ -22665,16 +23188,4512 @@ var require_lib3 = __commonJS({
   }
 });
 
-// .wrangler/tmp/bundle-ynt6hp/middleware-loader.entry.ts
+// src/file-parser.ts
+function detectFileType(fileName, mimeType) {
+  const extension = fileName.split(".").pop()?.toLowerCase();
+  const extensionMap = {
+    "txt": "txt",
+    "md": "md",
+    "markdown": "md",
+    "docx": "docx",
+    "pdf": "pdf",
+    "html": "html",
+    "htm": "html",
+    "json": "json"
+  };
+  if (extension && extensionMap[extension]) {
+    return extensionMap[extension];
+  }
+  if (mimeType) {
+    const mimeMap = {
+      "text/plain": "txt",
+      "text/markdown": "md",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+      "application/pdf": "pdf",
+      "text/html": "html",
+      "application/json": "json"
+    };
+    if (mimeMap[mimeType]) {
+      return mimeMap[mimeType];
+    }
+  }
+  return null;
+}
+async function parseTextFile(buffer, fileName) {
+  const decoder = new TextDecoder("utf-8");
+  const content = decoder.decode(buffer);
+  return {
+    content: content.trim(),
+    metadata: {
+      fileName,
+      fileType: "txt",
+      originalSize: buffer.byteLength,
+      extractedLength: content.length
+    }
+  };
+}
+async function parseMarkdownFile(buffer, fileName) {
+  const decoder = new TextDecoder("utf-8");
+  const content = decoder.decode(buffer);
+  return {
+    content: content.trim(),
+    metadata: {
+      fileName,
+      fileType: "md",
+      originalSize: buffer.byteLength,
+      extractedLength: content.length
+    }
+  };
+}
+async function parseDocxFile(buffer, fileName) {
+  try {
+    const result = await import_mammoth.default.extractRawText({ arrayBuffer: buffer });
+    const content = result.value;
+    if (result.messages.length > 0) {
+      console.warn("[file-parser] docx warnings:", result.messages);
+    }
+    return {
+      content: content.trim(),
+      metadata: {
+        fileName,
+        fileType: "docx",
+        originalSize: buffer.byteLength,
+        extractedLength: content.length
+      }
+    };
+  } catch (error) {
+    console.error("[file-parser] docx error:", error);
+    throw new Error(`Failed to parse DOCX file: ${fileName}`);
+  }
+}
+async function parsePdfFile(buffer, fileName) {
+  const decoder = new TextDecoder("utf-8");
+  let content = "";
+  try {
+    const textContent = decoder.decode(buffer);
+    content = textContent.replace(/[\x00-\x1F\x7F-\x9F]/g, " ").replace(/\s+/g, " ").trim();
+    if (content.length < 100) {
+      throw new Error("PDF appears to be scanned or has no extractable text. Please convert to TXT or DOCX.");
+    }
+  } catch (e) {
+    throw new Error(`Failed to parse PDF: ${fileName}. Please convert to TXT or DOCX format.`);
+  }
+  console.log("[file-parser] pdf parsed (basic)", {
+    fileName,
+    textLength: content.length
+  });
+  return {
+    content,
+    metadata: {
+      fileName,
+      fileType: "pdf",
+      originalSize: buffer.byteLength,
+      extractedLength: content.length
+    }
+  };
+}
+async function parseHtmlFile(buffer, fileName) {
+  const decoder = new TextDecoder("utf-8");
+  const html = decoder.decode(buffer);
+  let content = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "").replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/\s+/g, " ").trim();
+  return {
+    content,
+    metadata: {
+      fileName,
+      fileType: "html",
+      originalSize: buffer.byteLength,
+      extractedLength: content.length
+    }
+  };
+}
+async function parseJsonFile(buffer, fileName) {
+  const decoder = new TextDecoder("utf-8");
+  const jsonString = decoder.decode(buffer);
+  try {
+    const data = JSON.parse(jsonString);
+    const content = JSON.stringify(data, null, 2);
+    return {
+      content,
+      metadata: {
+        fileName,
+        fileType: "json",
+        originalSize: buffer.byteLength,
+        extractedLength: content.length
+      }
+    };
+  } catch (error) {
+    throw new Error(`Invalid JSON file: ${fileName}`);
+  }
+}
+async function parseFile(buffer, fileName, mimeType) {
+  const fileType = detectFileType(fileName, mimeType);
+  if (!fileType) {
+    throw new Error(`Unsupported file type: ${fileName}. Supported: txt, md, docx, pdf, html, json`);
+  }
+  console.log("[file-parser] parsing", { fileName, fileType, size: buffer.byteLength });
+  switch (fileType) {
+    case "txt":
+      return parseTextFile(buffer, fileName);
+    case "md":
+      return parseMarkdownFile(buffer, fileName);
+    case "docx":
+      return parseDocxFile(buffer, fileName);
+    case "pdf":
+      return parsePdfFile(buffer, fileName);
+    case "html":
+      return parseHtmlFile(buffer, fileName);
+    case "json":
+      return parseJsonFile(buffer, fileName);
+    default:
+      throw new Error(`Parser not implemented for: ${fileType}`);
+  }
+}
+function isFileTypeSupported(fileName, mimeType) {
+  return detectFileType(fileName, mimeType) !== null;
+}
+function getSupportedExtensions() {
+  return ["txt", "md", "markdown", "docx", "pdf", "html", "htm", "json"];
+}
+function isFileSizeValid(size) {
+  return size <= MAX_FILE_SIZE;
+}
+var import_mammoth, MAX_FILE_SIZE;
+var init_file_parser = __esm({
+  "src/file-parser.ts"() {
+    "use strict";
+    init_modules_watch_stub();
+    import_mammoth = __toESM(require_lib3());
+    __name(detectFileType, "detectFileType");
+    __name(parseTextFile, "parseTextFile");
+    __name(parseMarkdownFile, "parseMarkdownFile");
+    __name(parseDocxFile, "parseDocxFile");
+    __name(parsePdfFile, "parsePdfFile");
+    __name(parseHtmlFile, "parseHtmlFile");
+    __name(parseJsonFile, "parseJsonFile");
+    __name(parseFile, "parseFile");
+    __name(isFileTypeSupported, "isFileTypeSupported");
+    __name(getSupportedExtensions, "getSupportedExtensions");
+    MAX_FILE_SIZE = 25 * 1024 * 1024;
+    __name(isFileSizeValid, "isFileSizeValid");
+  }
+});
+
+// src/rag-pipeline.ts
+var rag_pipeline_exports = {};
+__export(rag_pipeline_exports, {
+  getRAGContext: () => getRAGContext,
+  parseMetadataFromFilename: () => parseMetadataFromFilename2,
+  processLocalFile: () => processLocalFile2
+});
+function chunkText(text, documentId, options = {}) {
+  const maxTokens = options.maxTokens || 500;
+  const overlapTokens = options.overlapTokens || 100;
+  const separators = ["\n\n", "\n", ". ", " "];
+  const maxChars = maxTokens * 4;
+  const overlapChars = overlapTokens * 4;
+  const chunks = [];
+  let currentIndex = 0;
+  let chunkIndex = 0;
+  while (currentIndex < text.length) {
+    let endIndex = Math.min(currentIndex + maxChars, text.length);
+    if (endIndex < text.length) {
+      let bestSplit = endIndex;
+      for (const sep of separators) {
+        const lastSep = text.lastIndexOf(sep, endIndex);
+        if (lastSep > currentIndex + maxChars * 0.5) {
+          bestSplit = lastSep + sep.length;
+          break;
+        }
+      }
+      endIndex = bestSplit;
+    }
+    const content = text.slice(currentIndex, endIndex).trim();
+    if (content.length > 0) {
+      chunks.push({
+        id: `${documentId}-chunk-${chunkIndex}`,
+        content,
+        startIndex: currentIndex,
+        endIndex,
+        metadata: {
+          chunkIndex
+        }
+      });
+      chunkIndex++;
+    }
+    currentIndex = endIndex - overlapChars;
+    if (currentIndex <= chunks[chunks.length - 1]?.startIndex) {
+      currentIndex = endIndex;
+    }
+  }
+  for (const chunk of chunks) {
+    chunk.metadata.totalChunks = chunks.length;
+  }
+  console.log("[rag-pipeline] chunked text", {
+    documentId,
+    totalChunks: chunks.length,
+    avgChunkSize: Math.round(text.length / chunks.length)
+  });
+  return chunks;
+}
+async function getRAGContext(hfApiToken, vectorize, query, filters, topK = 5) {
+  const results = await searchVectors(vectorize, hfApiToken, query, filters, topK);
+  const context = buildContextFromResults(results);
+  return {
+    context,
+    sources: results
+  };
+}
+function parseMetadataFromFilename2(fileId, fileName) {
+  try {
+    const baseName = fileName.replace(".pdf", "").replace(".PDF", "");
+    const parts = baseName.split("-");
+    if (parts.length < 3) return null;
+    const typeMap = {
+      "sgk": "sgk",
+      "cd": "chuyen_de",
+      "chuyende": "chuyen_de",
+      "de": "de_mau",
+      "demau": "de_mau"
+    };
+    const gradeMatch = baseName.match(/(\d{1,2})/);
+    const grade = gradeMatch ? gradeMatch[1] : "10";
+    const isNongNghiep = baseName.toLowerCase().includes("nn") || baseName.toLowerCase().includes("nong");
+    return {
+      bookId: `book-${fileId.slice(0, 8)}`,
+      title: baseName.replace(/-/g, " "),
+      grade: grade === "10" || grade === "11" || grade === "12" ? grade : "10",
+      subject: isNongNghiep ? "nong_nghiep" : "cong_nghiep",
+      type: typeMap[parts[0].toLowerCase()] || "sgk"
+    };
+  } catch {
+    return null;
+  }
+}
+async function processLocalFile2(hfApiToken, vectorize, fileBuffer, fileName, metadata, chunkOptions) {
+  const t0 = Date.now();
+  try {
+    if (!isFileSizeValid(fileBuffer.byteLength)) {
+      throw new Error(`File too large. Max size: ${MAX_FILE_SIZE / 1024 / 1024}MB`);
+    }
+    console.log("[rag-pipeline] parsing local file", { fileName, bookId: metadata.bookId });
+    const parsed = await parseFile(fileBuffer, fileName);
+    if (!parsed.content || parsed.content.length < 100) {
+      throw new Error("Extracted text too short or empty");
+    }
+    console.log("[rag-pipeline] chunking text", { textLength: parsed.content.length });
+    const chunks = chunkText(parsed.content, metadata.bookId, chunkOptions);
+    console.log("[rag-pipeline] creating embeddings", { chunks: chunks.length });
+    const BATCH_SIZE = 20;
+    const allEmbeddings = [];
+    for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
+      const batch = chunks.slice(i, i + BATCH_SIZE);
+      const texts = batch.map((c) => c.content);
+      const embeddings = await createEmbeddingsBatch2(hfApiToken, texts);
+      allEmbeddings.push(...embeddings);
+    }
+    const vectorRecords = chunks.map((chunk, index) => ({
+      id: chunk.id,
+      values: allEmbeddings[index],
+      metadata: {
+        bookId: metadata.bookId,
+        title: metadata.title,
+        grade: metadata.grade,
+        subject: metadata.subject,
+        type: metadata.type,
+        content: chunk.content
+      }
+    }));
+    console.log("[rag-pipeline] inserting vectors");
+    const insertResult = await insertVectors(vectorize, vectorRecords);
+    const latency = Date.now() - t0;
+    console.log("[rag-pipeline] local file completed", {
+      fileName,
+      bookId: metadata.bookId,
+      chunks: chunks.length,
+      vectors: insertResult.inserted,
+      latency
+    });
+    return {
+      fileId: `local-${Date.now()}`,
+      fileName,
+      success: true,
+      chunksCreated: chunks.length,
+      vectorsInserted: insertResult.inserted,
+      latencyMs: latency
+    };
+  } catch (error) {
+    const latency = Date.now() - t0;
+    console.error("[rag-pipeline] local file error", { fileName, error });
+    return {
+      fileId: `local-${Date.now()}`,
+      fileName,
+      success: false,
+      chunksCreated: 0,
+      vectorsInserted: 0,
+      error: error instanceof Error ? error.message : "Unknown error",
+      latencyMs: latency
+    };
+  }
+}
+var init_rag_pipeline = __esm({
+  "src/rag-pipeline.ts"() {
+    "use strict";
+    init_modules_watch_stub();
+    init_vectorize();
+    init_file_parser();
+    __name(chunkText, "chunkText");
+    __name(getRAGContext, "getRAGContext");
+    __name(parseMetadataFromFilename2, "parseMetadataFromFilename");
+    __name(processLocalFile2, "processLocalFile");
+  }
+});
+
+// src/optimization/rate-limiter.ts
+var rate_limiter_exports = {};
+__export(rate_limiter_exports, {
+  RateLimiter: () => RateLimiter
+});
+var RateLimiter;
+var init_rate_limiter = __esm({
+  "src/optimization/rate-limiter.ts"() {
+    "use strict";
+    init_modules_watch_stub();
+    RateLimiter = class {
+      static {
+        __name(this, "RateLimiter");
+      }
+      kv;
+      maxRequests;
+      windowMs;
+      constructor(kv, maxRequests = 100, windowMs = 36e5) {
+        this.kv = kv;
+        this.maxRequests = maxRequests;
+        this.windowMs = windowMs;
+      }
+      /**
+       * Check if request is allowed
+       */
+      async isAllowed(userId) {
+        const key = `ratelimit:${userId}`;
+        const now = Date.now();
+        const current = await this.kv.get(key, "json");
+        if (!current || current.resetAt < now) {
+          const newLimit = {
+            userId,
+            requests: 1,
+            resetAt: now + this.windowMs
+          };
+          await this.kv.put(key, JSON.stringify(newLimit), {
+            expirationTtl: Math.ceil(this.windowMs / 1e3)
+          });
+          return {
+            allowed: true,
+            remaining: this.maxRequests - 1,
+            resetAt: newLimit.resetAt
+          };
+        }
+        if (current.requests >= this.maxRequests) {
+          return {
+            allowed: false,
+            remaining: 0,
+            resetAt: current.resetAt
+          };
+        }
+        current.requests++;
+        await this.kv.put(key, JSON.stringify(current), {
+          expirationTtl: Math.ceil((current.resetAt - now) / 1e3)
+        });
+        return {
+          allowed: true,
+          remaining: this.maxRequests - current.requests,
+          resetAt: current.resetAt
+        };
+      }
+      /**
+       * Get current usage
+       */
+      async getUsage(userId) {
+        const key = `ratelimit:${userId}`;
+        const current = await this.kv.get(key, "json");
+        if (!current) {
+          return {
+            requests: 0,
+            limit: this.maxRequests,
+            resetAt: Date.now() + this.windowMs
+          };
+        }
+        return {
+          requests: current.requests,
+          limit: this.maxRequests,
+          resetAt: current.resetAt
+        };
+      }
+    };
+  }
+});
+
+// src/cache/semantic-cache.ts
+var SemanticCache;
+var init_semantic_cache = __esm({
+  "src/cache/semantic-cache.ts"() {
+    "use strict";
+    init_modules_watch_stub();
+    SemanticCache = class {
+      static {
+        __name(this, "SemanticCache");
+      }
+      kv;
+      similarityThreshold;
+      ttlSeconds;
+      constructor(kv, similarityThreshold = 0.95, ttlSeconds = 3600) {
+        this.kv = kv;
+        this.similarityThreshold = similarityThreshold;
+        this.ttlSeconds = ttlSeconds;
+      }
+      /**
+       * Get cached response for similar query
+       */
+      async get({
+        query,
+        queryEmbedding,
+        apiKey
+      }) {
+        try {
+          const exactKey = this.getExactKey(query);
+          const exactMatch = await this.kv.get(exactKey, "json");
+          if (exactMatch) {
+            console.log("[Cache] Exact match found:", { query: query.substring(0, 50) });
+            await this.incrementHitCount(exactKey, exactMatch);
+            return exactMatch;
+          }
+          if (!queryEmbedding) {
+            const { createEmbedding: createEmbedding3 } = await Promise.resolve().then(() => (init_huggingface(), huggingface_exports));
+            const embeddingResult = await createEmbedding3(apiKey, query);
+            queryEmbedding = embeddingResult.embedding;
+          }
+          const recentKeys = await this.getRecentKeys();
+          for (const key of recentKeys) {
+            const cached = await this.kv.get(key, "json");
+            if (!cached) continue;
+            const similarity = this.cosineSimilarity(queryEmbedding, cached.queryEmbedding);
+            if (similarity >= this.similarityThreshold) {
+              console.log("[Cache] Semantic match found:", {
+                query: query.substring(0, 50),
+                cachedQuery: cached.query.substring(0, 50),
+                similarity: similarity.toFixed(3)
+              });
+              await this.incrementHitCount(key, cached);
+              return cached;
+            }
+          }
+          console.log("[Cache] Miss:", { query: query.substring(0, 50) });
+          return null;
+        } catch (error) {
+          console.error("[Cache] Get error:", error);
+          return null;
+        }
+      }
+      /**
+       * Set cached response
+       */
+      async set({
+        query,
+        queryEmbedding,
+        response,
+        thinking,
+        reflection,
+        sources,
+        apiKey
+      }) {
+        try {
+          if (!queryEmbedding) {
+            const { createEmbedding: createEmbedding3 } = await Promise.resolve().then(() => (init_huggingface(), huggingface_exports));
+            const embeddingResult = await createEmbedding3(apiKey, query);
+            queryEmbedding = embeddingResult.embedding;
+          }
+          const cached = {
+            query,
+            queryEmbedding,
+            response,
+            thinking,
+            reflection,
+            sources,
+            timestamp: Date.now(),
+            hitCount: 0
+          };
+          const key = this.getExactKey(query);
+          await this.kv.put(key, JSON.stringify(cached), {
+            expirationTtl: this.ttlSeconds
+          });
+          await this.addToRecentKeys(key);
+          console.log("[Cache] Cached:", {
+            query: query.substring(0, 50),
+            ttl: this.ttlSeconds
+          });
+        } catch (error) {
+          console.error("[Cache] Set error:", error);
+        }
+      }
+      /**
+       * Calculate cosine similarity between two vectors
+       */
+      cosineSimilarity(a, b) {
+        if (a.length !== b.length) return 0;
+        let dotProduct = 0;
+        let normA = 0;
+        let normB = 0;
+        for (let i = 0; i < a.length; i++) {
+          dotProduct += a[i] * b[i];
+          normA += a[i] * a[i];
+          normB += b[i] * b[i];
+        }
+        const denominator = Math.sqrt(normA) * Math.sqrt(normB);
+        return denominator === 0 ? 0 : dotProduct / denominator;
+      }
+      /**
+       * Get exact cache key (hash of query)
+       */
+      getExactKey(query) {
+        let hash = 0;
+        for (let i = 0; i < query.length; i++) {
+          const char = query.charCodeAt(i);
+          hash = (hash << 5) - hash + char;
+          hash = hash & hash;
+        }
+        return `cache:query:${Math.abs(hash)}`;
+      }
+      /**
+       * Get recent cache keys for similarity search
+       */
+      async getRecentKeys() {
+        const indexKey = "cache:index:recent";
+        const index = await this.kv.get(indexKey, "json");
+        return index || [];
+      }
+      /**
+       * Add key to recent keys list (keep last 100)
+       */
+      async addToRecentKeys(key) {
+        const indexKey = "cache:index:recent";
+        const index = await this.kv.get(indexKey, "json") || [];
+        index.unshift(key);
+        const trimmed = index.slice(0, 100);
+        await this.kv.put(indexKey, JSON.stringify(trimmed), {
+          expirationTtl: 86400
+          // 24 hours
+        });
+      }
+      /**
+       * Increment hit count for cached item
+       */
+      async incrementHitCount(key, cached) {
+        cached.hitCount++;
+        await this.kv.put(key, JSON.stringify(cached), {
+          expirationTtl: this.ttlSeconds
+        });
+      }
+      /**
+       * Clear all cache
+       */
+      async clear() {
+        const keys = await this.getRecentKeys();
+        for (const key of keys) {
+          await this.kv.delete(key);
+        }
+        await this.kv.delete("cache:index:recent");
+        console.log("[Cache] Cleared all cache");
+      }
+      /**
+       * Get cache statistics
+       */
+      async getStats() {
+        const keys = await this.getRecentKeys();
+        let totalHits = 0;
+        let oldestTimestamp = Date.now();
+        for (const key of keys) {
+          const cached = await this.kv.get(key, "json");
+          if (cached) {
+            totalHits += cached.hitCount;
+            if (cached.timestamp < oldestTimestamp) {
+              oldestTimestamp = cached.timestamp;
+            }
+          }
+        }
+        return {
+          totalCached: keys.length,
+          averageHitCount: keys.length > 0 ? totalHits / keys.length : 0,
+          oldestTimestamp
+        };
+      }
+    };
+  }
+});
+
+// src/cache/enhanced-cache.ts
+var enhanced_cache_exports = {};
+__export(enhanced_cache_exports, {
+  EnhancedSemanticCache: () => EnhancedSemanticCache
+});
+var EnhancedSemanticCache;
+var init_enhanced_cache = __esm({
+  "src/cache/enhanced-cache.ts"() {
+    "use strict";
+    init_modules_watch_stub();
+    init_semantic_cache();
+    EnhancedSemanticCache = class extends SemanticCache {
+      static {
+        __name(this, "EnhancedSemanticCache");
+      }
+      /**
+       * Multi-level cache check (exact → semantic → fuzzy)
+       */
+      async getWithFuzzyMatch({
+        query,
+        queryEmbedding,
+        apiKey
+      }) {
+        const exactMatch = await super.get({ query, queryEmbedding, apiKey });
+        if (exactMatch) {
+          console.log("[EnhancedCache] Exact match");
+          return exactMatch;
+        }
+        const normalized = this.normalizeQuery(query);
+        const normalizedMatch = await super.get({ query: normalized, queryEmbedding, apiKey });
+        if (normalizedMatch) {
+          console.log("[EnhancedCache] Normalized match");
+          return normalizedMatch;
+        }
+        if (!queryEmbedding) {
+          const { createEmbedding: createEmbedding3 } = await Promise.resolve().then(() => (init_huggingface(), huggingface_exports));
+          const result = await createEmbedding3(apiKey, query);
+          queryEmbedding = result.embedding;
+        }
+        const semanticMatch = await this.semanticSearch(queryEmbedding, 0.95);
+        if (semanticMatch) {
+          console.log("[EnhancedCache] Semantic match (0.95)");
+          return semanticMatch;
+        }
+        const fuzzyMatch = await this.semanticSearch(queryEmbedding, 0.9);
+        if (fuzzyMatch) {
+          console.log("[EnhancedCache] Fuzzy match (0.90)");
+          return fuzzyMatch;
+        }
+        const keywordMatch = await this.keywordMatch(query);
+        if (keywordMatch) {
+          console.log("[EnhancedCache] Keyword match");
+          return keywordMatch;
+        }
+        console.log("[EnhancedCache] Complete miss");
+        return null;
+      }
+      /**
+       * Normalize query to handle variations
+       */
+      normalizeQuery(query) {
+        return query.toLowerCase().trim().replace(/\s+/g, " ").replace(/[?!.,]/g, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      }
+      /**
+       * Semantic search with custom threshold
+       */
+      async semanticSearch(embedding, threshold) {
+        const recentKeys = await this.getRecentKeys();
+        for (const key of recentKeys) {
+          const cached = await this.kv.get(key, "json");
+          if (!cached) continue;
+          const similarity = this.cosineSimilarity(embedding, cached.queryEmbedding);
+          if (similarity >= threshold) {
+            await this.incrementHitCount(key, cached);
+            return cached;
+          }
+        }
+        return null;
+      }
+      /**
+       * Keyword-based matching (fallback)
+       */
+      async keywordMatch(query) {
+        const keywords = this.extractKeywords(query);
+        if (keywords.length === 0) return null;
+        const recentKeys = await this.getRecentKeys();
+        for (const key of recentKeys) {
+          const cached = await this.kv.get(key, "json");
+          if (!cached) continue;
+          const cachedKeywords = this.extractKeywords(cached.query);
+          const overlap = this.calculateOverlap(keywords, cachedKeywords);
+          if (overlap > 0.7) {
+            await this.incrementHitCount(key, cached);
+            return cached;
+          }
+        }
+        return null;
+      }
+      /**
+       * Extract important keywords
+       */
+      extractKeywords(text) {
+        const stopwords = ["l\xE0", "g\xEC", "c\u1EE7a", "v\xE0", "c\xF3", "the", "is", "a", "an", "in", "on", "at"];
+        return text.toLowerCase().split(/\s+/).filter((word) => word.length > 2 && !stopwords.includes(word));
+      }
+      /**
+       * Calculate keyword overlap (Jaccard similarity)
+       */
+      calculateOverlap(keywords1, keywords2) {
+        const set1 = new Set(keywords1);
+        const set2 = new Set(keywords2);
+        const intersection = new Set([...set1].filter((x) => set2.has(x)));
+        const union = /* @__PURE__ */ new Set([...set1, ...set2]);
+        return union.size === 0 ? 0 : intersection.size / union.size;
+      }
+    };
+  }
+});
+
+// src/reasoning/self-reflection.ts
+var self_reflection_exports = {};
+__export(self_reflection_exports, {
+  generateWithReflection: () => generateWithReflection,
+  reviseAnswer: () => reviseAnswer,
+  selfCritique: () => selfCritique
+});
+async function selfCritique({
+  query,
+  answer,
+  context,
+  apiKey,
+  model = "google/gemini-2.0-flash-exp:free"
+}) {
+  const { callOpenRouter: callOpenRouter2 } = await Promise.resolve().then(() => (init_openrouter(), openrouter_exports));
+  const critiquePrompt = `
+B\u1EA1n l\xE0 m\u1ED9t **Th\u1EA9m \u0111\u1ECBnh vi\xEAn** (Critic) chuy\xEAn nghi\u1EC7p. Nhi\u1EC7m v\u1EE5 c\u1EE7a b\u1EA1n l\xE0 ki\u1EC3m tra c\xE2u tr\u1EA3 l\u1EDDi AI v\u1EEBa t\u1EA1o ra.
+
+### C\xC2U H\u1ECEI G\u1ED0C:
+${query}
+
+${context ? `### T\xC0I LI\u1EC6U THAM KH\u1EA2O:
+${context}
+
+` : ""}### C\xC2U TR\u1EA2 L\u1EDEI C\u1EA6N KI\u1EC2M TRA:
+${answer}
+
+### NHI\u1EC6M V\u1EE4 KI\u1EC2M TRA:
+H\xE3y t\xECm c\xE1c v\u1EA5n \u0111\u1EC1 sau (n\u1EBFu c\xF3):
+
+1. **\u1EA2o gi\xE1c (Hallucination)**: Th\xF4ng tin sai l\u1EC7ch, kh\xF4ng c\xF3 trong t\xE0i li\u1EC7u tham kh\u1EA3o
+2. **Logic sai**: Suy lu\u1EADn kh\xF4ng h\u1EE3p l\xFD, m\xE2u thu\u1EABn
+3. **Thi\u1EBFu th\xF4ng tin**: Kh\xF4ng tr\u1EA3 l\u1EDDi \u0111\u1EA7y \u0111\u1EE7 c\xE2u h\u1ECFi
+4. **Kh\xF4ng li\xEAn quan**: Tr\u1EA3 l\u1EDDi sai tr\u1ECDng t\xE2m
+
+### OUTPUT FORMAT (JSON):
+{
+  "hasIssues": true/false,
+  "feedback": "Nh\u1EADn x\xE9t t\u1ED5ng quan",
+  "issues": ["V\u1EA5n \u0111\u1EC1 1", "V\u1EA5n \u0111\u1EC1 2"],
+  "confidence": 0.85
+}
+
+Ch\u1EC9 tr\u1EA3 v\u1EC1 JSON, kh\xF4ng th\xEAm text kh\xE1c.`;
+  try {
+    const response = await callOpenRouter2({
+      messages: [{ role: "user", content: critiquePrompt }],
+      model,
+      apiKey,
+      temperature: 0.2,
+      // Low temp for consistent critique
+      max_tokens: 1e3
+    });
+    const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("Invalid JSON response from critic");
+    }
+    const result = JSON.parse(jsonMatch[0]);
+    console.log("[SelfReflection] Critique:", {
+      hasIssues: result.hasIssues,
+      issuesCount: result.issues.length,
+      confidence: result.confidence
+    });
+    return result;
+  } catch (error) {
+    console.error("[SelfReflection] Critique error:", error);
+    return {
+      hasIssues: false,
+      feedback: "Unable to critique (error)",
+      issues: [],
+      confidence: 0.5
+    };
+  }
+}
+async function reviseAnswer({
+  originalAnswer,
+  critique,
+  query,
+  context,
+  apiKey,
+  model = "google/gemini-2.0-flash-exp:free"
+}) {
+  const { callOpenRouter: callOpenRouter2 } = await Promise.resolve().then(() => (init_openrouter(), openrouter_exports));
+  const revisionPrompt = `
+B\u1EA1n l\xE0 AI c\u1EA7n **s\u1EEDa l\u1EA1i c\xE2u tr\u1EA3 l\u1EDDi** d\u1EF1a tr\xEAn nh\u1EADn x\xE9t t\u1EEB Th\u1EA9m \u0111\u1ECBnh vi\xEAn.
+
+### C\xC2U H\u1ECEI G\u1ED0C:
+${query}
+
+${context ? `### T\xC0I LI\u1EC6U THAM KH\u1EA2O:
+${context}
+
+` : ""}### C\xC2U TR\u1EA2 L\u1EDCI C\u0168 (c\xF3 v\u1EA5n \u0111\u1EC1):
+${originalAnswer}
+
+### NH\u1EACN X\xC9T T\u1EEA TH\u1EA8M \u0110\u1ECANH VI\xCAN:
+${critique.feedback}
+
+**C\xE1c v\u1EA5n \u0111\u1EC1 c\u1EA7n s\u1EEDa**:
+${critique.issues.map((issue, i) => `${i + 1}. ${issue}`).join("\n")}
+
+### NHI\u1EC6M V\u1EE4:
+Vi\u1EBFt l\u1EA1i c\xE2u tr\u1EA3 l\u1EDDi \u0111\u1EC3:
+- S\u1EEDa t\u1EA5t c\u1EA3 c\xE1c v\u1EA5n \u0111\u1EC1 \u0111\xE3 ch\u1EC9 ra
+- Gi\u1EEF l\u1EA1i ph\u1EA7n \u0111\xFAng t\u1EEB c\xE2u tr\u1EA3 l\u1EDDi c\u0169
+- B\u1ED5 sung th\xF4ng tin thi\u1EBFu (n\u1EBFu c\xF3 trong t\xE0i li\u1EC7u)
+- \u0110\u1EA3m b\u1EA3o logic ch\u1EB7t ch\u1EBD
+
+### OUTPUT FORMAT:
+<revised>
+[C\xE2u tr\u1EA3 l\u1EDDi m\u1EDBi \u0111\xE3 s\u1EEDa]
+</revised>
+
+<improvements>
+- C\u1EA3i thi\u1EC7n 1
+- C\u1EA3i thi\u1EC7n 2
+</improvements>
+
+<confidence>
+[\u0110i\u1EC3m t\u1EF1 tin 0.0-1.0]
+</confidence>
+`;
+  try {
+    const response = await callOpenRouter2({
+      messages: [{ role: "user", content: revisionPrompt }],
+      model,
+      apiKey,
+      temperature: 0.5,
+      max_tokens: 3e3
+    });
+    const revisedMatch = response.content.match(/<revised>([\s\S]*?)<\/revised>/i);
+    const revised = revisedMatch ? revisedMatch[1].trim() : response.content;
+    const improvementsMatch = response.content.match(/<improvements>([\s\S]*?)<\/improvements>/i);
+    const improvementsText = improvementsMatch ? improvementsMatch[1].trim() : "";
+    const improvements = improvementsText.split("\n").filter((line) => line.trim().startsWith("-")).map((line) => line.trim().substring(1).trim());
+    const confidenceMatch = response.content.match(/<confidence>([\d.]+)<\/confidence>/i);
+    const finalConfidence = confidenceMatch ? parseFloat(confidenceMatch[1]) : 0.9;
+    console.log("[SelfReflection] Revision:", {
+      improvementsCount: improvements.length,
+      finalConfidence
+    });
+    return {
+      original: originalAnswer,
+      revised,
+      improvements,
+      finalConfidence: Math.max(0, Math.min(1, finalConfidence))
+    };
+  } catch (error) {
+    console.error("[SelfReflection] Revision error:", error);
+    return {
+      original: originalAnswer,
+      revised: originalAnswer,
+      improvements: [],
+      finalConfidence: critique.confidence
+    };
+  }
+}
+async function generateWithReflection({
+  query,
+  context,
+  systemPrompt,
+  apiKey,
+  model = "google/gemini-2.0-flash-exp:free",
+  maxIterations = 2
+  // Max số lần revise
+}) {
+  const { callOpenRouter: callOpenRouter2 } = await Promise.resolve().then(() => (init_openrouter(), openrouter_exports));
+  const iterations = [];
+  let currentAnswer = "";
+  try {
+    const response = await callOpenRouter2({
+      messages: [
+        { role: "system", content: systemPrompt || "B\u1EA1n l\xE0 tr\u1EE3 l\xFD AI th\xF4ng minh." },
+        { role: "user", content: context ? `${context}
+
+${query}` : query }
+      ],
+      model,
+      apiKey,
+      temperature: 0.7
+    });
+    currentAnswer = response.content;
+  } catch (error) {
+    console.error("[SelfReflection] Initial generation error:", error);
+    return {
+      final: `Error generating answer: ${error}`,
+      iterations: []
+    };
+  }
+  for (let i = 0; i < maxIterations; i++) {
+    const critique = await selfCritique({
+      query,
+      answer: currentAnswer,
+      context,
+      apiKey,
+      model
+    });
+    iterations.push({
+      answer: currentAnswer,
+      critique
+    });
+    if (!critique.hasIssues || critique.confidence > 0.85) {
+      console.log(`[SelfReflection] Converged after ${i + 1} iteration(s)`);
+      break;
+    }
+    const revision = await reviseAnswer({
+      originalAnswer: currentAnswer,
+      critique,
+      query,
+      context,
+      apiKey,
+      model
+    });
+    iterations[iterations.length - 1].revised = revision.revised;
+    currentAnswer = revision.revised;
+    if (revision.finalConfidence > 0.9) {
+      console.log(`[SelfReflection] High confidence after revision ${i + 1}`);
+      break;
+    }
+  }
+  return {
+    final: currentAnswer,
+    iterations
+  };
+}
+var init_self_reflection = __esm({
+  "src/reasoning/self-reflection.ts"() {
+    "use strict";
+    init_modules_watch_stub();
+    __name(selfCritique, "selfCritique");
+    __name(reviseAnswer, "reviseAnswer");
+    __name(generateWithReflection, "generateWithReflection");
+  }
+});
+
+// src/reasoning/chain-of-thought.ts
+var chain_of_thought_exports = {};
+__export(chain_of_thought_exports, {
+  generateWithCoT: () => generateWithCoT,
+  solveWithCoT: () => solveWithCoT,
+  streamCoTResponse: () => streamCoTResponse
+});
+async function generateWithCoT({
+  query,
+  context,
+  systemPrompt,
+  model = "google/gemini-2.0-flash-exp:free",
+  apiKey
+}) {
+  const { callOpenRouter: callOpenRouter2 } = await Promise.resolve().then(() => (init_openrouter(), openrouter_exports));
+  const cotPrompt = buildCoTPrompt(query, context, systemPrompt);
+  try {
+    const response = await callOpenRouter2({
+      messages: [{ role: "user", content: cotPrompt }],
+      model,
+      apiKey,
+      temperature: 0.7,
+      // Allow some creativity in reasoning
+      max_tokens: 4e3
+    });
+    const parsed = parseCoTResponse(response.content);
+    console.log("[CoT] Generated:", {
+      thinkingLength: parsed.thinking.length,
+      answerLength: parsed.answer.length,
+      confidence: parsed.confidence
+    });
+    return parsed;
+  } catch (error) {
+    console.error("[CoT] Error:", error);
+    return {
+      thinking: "",
+      answer: `Error generating response: ${error}`,
+      confidence: 0
+    };
+  }
+}
+function buildCoTPrompt(query, context, systemPrompt) {
+  return `${systemPrompt || "B\u1EA1n l\xE0 tr\u1EE3 l\xFD AI th\xF4ng minh."}
+
+${context ? `### T\xC0I LI\u1EC6U THAM KH\u1EA2O:
+${context}
+
+` : ""}### C\xC2U H\u1ECEI:
+${query}
+
+### H\u01AF\u1EDANG D\u1EAAN TR\u1EA2 L\u1EDCI:
+H\xE3y suy ngh\u0129 t\u1EEBng b\u01B0\u1EDBc r\xF5 r\xE0ng tr\u01B0\u1EDBc khi tr\u1EA3 l\u1EDDi. S\u1EED d\u1EE5ng format sau:
+
+<thinking>
+**B\u01B0\u1EDBc 1: Ph\xE2n t\xEDch c\xE2u h\u1ECFi**
+[X\xE1c \u0111\u1ECBnh c\xE2u h\u1ECFi \u0111ang h\u1ECFi g\xEC, y\xEAu c\u1EA7u g\xEC]
+
+**B\u01B0\u1EDBc 2: Thu th\u1EADp ki\u1EBFn th\u1EE9c**
+[Li\u1EC7t k\xEA c\xE1c ki\u1EBFn th\u1EE9c/c\xF4ng th\u1EE9c/kh\xE1i ni\u1EC7m c\u1EA7n thi\u1EBFt]
+
+**B\u01B0\u1EDBc 3: L\u1EADp k\u1EBF ho\u1EA1ch gi\u1EA3i quy\u1EBFt**
+[V\u1EA1ch ra c\xE1c b\u01B0\u1EDBc \u0111\u1EC3 tr\u1EA3 l\u1EDDi]
+
+**B\u01B0\u1EDBc 4: Ki\u1EC3m tra logic**
+[Xem x\xE9t xem gi\u1EA3i ph\xE1p c\xF3 h\u1EE3p l\xFD kh\xF4ng, c\xF3 thi\u1EBFu s\xF3t g\xEC kh\xF4ng]
+</thinking>
+
+<answer>
+[C\xE2u tr\u1EA3 l\u1EDDi ch\xEDnh th\u1EE9c, r\xF5 r\xE0ng, \u0111\u1EA7y \u0111\u1EE7]
+</answer>
+
+<confidence>
+[\u0110i\u1EC3m t\u1EF1 tin t\u1EEB 0.0 \u0111\u1EBFn 1.0]
+</confidence>
+
+B\u1EAFt \u0111\u1EA7u!`;
+}
+function parseCoTResponse(rawResponse) {
+  const thinkingMatch = rawResponse.match(/<thinking>([\s\S]*?)<\/thinking>/i);
+  const thinking = thinkingMatch ? thinkingMatch[1].trim() : "";
+  const answerMatch = rawResponse.match(/<answer>([\s\S]*?)<\/answer>/i);
+  const answer = answerMatch ? answerMatch[1].trim() : rawResponse;
+  const confidenceMatch = rawResponse.match(/<confidence>([\d.]+)<\/confidence>/i);
+  const confidence = confidenceMatch ? parseFloat(confidenceMatch[1]) : 0.8;
+  return {
+    thinking,
+    answer: answer || rawResponse,
+    // Fallback to full response if no answer tag
+    confidence: Math.max(0, Math.min(1, confidence))
+    // Clamp 0-1
+  };
+}
+async function* streamCoTResponse({
+  query,
+  context,
+  systemPrompt,
+  model = "google/gemini-2.0-flash-exp:free",
+  apiKey
+}) {
+  const { streamOpenRouter: streamOpenRouter2 } = await Promise.resolve().then(() => (init_openrouter(), openrouter_exports));
+  const cotPrompt = buildCoTPrompt(query, context, systemPrompt);
+  let inThinking = false;
+  let inAnswer = false;
+  let buffer = "";
+  try {
+    for await (const chunk of streamOpenRouter2({
+      messages: [{ role: "user", content: cotPrompt }],
+      model,
+      apiKey,
+      temperature: 0.7,
+      max_tokens: 4e3
+    })) {
+      buffer += chunk;
+      if (!inThinking && buffer.includes("<thinking>")) {
+        inThinking = true;
+        yield { type: "thinking", content: "start" };
+        buffer = buffer.split("<thinking>")[1] || "";
+      }
+      if (inThinking && buffer.includes("</thinking>")) {
+        const thinkingContent = buffer.split("</thinking>")[0];
+        yield { type: "thinking", content: thinkingContent };
+        inThinking = false;
+        buffer = buffer.split("</thinking>")[1] || "";
+      }
+      if (!inAnswer && buffer.includes("<answer>")) {
+        inAnswer = true;
+        yield { type: "answer", content: "start" };
+        buffer = buffer.split("<answer>")[1] || "";
+      }
+      if (inAnswer && buffer.includes("</answer>")) {
+        const answerContent = buffer.split("</answer>")[0];
+        yield { type: "answer", content: answerContent };
+        inAnswer = false;
+        buffer = "";
+        break;
+      }
+      if (inThinking && chunk && !chunk.includes("<thinking>") && !chunk.includes("</thinking>")) {
+        yield { type: "thinking", content: chunk };
+      }
+      if (inAnswer && chunk && !chunk.includes("<answer>") && !chunk.includes("</answer>")) {
+        yield { type: "answer", content: chunk };
+      }
+    }
+    yield { type: "done", content: "" };
+  } catch (error) {
+    console.error("[CoT Stream] Error:", error);
+    yield { type: "done", content: `Error: ${error}` };
+  }
+}
+async function solveWithCoT({
+  problem,
+  apiKey
+}) {
+  const mathPrompt = `
+Gi\u1EA3i to\xE1n t\u1EEBng b\u01B0\u1EDBc:
+
+**B\xE0i to\xE1n**: ${problem}
+
+H\xE3y:
+1. Ph\xE2n t\xEDch \u0111\u1EC1 b\xE0i
+2. X\xE1c \u0111\u1ECBnh c\xF4ng th\u1EE9c c\u1EA7n d\xF9ng
+3. Th\u1EF1c hi\u1EC7n t\u1EEBng b\u01B0\u1EDBc t\xEDnh to\xE1n
+4. Ki\u1EC3m tra l\u1EA1i k\u1EBFt qu\u1EA3
+
+Format output:
+<steps>
+B\u01B0\u1EDBc 1: ...
+B\u01B0\u1EDBc 2: ...
+</steps>
+
+<answer>
+\u0110\xE1p \xE1n cu\u1ED1i c\xF9ng
+</answer>
+`;
+  const { callOpenRouter: callOpenRouter2 } = await Promise.resolve().then(() => (init_openrouter(), openrouter_exports));
+  const response = await callOpenRouter2({
+    messages: [{ role: "user", content: mathPrompt }],
+    model: "google/gemini-2.0-flash-exp:free",
+    apiKey,
+    temperature: 0.3
+    // Low temp for math
+  });
+  const stepsMatch = response.content.match(/<steps>([\s\S]*?)<\/steps>/i);
+  const stepsText = stepsMatch ? stepsMatch[1].trim() : "";
+  const steps = stepsText.split(/Bước \d+:/).filter((s) => s.trim()).map((s) => s.trim());
+  const answerMatch = response.content.match(/<answer>([\s\S]*?)<\/answer>/i);
+  const answer = answerMatch ? answerMatch[1].trim() : response.content;
+  return { steps, answer };
+}
+var init_chain_of_thought = __esm({
+  "src/reasoning/chain-of-thought.ts"() {
+    "use strict";
+    init_modules_watch_stub();
+    __name(generateWithCoT, "generateWithCoT");
+    __name(buildCoTPrompt, "buildCoTPrompt");
+    __name(parseCoTResponse, "parseCoTResponse");
+    __name(streamCoTResponse, "streamCoTResponse");
+    __name(solveWithCoT, "solveWithCoT");
+  }
+});
+
+// .wrangler/tmp/bundle-l3AqzM/middleware-loader.entry.ts
 init_modules_watch_stub();
 
-// .wrangler/tmp/bundle-ynt6hp/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-l3AqzM/middleware-insertion-facade.js
 init_modules_watch_stub();
 
 // src/index.ts
 init_modules_watch_stub();
+init_openrouter();
 
-// src/routes/index.ts
+// src/duckduckgo.ts
+init_modules_watch_stub();
+var DDG_API_URL = "https://api.duckduckgo.com/";
+async function searchDuckDuckGo(query) {
+  const t0 = Date.now();
+  try {
+    const params = new URLSearchParams({
+      q: query,
+      format: "json",
+      no_redirect: "1",
+      no_html: "1",
+      skip_disambig: "1"
+    });
+    const response = await fetch(`${DDG_API_URL}?${params.toString()}`, {
+      headers: {
+        "Accept": "application/json",
+        "User-Agent": "STEM-Vietnam-Bot/1.0"
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`DuckDuckGo API error: ${response.status}`);
+    }
+    const data = await response.json();
+    let summary = "";
+    if (data.Answer) {
+      summary = data.Answer;
+    } else if (data.Abstract) {
+      summary = data.Abstract;
+      if (data.AbstractSource) {
+        summary += ` (Ngu\u1ED3n: ${data.AbstractSource})`;
+      }
+    }
+    const sources = [];
+    if (data.RelatedTopics) {
+      for (const topic of data.RelatedTopics.slice(0, 5)) {
+        if (topic.Text && topic.FirstURL) {
+          sources.push({
+            title: topic.Text.split(" - ")[0] || topic.Text,
+            url: topic.FirstURL,
+            snippet: topic.Text
+          });
+        }
+        if (topic.Topics) {
+          for (const subTopic of topic.Topics.slice(0, 3)) {
+            sources.push({
+              title: subTopic.Text.split(" - ")[0] || subTopic.Text,
+              url: subTopic.FirstURL,
+              snippet: subTopic.Text
+            });
+          }
+        }
+      }
+    }
+    const latency = Date.now() - t0;
+    console.log("[duckduckgo] search done", {
+      query,
+      latency,
+      hasAbstract: !!data.Abstract,
+      hasAnswer: !!data.Answer,
+      sourcesCount: sources.length
+    });
+    return {
+      source: "duckduckgo",
+      query,
+      summary,
+      sources: sources.slice(0, 5),
+      // Giới hạn 5 sources
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    console.error("[duckduckgo] error:", error);
+    return {
+      source: "duckduckgo",
+      query,
+      summary: "",
+      sources: [],
+      timestamp: Date.now()
+    };
+  }
+}
+__name(searchDuckDuckGo, "searchDuckDuckGo");
+async function searchDuckDuckGoHTML(query) {
+  const t0 = Date.now();
+  try {
+    const params = new URLSearchParams({
+      q: query
+    });
+    const response = await fetch(`https://lite.duckduckgo.com/lite/?${params.toString()}`, {
+      headers: {
+        "User-Agent": "STEM-Vietnam-Bot/1.0",
+        "Accept": "text/html"
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`DuckDuckGo Lite error: ${response.status}`);
+    }
+    const html = await response.text();
+    const sources = [];
+    const linkRegex = /<a[^>]*class="[^"]*result-link[^"]*"[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/gi;
+    const snippetRegex = /<td[^>]*class="[^"]*result-snippet[^"]*"[^>]*>([^<]+)<\/td>/gi;
+    let match2;
+    const titles = [];
+    const urls = [];
+    const snippets = [];
+    while ((match2 = linkRegex.exec(html)) !== null && titles.length < 5) {
+      urls.push(match2[1]);
+      titles.push(match2[2].trim());
+    }
+    while ((match2 = snippetRegex.exec(html)) !== null && snippets.length < 5) {
+      snippets.push(match2[1].trim());
+    }
+    for (let i = 0; i < Math.min(titles.length, urls.length); i++) {
+      sources.push({
+        title: titles[i],
+        url: urls[i],
+        snippet: snippets[i] || ""
+      });
+    }
+    const latency = Date.now() - t0;
+    console.log("[duckduckgo-lite] search done", {
+      query,
+      latency,
+      sourcesCount: sources.length
+    });
+    const summary = sources.slice(0, 3).map((s) => s.snippet).filter(Boolean).join(" ");
+    return {
+      source: "duckduckgo",
+      query,
+      summary,
+      sources,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    console.error("[duckduckgo-lite] error:", error);
+    return {
+      source: "duckduckgo",
+      query,
+      summary: "",
+      sources: [],
+      timestamp: Date.now()
+    };
+  }
+}
+__name(searchDuckDuckGoHTML, "searchDuckDuckGoHTML");
+async function webSearch(query) {
+  const instantResult = await searchDuckDuckGo(query);
+  if (instantResult.summary || instantResult.sources.length > 0) {
+    return instantResult;
+  }
+  console.info("[websearch] Instant Answer empty, trying HTML search");
+  return searchDuckDuckGoHTML(query);
+}
+__name(webSearch, "webSearch");
+function formatSearchResultsAsContext(result) {
+  if (!result.summary && result.sources.length === 0) {
+    return "";
+  }
+  let context = `=== K\u1EBET QU\u1EA2 T\xCCM KI\u1EBEM WEB ===
+`;
+  context += `Truy v\u1EA5n: "${result.query}"
+
+`;
+  if (result.summary) {
+    context += `**T\xF3m t\u1EAFt:** ${result.summary}
+
+`;
+  }
+  if (result.sources.length > 0) {
+    context += `**Ngu\u1ED3n tham kh\u1EA3o:**
+`;
+    for (const source of result.sources) {
+      context += `- ${source.title}
+`;
+      if (source.snippet) {
+        context += `  ${source.snippet}
+`;
+      }
+      context += `  URL: ${source.url}
+
+`;
+    }
+  }
+  context += `=== H\u1EBET K\u1EBET QU\u1EA2 T\xCCM KI\u1EBEM ===
+`;
+  return context;
+}
+__name(formatSearchResultsAsContext, "formatSearchResultsAsContext");
+
+// src/auth-routes.ts
+init_modules_watch_stub();
+
+// src/auth.ts
+init_modules_watch_stub();
+var HASH_ITERATIONS = 1e5;
+var HASH_LENGTH = 32;
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits"]
+  );
+  const hash = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      salt,
+      iterations: HASH_ITERATIONS,
+      hash: "SHA-256"
+    },
+    keyMaterial,
+    HASH_LENGTH * 8
+  );
+  const saltB64 = btoa(String.fromCharCode(...salt));
+  const hashB64 = btoa(String.fromCharCode(...new Uint8Array(hash)));
+  return `${saltB64}:${hashB64}`;
+}
+__name(hashPassword, "hashPassword");
+async function verifyPassword(password, storedHash) {
+  const [saltB64, hashB64] = storedHash.split(":");
+  if (!saltB64 || !hashB64) return false;
+  const salt = Uint8Array.from(atob(saltB64), (c) => c.charCodeAt(0));
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits"]
+  );
+  const hash = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      salt,
+      iterations: HASH_ITERATIONS,
+      hash: "SHA-256"
+    },
+    keyMaterial,
+    HASH_LENGTH * 8
+  );
+  const computedHashB64 = btoa(String.fromCharCode(...new Uint8Array(hash)));
+  return computedHashB64 === hashB64;
+}
+__name(verifyPassword, "verifyPassword");
+function base64UrlEncode(str) {
+  return btoa(unescape(encodeURIComponent(str))).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+__name(base64UrlEncode, "base64UrlEncode");
+function base64UrlDecode(str) {
+  const padded = str.replace(/-/g, "+").replace(/_/g, "/");
+  return decodeURIComponent(escape(atob(padded)));
+}
+__name(base64UrlDecode, "base64UrlDecode");
+async function createJWT(payload, secret, expiresInHours = 24 * 7) {
+  const encoder = new TextEncoder();
+  const header = { alg: "HS256", typ: "JWT" };
+  const now = Math.floor(Date.now() / 1e3);
+  const fullPayload = {
+    ...payload,
+    iat: now,
+    exp: now + expiresInHours * 3600
+  };
+  const headerB64 = base64UrlEncode(JSON.stringify(header));
+  const payloadB64 = base64UrlEncode(JSON.stringify(fullPayload));
+  const data = `${headerB64}.${payloadB64}`;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(data));
+  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  return `${data}.${signatureB64}`;
+}
+__name(createJWT, "createJWT");
+async function verifyJWT(token, secret) {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const [headerB64, payloadB64, signatureB64] = parts;
+    const encoder = new TextEncoder();
+    const data = `${headerB64}.${payloadB64}`;
+    const key = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["verify"]
+    );
+    const signaturePadded = signatureB64.replace(/-/g, "+").replace(/_/g, "/");
+    const signature = Uint8Array.from(atob(signaturePadded), (c) => c.charCodeAt(0));
+    const valid = await crypto.subtle.verify("HMAC", key, signature, encoder.encode(data));
+    if (!valid) return null;
+    try {
+      const payloadJson = base64UrlDecode(payloadB64);
+      const payload = JSON.parse(payloadJson);
+      if (payload.exp < Math.floor(Date.now() / 1e3)) {
+        return null;
+      }
+      return payload;
+    } catch (e) {
+      console.error("JWT Decode Error:", e);
+      return null;
+    }
+  } catch {
+    return null;
+  }
+}
+__name(verifyJWT, "verifyJWT");
+function generateId() {
+  return crypto.randomUUID();
+}
+__name(generateId, "generateId");
+
+// src/utils.ts
+init_modules_watch_stub();
+function getAllowedOrigin(requestOrigin, allowedOrigins) {
+  if (!requestOrigin || !allowedOrigins) return "*";
+  const cleanOrigins = allowedOrigins.replace(/['"]/g, "");
+  const origins = cleanOrigins.split(/[;,| ]+/).map((o) => o.trim()).filter((o) => o.length > 0);
+  if (origins.includes("*")) return "*";
+  if (origins.includes(requestOrigin)) return requestOrigin;
+  return origins[0] || "*";
+}
+__name(getAllowedOrigin, "getAllowedOrigin");
+function corsHeaders(origin) {
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+    "Access-Control-Allow-Credentials": "true"
+  };
+}
+__name(corsHeaders, "corsHeaders");
+function jsonResponse(data, status, origin) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      ...corsHeaders(origin)
+    }
+  });
+}
+__name(jsonResponse, "jsonResponse");
+
+// src/auth-routes.ts
+function getOrigin(request, env2) {
+  return getAllowedOrigin(request.headers.get("Origin"), env2.CORS_ORIGIN);
+}
+__name(getOrigin, "getOrigin");
+async function handleRegister(request, env2) {
+  const origin = getOrigin(request, env2);
+  try {
+    const body = await request.json();
+    const { email, password, name, role } = body;
+    if (!email || !password || !name) {
+      return jsonResponse({ error: "Email, password v\xE0 name l\xE0 b\u1EAFt bu\u1ED9c" }, 400, origin);
+    }
+    const validRoles = ["student", "teacher"];
+    const userRole = role && validRoles.includes(role) ? role : "student";
+    if (password.length < 6) {
+      return jsonResponse({ error: "Password ph\u1EA3i c\xF3 \xEDt nh\u1EA5t 6 k\xFD t\u1EF1" }, 400, origin);
+    }
+    const existing = await env2.DB.prepare("SELECT id FROM users WHERE email = ?").bind(email.toLowerCase()).first();
+    if (existing) {
+      return jsonResponse({ error: "Email \u0111\xE3 \u0111\u01B0\u1EE3c s\u1EED d\u1EE5ng" }, 409, origin);
+    }
+    const userId = generateId();
+    const passwordHash = await hashPassword(password);
+    const now = Date.now();
+    await env2.DB.prepare(
+      "INSERT INTO users (id, email, password_hash, name, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    ).bind(userId, email.toLowerCase(), passwordHash, name, userRole, now, now).run();
+    return jsonResponse({ success: true, message: "\u0110\u0103ng k\xFD th\xE0nh c\xF4ng!" }, 201, origin);
+  } catch (error) {
+    console.error("[auth] register error:", error);
+    return jsonResponse({ error: "L\u1ED7i server", details: error.message }, 500, origin);
+  }
+}
+__name(handleRegister, "handleRegister");
+async function handleLogin(request, env2) {
+  const origin = getOrigin(request, env2);
+  try {
+    const body = await request.json();
+    const { email, password } = body;
+    if (!email || !password) {
+      return jsonResponse({ error: "Email v\xE0 password l\xE0 b\u1EAFt bu\u1ED9c" }, 400, origin);
+    }
+    const user = await env2.DB.prepare(
+      "SELECT id, email, password_hash, name, avatar_url, role FROM users WHERE email = ?"
+    ).bind(email.toLowerCase()).first();
+    if (!user || !await verifyPassword(password, user.password_hash)) {
+      return jsonResponse({ error: "Email ho\u1EB7c password kh\xF4ng \u0111\xFAng" }, 401, origin);
+    }
+    const token = await createJWT({
+      sub: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role || "student"
+    }, env2.JWT_SECRET);
+    return jsonResponse({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatar_url: user.avatar_url,
+        role: user.role || "student"
+      }
+    }, 200, origin);
+  } catch (error) {
+    console.error("[auth] login error:", error);
+    return jsonResponse({ error: "L\u1ED7i server", details: error.message }, 500, origin);
+  }
+}
+__name(handleLogin, "handleLogin");
+async function handleMe(request, env2) {
+  const origin = getOrigin(request, env2);
+  try {
+    const payload = await getUserFromToken(request, env2);
+    if (!payload) {
+      return jsonResponse({ error: "Unauthorized" }, 401, origin);
+    }
+    const user = await env2.DB.prepare(
+      "SELECT id, email, name, avatar_url, role FROM users WHERE id = ?"
+    ).bind(payload.sub).first();
+    if (!user) {
+      return jsonResponse({ error: "User kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, origin);
+    }
+    return jsonResponse({ user: { ...user, role: user.role || "student" } }, 200, origin);
+  } catch (error) {
+    console.error("[auth] me error:", error);
+    return jsonResponse({ error: "L\u1ED7i server" }, 500, origin);
+  }
+}
+__name(handleMe, "handleMe");
+async function getUserFromToken(request, env2) {
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return null;
+  }
+  const token = authHeader.split(" ")[1];
+  return verifyJWT(token, env2.JWT_SECRET);
+}
+__name(getUserFromToken, "getUserFromToken");
+
+// src/settings-routes.ts
+init_modules_watch_stub();
+
+// src/openrouter-models.ts
+init_modules_watch_stub();
+var MODELS_CACHE_TTL = 24 * 60 * 60 * 1e3;
+async function fetchAvailableModels(apiKey) {
+  try {
+    const response = await fetch("https://openrouter.ai/api/v1/models", {
+      headers: {
+        "Authorization": `Bearer ${apiKey}`
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.data || [];
+  } catch (error) {
+    console.error("[openrouter-models] fetch error:", error);
+    throw error;
+  }
+}
+__name(fetchAvailableModels, "fetchAvailableModels");
+async function getCachedModels(env2) {
+  try {
+    const cached = await env2.DB.prepare(
+      "SELECT models, updated_at FROM model_cache WHERE id = 1 AND updated_at > ?"
+    ).bind(Date.now() - MODELS_CACHE_TTL).first();
+    if (cached) {
+      console.log("[openrouter-models] cache hit");
+      return JSON.parse(cached.models);
+    }
+    console.log("[openrouter-models] cache miss, fetching fresh");
+    const models = await fetchAvailableModels(env2.OPENROUTER_API_KEY);
+    await env2.DB.prepare(`
+            INSERT OR REPLACE INTO model_cache (id, models, updated_at)
+            VALUES (1, ?, ?)
+        `).bind(JSON.stringify(models), Date.now()).run();
+    return models;
+  } catch (error) {
+    console.error("[openrouter-models] cache error:", error);
+    return fetchAvailableModels(env2.OPENROUTER_API_KEY);
+  }
+}
+__name(getCachedModels, "getCachedModels");
+
+// src/settings-routes.ts
+var DEFAULT_SETTINGS = {
+  chatModel: "google/gemini-2.0-flash-exp:free",
+  examModel: "google/gemini-2.0-flash-exp:free",
+  ragEnabled: true,
+  theme: "auto",
+  language: "vi"
+};
+async function handleGetSettings(request, env2) {
+  const origin = getAllowedOrigin(request.headers.get("Origin"), env2.CORS_ORIGIN);
+  try {
+    const user = await getUserFromToken(request, env2);
+    if (!user) {
+      return jsonResponse({ error: "Unauthorized" }, 401, origin);
+    }
+    const result = await env2.DB.prepare(
+      "SELECT preferences FROM user_settings WHERE user_id = ?"
+    ).bind(user.sub).first();
+    if (!result) {
+      return jsonResponse({
+        success: true,
+        settings: DEFAULT_SETTINGS
+      }, 200, origin);
+    }
+    const settings = JSON.parse(result.preferences);
+    return jsonResponse({
+      success: true,
+      settings
+    }, 200, origin);
+  } catch (error) {
+    console.error("[settings] get error:", error);
+    return jsonResponse({
+      error: "Failed to get settings",
+      details: error.message
+    }, 500, origin);
+  }
+}
+__name(handleGetSettings, "handleGetSettings");
+async function handleUpdateSettings(request, env2) {
+  const origin = getAllowedOrigin(request.headers.get("Origin"), env2.CORS_ORIGIN);
+  try {
+    const user = await getUserFromToken(request, env2);
+    if (!user) {
+      return jsonResponse({ error: "Unauthorized" }, 401, origin);
+    }
+    const body = await request.json();
+    if (body.chatModel || body.examModel) {
+    }
+    const existing = await env2.DB.prepare(
+      "SELECT preferences FROM user_settings WHERE user_id = ?"
+    ).bind(user.sub).first();
+    const currentSettings = existing ? JSON.parse(existing.preferences) : DEFAULT_SETTINGS;
+    const updatedSettings = {
+      ...currentSettings,
+      ...body
+    };
+    const now = Date.now();
+    await env2.DB.prepare(`
+            INSERT INTO user_settings (user_id, preferences, created_at, updated_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                preferences = excluded.preferences,
+                updated_at = excluded.updated_at
+        `).bind(
+      user.sub,
+      JSON.stringify(updatedSettings),
+      now,
+      now
+    ).run();
+    return jsonResponse({
+      success: true,
+      settings: updatedSettings
+    }, 200, origin);
+  } catch (error) {
+    console.error("[settings] update error:", error);
+    return jsonResponse({
+      error: "Failed to update settings",
+      details: error.message
+    }, 500, origin);
+  }
+}
+__name(handleUpdateSettings, "handleUpdateSettings");
+async function handleGetModels(request, env2) {
+  const origin = getAllowedOrigin(request.headers.get("Origin"), env2.CORS_ORIGIN);
+  try {
+    const user = await getUserFromToken(request, env2);
+    if (!user) {
+      return jsonResponse({ error: "Unauthorized" }, 401, origin);
+    }
+    const models = await getCachedModels(env2);
+    return jsonResponse({
+      success: true,
+      models,
+      count: models.length
+    }, 200, origin);
+  } catch (error) {
+    console.error("[settings] get models error:", error);
+    return jsonResponse({
+      error: "Failed to fetch models",
+      details: error.message
+    }, 500, origin);
+  }
+}
+__name(handleGetModels, "handleGetModels");
+async function handleRefreshModels(request, env2) {
+  const origin = getAllowedOrigin(request.headers.get("Origin"), env2.CORS_ORIGIN);
+  try {
+    const user = await getUserFromToken(request, env2);
+    if (!user) {
+      return jsonResponse({ error: "Unauthorized" }, 401, origin);
+    }
+    await env2.DB.prepare("DELETE FROM model_cache WHERE id = 1").run();
+    const models = await getCachedModels(env2);
+    return jsonResponse({
+      success: true,
+      models,
+      count: models.length,
+      message: "Models refreshed successfully"
+    }, 200, origin);
+  } catch (error) {
+    console.error("[settings] refresh models error:", error);
+    return jsonResponse({
+      error: "Failed to refresh models",
+      details: error.message
+    }, 500, origin);
+  }
+}
+__name(handleRefreshModels, "handleRefreshModels");
+
+// src/exam-routes.ts
+init_modules_watch_stub();
+function jsonResponse2(data, status, corsOriginList) {
+  const origin = corsOriginList?.split(/[;,| ]+/)[0]?.trim() || "*";
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS, DELETE",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization"
+    }
+  });
+}
+__name(jsonResponse2, "jsonResponse");
+async function getExams(user, env2) {
+  try {
+    const result = await env2.DB.prepare(
+      "SELECT id, topic, config, created_at FROM exams WHERE user_id = ? ORDER BY created_at DESC"
+    ).bind(user.sub).all();
+    const exams = (result.results || []).map((row) => ({
+      ...row,
+      config: row.config ? JSON.parse(row.config) : null
+    }));
+    return jsonResponse2({ exams }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[exam] get list error:", error);
+    return jsonResponse2({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(getExams, "getExams");
+async function getExam(id, user, env2) {
+  try {
+    const exam = await env2.DB.prepare(
+      "SELECT * FROM exams WHERE id = ? AND user_id = ?"
+    ).bind(id, user.sub).first();
+    if (!exam) {
+      return jsonResponse2({ error: "\u0110\u1EC1 thi kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    }
+    return jsonResponse2({
+      exam: {
+        ...exam,
+        config: exam.config ? JSON.parse(exam.config) : null,
+        content: exam.content
+      }
+    }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[exam] get detail error:", error);
+    return jsonResponse2({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(getExam, "getExam");
+async function createExam(request, user, env2) {
+  try {
+    const body = await request.json();
+    if (!body.topic || !body.content) {
+      return jsonResponse2({ error: "Thi\u1EBFu th\xF4ng tin b\u1EAFt bu\u1ED9c" }, 400, env2.CORS_ORIGIN);
+    }
+    const id = generateId();
+    const now = Date.now();
+    await env2.DB.prepare(
+      "INSERT INTO exams (id, user_id, topic, config, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    ).bind(
+      id,
+      user.sub,
+      body.topic,
+      JSON.stringify(body.config || {}),
+      body.content,
+      now,
+      now
+    ).run();
+    return jsonResponse2({
+      success: true,
+      exam: {
+        id,
+        topic: body.topic,
+        created_at: now
+      }
+    }, 201, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[exam] create error:", error);
+    return jsonResponse2({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(createExam, "createExam");
+async function deleteExam(id, user, env2) {
+  try {
+    const res = await env2.DB.prepare(
+      "DELETE FROM exams WHERE id = ? AND user_id = ?"
+    ).bind(id, user.sub).run();
+    if (res.meta?.changes === 0) {
+      return jsonResponse2({ error: "Kh\xF4ng t\xECm th\u1EA5y \u0111\u1EC1 thi ho\u1EB7c kh\xF4ng c\xF3 quy\u1EC1n x\xF3a" }, 404, env2.CORS_ORIGIN);
+    }
+    return jsonResponse2({ success: true }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[exam] delete error:", error);
+    return jsonResponse2({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(deleteExam, "deleteExam");
+
+// src/exam-online-routes.ts
+init_modules_watch_stub();
+function jsonResponse3(data, status, corsOriginList) {
+  const origin = corsOriginList?.split(/[;,| ]+/)[0]?.trim() || "*";
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS, DELETE",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization"
+    }
+  });
+}
+__name(jsonResponse3, "jsonResponse");
+function gradeExam(questions, answers) {
+  const analysis = {
+    remember: { correct: 0, total: 0 },
+    understand: { correct: 0, total: 0 },
+    apply: { correct: 0, total: 0 },
+    analyze: { correct: 0, total: 0 }
+  };
+  const detailed_results = [];
+  let correct_count = 0;
+  for (const q of questions) {
+    const userAnswer = answers[q.id] || "";
+    const isCorrect = userAnswer.toUpperCase() === q.answer.toUpperCase();
+    if (isCorrect) correct_count++;
+    if (q.level && analysis[q.level]) {
+      analysis[q.level].total++;
+      if (isCorrect) analysis[q.level].correct++;
+    }
+    detailed_results.push({
+      questionId: q.id,
+      userAnswer,
+      correctAnswer: q.answer,
+      isCorrect,
+      level: q.level
+    });
+  }
+  const score = correct_count / questions.length * 10;
+  return {
+    score: Math.round(score * 100) / 100,
+    // Làm tròn 2 chữ số
+    correct_count,
+    analysis,
+    detailed_results
+  };
+}
+__name(gradeExam, "gradeExam");
+async function getTemplates(request, env2) {
+  try {
+    const url = new URL(request.url);
+    const grade = url.searchParams.get("grade");
+    const branch = url.searchParams.get("branch");
+    const exam_type = url.searchParams.get("type");
+    const limit = parseInt(url.searchParams.get("limit") || "20");
+    const offset = parseInt(url.searchParams.get("offset") || "0");
+    let query = "SELECT * FROM exam_templates WHERE is_public = 1";
+    const bindings = [];
+    if (grade) {
+      query += " AND grade = ?";
+      bindings.push(grade);
+    }
+    if (branch) {
+      query += " AND (branch = ? OR branch IS NULL)";
+      bindings.push(branch);
+    }
+    if (exam_type) {
+      query += " AND exam_type = ?";
+      bindings.push(exam_type);
+    }
+    query += " ORDER BY times_taken DESC, created_at DESC LIMIT ? OFFSET ?";
+    bindings.push(limit, offset);
+    const result = await env2.DB.prepare(query).bind(...bindings).all();
+    const templates = (result.results || []).map((row) => ({
+      ...row,
+      questions: void 0,
+      // Không trả về questions trong list
+      chapters: row.chapters ? JSON.parse(row.chapters) : null,
+      is_public: row.is_public === 1
+    }));
+    return jsonResponse3({ templates }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[exam-online] get templates error:", error);
+    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(getTemplates, "getTemplates");
+async function getTemplate(templateId, env2) {
+  try {
+    const template = await env2.DB.prepare(
+      "SELECT * FROM exam_templates WHERE id = ?"
+    ).bind(templateId).first();
+    if (!template) {
+      return jsonResponse3({ error: "\u0110\u1EC1 thi kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    }
+    const parsed = {
+      ...template,
+      questions: JSON.parse(template.questions),
+      chapters: template.chapters ? JSON.parse(template.chapters) : null,
+      is_public: template.is_public === 1
+    };
+    return jsonResponse3({ template: parsed }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[exam-online] get template error:", error);
+    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(getTemplate, "getTemplate");
+async function createTemplate(request, user, env2) {
+  try {
+    const body = await request.json();
+    if (!body.grade || !body.exam_type || !body.title || !body.questions || body.questions.length === 0) {
+      return jsonResponse3({ error: "Thi\u1EBFu th\xF4ng tin b\u1EAFt bu\u1ED9c (grade, exam_type, title, questions)" }, 400, env2.CORS_ORIGIN);
+    }
+    const id = generateId();
+    const now = Date.now();
+    const durations = {
+      "15min": 15,
+      "midterm": 45,
+      "final": 60,
+      "thpt": 50
+    };
+    const template = {
+      id,
+      grade: body.grade,
+      branch: body.branch || null,
+      exam_type: body.exam_type,
+      title: body.title,
+      description: body.description || null,
+      questions: JSON.stringify(body.questions),
+      total_questions: body.questions.length,
+      duration_minutes: body.duration_minutes || durations[body.exam_type] || 45,
+      difficulty: body.difficulty || "medium",
+      chapters: body.chapters ? JSON.stringify(body.chapters) : null,
+      publisher: body.publisher || null,
+      created_at: now,
+      created_by: user.sub,
+      is_public: body.is_public !== false ? 1 : 0,
+      times_taken: 0
+    };
+    await env2.DB.prepare(`
+            INSERT INTO exam_templates 
+            (id, grade, branch, exam_type, title, description, questions, total_questions, 
+             duration_minutes, difficulty, chapters, publisher, created_at, created_by, is_public, times_taken)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+      template.id,
+      template.grade,
+      template.branch,
+      template.exam_type,
+      template.title,
+      template.description,
+      template.questions,
+      template.total_questions,
+      template.duration_minutes,
+      template.difficulty,
+      template.chapters,
+      template.publisher,
+      template.created_at,
+      template.created_by,
+      template.is_public,
+      template.times_taken
+    ).run();
+    return jsonResponse3({
+      success: true,
+      template: {
+        id: template.id,
+        title: template.title,
+        total_questions: template.total_questions,
+        duration_minutes: template.duration_minutes
+      }
+    }, 201, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[exam-online] create template error:", error);
+    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(createTemplate, "createTemplate");
+async function startAttempt(request, user, env2) {
+  try {
+    const body = await request.json();
+    if (!body.templateId) {
+      return jsonResponse3({ error: "Thi\u1EBFu templateId" }, 400, env2.CORS_ORIGIN);
+    }
+    const template = await env2.DB.prepare(
+      "SELECT * FROM exam_templates WHERE id = ?"
+    ).bind(body.templateId).first();
+    if (!template) {
+      return jsonResponse3({ error: "\u0110\u1EC1 thi kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    }
+    await env2.DB.prepare(
+      "UPDATE exam_templates SET times_taken = times_taken + 1 WHERE id = ?"
+    ).bind(body.templateId).run();
+    const attemptId = generateId();
+    const now = Date.now();
+    const questions = JSON.parse(template.questions);
+    const shuffledQuestions = [...questions].sort(() => Math.random() - 0.5);
+    const shuffledQuestionsWithMapping = shuffledQuestions.map((q) => {
+      const indices = [0, 1, 2, 3];
+      const shuffledIndices = [...indices].sort(() => Math.random() - 0.5);
+      const shuffledOptions = shuffledIndices.map((i) => q.options[i]);
+      const originalAnswerIndex = ["A", "B", "C", "D"].indexOf(q.answer.toUpperCase());
+      const newAnswerIndex = shuffledIndices.indexOf(originalAnswerIndex);
+      const newAnswer = ["A", "B", "C", "D"][newAnswerIndex];
+      return {
+        id: q.id,
+        content: q.content,
+        options: shuffledOptions,
+        level: q.level,
+        chapter: q.chapter,
+        originalAnswer: newAnswer,
+        // Đáp án sau shuffle
+        shuffleMap: shuffledIndices
+      };
+    });
+    await env2.DB.prepare(`
+            INSERT INTO exam_attempts 
+            (id, user_id, template_id, answers, total_questions, started_at, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+      attemptId,
+      user.sub,
+      body.templateId,
+      JSON.stringify({ _shuffleMapping: shuffledQuestionsWithMapping.map((q) => ({ id: q.id, answer: q.originalAnswer })) }),
+      template.total_questions,
+      now,
+      "in_progress"
+    ).run();
+    const questionsForUser = shuffledQuestionsWithMapping.map((q) => ({
+      id: q.id,
+      content: q.content,
+      options: q.options,
+      level: q.level,
+      chapter: q.chapter
+      // KHÔNG trả về: answer, explanation, shuffleMap
+    }));
+    return jsonResponse3({
+      success: true,
+      attempt: {
+        id: attemptId,
+        template_id: body.templateId,
+        title: template.title,
+        total_questions: template.total_questions,
+        duration_minutes: template.duration_minutes,
+        started_at: now
+      },
+      questions: questionsForUser
+    }, 201, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[exam-online] start attempt error:", error);
+    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(startAttempt, "startAttempt");
+async function updateAttempt(attemptId, request, user, env2) {
+  try {
+    const body = await request.json();
+    const attempt = await env2.DB.prepare(
+      "SELECT * FROM exam_attempts WHERE id = ? AND user_id = ?"
+    ).bind(attemptId, user.sub).first();
+    if (!attempt) {
+      return jsonResponse3({ error: "B\xE0i l\xE0m kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    }
+    if (attempt.status !== "in_progress") {
+      return jsonResponse3({ error: "B\xE0i l\xE0m \u0111\xE3 n\u1ED9p, kh\xF4ng th\u1EC3 ch\u1EC9nh s\u1EEDa" }, 400, env2.CORS_ORIGIN);
+    }
+    await env2.DB.prepare(
+      "UPDATE exam_attempts SET answers = ? WHERE id = ?"
+    ).bind(JSON.stringify(body.answers), attemptId).run();
+    return jsonResponse3({ success: true }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[exam-online] update attempt error:", error);
+    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(updateAttempt, "updateAttempt");
+async function submitAttempt(attemptId, request, user, env2) {
+  try {
+    const body = await request.json();
+    const attempt = await env2.DB.prepare(
+      "SELECT * FROM exam_attempts WHERE id = ? AND user_id = ?"
+    ).bind(attemptId, user.sub).first();
+    if (!attempt) {
+      return jsonResponse3({ error: "B\xE0i l\xE0m kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    }
+    if (attempt.status === "submitted") {
+      return jsonResponse3({ error: "B\xE0i l\xE0m \u0111\xE3 \u0111\u01B0\u1EE3c n\u1ED9p tr\u01B0\u1EDBc \u0111\xF3" }, 400, env2.CORS_ORIGIN);
+    }
+    const template = await env2.DB.prepare(
+      "SELECT questions FROM exam_templates WHERE id = ?"
+    ).bind(attempt.template_id).first();
+    if (!template) {
+      return jsonResponse3({ error: "\u0110\u1EC1 thi kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    }
+    const questions = JSON.parse(template.questions);
+    const savedAnswers = JSON.parse(attempt.answers || "{}");
+    const shuffleMapping = savedAnswers._shuffleMapping;
+    delete savedAnswers._shuffleMapping;
+    const finalAnswers = { ...savedAnswers, ...body.answers };
+    let gradeResult;
+    if (shuffleMapping && shuffleMapping.length > 0) {
+      const shuffledAnswerMap = new Map(shuffleMapping.map((m) => [m.id, m.answer]));
+      const questionsWithShuffledAnswers = questions.map((q) => ({
+        ...q,
+        answer: shuffledAnswerMap.get(q.id) || q.answer
+        // Dùng shuffled answer nếu có
+      }));
+      gradeResult = gradeExam(questionsWithShuffledAnswers, finalAnswers);
+    } else {
+      gradeResult = gradeExam(questions, finalAnswers);
+    }
+    const now = Date.now();
+    const timeSpent = Math.floor((now - attempt.started_at) / 1e3);
+    await env2.DB.prepare(`
+            UPDATE exam_attempts 
+            SET answers = ?, score = ?, correct_count = ?, submitted_at = ?, 
+                time_spent_seconds = ?, status = ?, analysis = ?
+            WHERE id = ?
+        `).bind(
+      JSON.stringify(finalAnswers),
+      gradeResult.score,
+      gradeResult.correct_count,
+      now,
+      timeSpent,
+      "submitted",
+      JSON.stringify(gradeResult.analysis),
+      attemptId
+    ).run();
+    return jsonResponse3({
+      success: true,
+      result: {
+        score: gradeResult.score,
+        correct_count: gradeResult.correct_count,
+        total_questions: questions.length,
+        time_spent_seconds: timeSpent,
+        analysis: gradeResult.analysis,
+        detailed_results: gradeResult.detailed_results,
+        // Trả về questions với explanation
+        questions_with_answers: questions.map((q) => ({
+          id: q.id,
+          content: q.content,
+          options: q.options,
+          answer: q.answer,
+          explanation: q.explanation,
+          level: q.level,
+          userAnswer: finalAnswers[q.id] || null,
+          isCorrect: (finalAnswers[q.id] || "").toUpperCase() === q.answer.toUpperCase()
+        }))
+      }
+    }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[exam-online] submit attempt error:", error);
+    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(submitAttempt, "submitAttempt");
+async function getAttempts(request, user, env2) {
+  try {
+    const url = new URL(request.url);
+    const limit = parseInt(url.searchParams.get("limit") || "20");
+    const offset = parseInt(url.searchParams.get("offset") || "0");
+    const status = url.searchParams.get("status");
+    let query = `
+            SELECT a.*, t.title, t.grade, t.branch, t.exam_type, t.duration_minutes
+            FROM exam_attempts a
+            JOIN exam_templates t ON a.template_id = t.id
+            WHERE a.user_id = ?
+        `;
+    const bindings = [user.sub];
+    if (status) {
+      query += " AND a.status = ?";
+      bindings.push(status);
+    }
+    query += " ORDER BY a.started_at DESC LIMIT ? OFFSET ?";
+    bindings.push(limit, offset);
+    const result = await env2.DB.prepare(query).bind(...bindings).all();
+    const attempts = (result.results || []).map((row) => ({
+      id: row.id,
+      template_id: row.template_id,
+      title: row.title,
+      grade: row.grade,
+      branch: row.branch,
+      exam_type: row.exam_type,
+      score: row.score,
+      correct_count: row.correct_count,
+      total_questions: row.total_questions,
+      duration_minutes: row.duration_minutes,
+      started_at: row.started_at,
+      submitted_at: row.submitted_at,
+      time_spent_seconds: row.time_spent_seconds,
+      status: row.status
+    }));
+    return jsonResponse3({ attempts }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[exam-online] get attempts error:", error);
+    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(getAttempts, "getAttempts");
+async function getAttempt(attemptId, user, env2) {
+  try {
+    const attempt = await env2.DB.prepare(
+      "SELECT * FROM exam_attempts WHERE id = ? AND user_id = ?"
+    ).bind(attemptId, user.sub).first();
+    if (!attempt) {
+      return jsonResponse3({ error: "B\xE0i l\xE0m kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    }
+    const template = await env2.DB.prepare(
+      "SELECT * FROM exam_templates WHERE id = ?"
+    ).bind(attempt.template_id).first();
+    const questions = JSON.parse(template.questions);
+    const answers = JSON.parse(attempt.answers || "{}");
+    if (attempt.status === "submitted") {
+      return jsonResponse3({
+        attempt: {
+          id: attempt.id,
+          template_id: attempt.template_id,
+          title: template.title,
+          grade: template.grade,
+          branch: template.branch,
+          exam_type: template.exam_type,
+          score: attempt.score,
+          correct_count: attempt.correct_count,
+          total_questions: attempt.total_questions,
+          duration_minutes: template.duration_minutes,
+          started_at: attempt.started_at,
+          submitted_at: attempt.submitted_at,
+          time_spent_seconds: attempt.time_spent_seconds,
+          status: attempt.status,
+          analysis: attempt.analysis ? JSON.parse(attempt.analysis) : null
+        },
+        questions_with_answers: questions.map((q) => ({
+          id: q.id,
+          content: q.content,
+          options: q.options,
+          answer: q.answer,
+          explanation: q.explanation,
+          level: q.level,
+          userAnswer: answers[q.id] || null,
+          isCorrect: (answers[q.id] || "").toUpperCase() === q.answer.toUpperCase()
+        }))
+      }, 200, env2.CORS_ORIGIN);
+    }
+    return jsonResponse3({
+      attempt: {
+        id: attempt.id,
+        template_id: attempt.template_id,
+        title: template.title,
+        total_questions: attempt.total_questions,
+        duration_minutes: template.duration_minutes,
+        started_at: attempt.started_at,
+        status: attempt.status
+      },
+      answers,
+      questions: questions.map((q) => ({
+        id: q.id,
+        content: q.content,
+        options: q.options,
+        level: q.level
+      }))
+    }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[exam-online] get attempt error:", error);
+    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(getAttempt, "getAttempt");
+async function deleteTemplate(templateId, user, env2) {
+  try {
+    const res = await env2.DB.prepare(
+      "DELETE FROM exam_templates WHERE id = ? AND created_by = ?"
+    ).bind(templateId, user.sub).run();
+    if (res.meta?.changes === 0) {
+      return jsonResponse3({ error: "Kh\xF4ng t\xECm th\u1EA5y \u0111\u1EC1 thi ho\u1EB7c kh\xF4ng c\xF3 quy\u1EC1n x\xF3a" }, 404, env2.CORS_ORIGIN);
+    }
+    return jsonResponse3({ success: true }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[exam-online] delete template error:", error);
+    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(deleteTemplate, "deleteTemplate");
+async function getTemplateStats(templateId, user, env2) {
+  try {
+    const template = await env2.DB.prepare(
+      "SELECT id, title, created_by, times_taken FROM exam_templates WHERE id = ?"
+    ).bind(templateId).first();
+    if (!template) {
+      return jsonResponse3({ error: "\u0110\u1EC1 thi kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    }
+    const attemptsResult = await env2.DB.prepare(`
+            SELECT score, correct_count, total_questions, time_spent_seconds, submitted_at
+            FROM exam_attempts 
+            WHERE template_id = ? AND status = 'submitted'
+            ORDER BY score DESC
+        `).bind(templateId).all();
+    const attempts = attemptsResult.results || [];
+    if (attempts.length === 0) {
+      return jsonResponse3({
+        stats: {
+          totalAttempts: 0,
+          averageScore: 0,
+          highestScore: 0,
+          lowestScore: 0,
+          averageTime: 0,
+          scoreDistribution: { "0-2": 0, "2-4": 0, "4-6": 0, "6-8": 0, "8-10": 0 },
+          bloomAnalysis: null
+        },
+        template: { id: template.id, title: template.title }
+      }, 200, env2.CORS_ORIGIN);
+    }
+    const scores = attempts.map((a) => a.score);
+    const times = attempts.map((a) => a.time_spent_seconds).filter((t) => t > 0);
+    const averageScore = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+    const highestScore = Math.max(...scores);
+    const lowestScore = Math.min(...scores);
+    const averageTime = times.length > 0 ? times.reduce((sum, t) => sum + t, 0) / times.length : 0;
+    const scoreDistribution = { "0-2": 0, "2-4": 0, "4-6": 0, "6-8": 0, "8-10": 0 };
+    for (const score of scores) {
+      if (score < 2) scoreDistribution["0-2"]++;
+      else if (score < 4) scoreDistribution["2-4"]++;
+      else if (score < 6) scoreDistribution["4-6"]++;
+      else if (score < 8) scoreDistribution["6-8"]++;
+      else scoreDistribution["8-10"]++;
+    }
+    const leaderboardResult = await env2.DB.prepare(`
+            SELECT a.score, a.correct_count, a.total_questions, a.time_spent_seconds, a.submitted_at, a.user_id
+            FROM exam_attempts a
+            WHERE a.template_id = ? AND a.status = 'submitted'
+            ORDER BY a.score DESC, a.time_spent_seconds ASC
+            LIMIT 10
+        `).bind(templateId).all();
+    const leaderboard = (leaderboardResult.results || []).map((a, idx) => ({
+      rank: idx + 1,
+      userId: a.user_id?.substring(0, 8) + "***",
+      // Ẩn bớt ID
+      score: a.score,
+      correctCount: a.correct_count,
+      totalQuestions: a.total_questions,
+      timeSpent: a.time_spent_seconds,
+      submittedAt: a.submitted_at
+    }));
+    return jsonResponse3({
+      stats: {
+        totalAttempts: attempts.length,
+        averageScore: Math.round(averageScore * 100) / 100,
+        highestScore,
+        lowestScore,
+        averageTime: Math.round(averageTime),
+        scoreDistribution
+      },
+      leaderboard,
+      template: { id: template.id, title: template.title }
+    }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[exam-online] get stats error:", error);
+    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(getTemplateStats, "getTemplateStats");
+async function getTeacherDashboard(user, env2) {
+  try {
+    const userRole = user.role || "student";
+    if (userRole === "student") {
+      return jsonResponse3({ error: "Ch\u1EC9 gi\xE1o vi\xEAn m\u1EDBi xem \u0111\u01B0\u1EE3c dashboard" }, 403, env2.CORS_ORIGIN);
+    }
+    const templatesResult = await env2.DB.prepare(`
+            SELECT id, title, grade, branch, exam_type, difficulty, total_questions, 
+                   duration_minutes, times_taken, created_at, is_public
+            FROM exam_templates 
+            WHERE created_by = ?
+            ORDER BY created_at DESC
+        `).bind(user.sub).all();
+    const templates = templatesResult.results || [];
+    const totalTemplates = templates.length;
+    const totalTimesToken = templates.reduce((sum, t) => sum + (t.times_taken || 0), 0);
+    let overallStats = {
+      totalAttempts: 0,
+      averageScore: 0,
+      passRate: 0,
+      // % học sinh >= 5 điểm
+      scoreDistribution: { "0-2": 0, "2-4": 0, "4-6": 0, "6-8": 0, "8-10": 0 }
+    };
+    if (templates.length > 0) {
+      const templateIds = templates.map((t) => t.id);
+      const placeholders = templateIds.map(() => "?").join(",");
+      const attemptsResult = await env2.DB.prepare(`
+                SELECT score FROM exam_attempts 
+                WHERE template_id IN (${placeholders}) AND status = 'submitted'
+            `).bind(...templateIds).all();
+      const attempts = attemptsResult.results || [];
+      if (attempts.length > 0) {
+        const scores = attempts.map((a) => a.score);
+        overallStats.totalAttempts = scores.length;
+        overallStats.averageScore = Math.round(scores.reduce((s, v) => s + v, 0) / scores.length * 100) / 100;
+        overallStats.passRate = Math.round(scores.filter((s) => s >= 5).length / scores.length * 100);
+        for (const score of scores) {
+          if (score < 2) overallStats.scoreDistribution["0-2"]++;
+          else if (score < 4) overallStats.scoreDistribution["2-4"]++;
+          else if (score < 6) overallStats.scoreDistribution["4-6"]++;
+          else if (score < 8) overallStats.scoreDistribution["6-8"]++;
+          else overallStats.scoreDistribution["8-10"]++;
+        }
+      }
+    }
+    let topStudents = [];
+    if (templates.length > 0) {
+      const templateIds = templates.map((t) => t.id);
+      const placeholders = templateIds.map(() => "?").join(",");
+      const topResult = await env2.DB.prepare(`
+                SELECT a.user_id, u.name, u.email, a.score, a.template_id, t.title as template_title, a.submitted_at
+                FROM exam_attempts a
+                LEFT JOIN users u ON a.user_id = u.id
+                LEFT JOIN exam_templates t ON a.template_id = t.id
+                WHERE a.template_id IN (${placeholders}) AND a.status = 'submitted'
+                ORDER BY a.score DESC, a.submitted_at ASC
+                LIMIT 10
+            `).bind(...templateIds).all();
+      topStudents = (topResult.results || []).map((s, idx) => ({
+        rank: idx + 1,
+        name: s.name || "\u1EA8n danh",
+        email: s.email ? s.email.substring(0, 3) + "***" : null,
+        score: s.score,
+        templateTitle: s.template_title,
+        submittedAt: s.submitted_at
+      }));
+    }
+    const formattedTemplates = templates.map((t) => ({
+      id: t.id,
+      title: t.title,
+      grade: t.grade,
+      branch: t.branch,
+      examType: t.exam_type,
+      difficulty: t.difficulty,
+      totalQuestions: t.total_questions,
+      durationMinutes: t.duration_minutes,
+      timesTaken: t.times_taken || 0,
+      createdAt: t.created_at,
+      isPublic: t.is_public
+    }));
+    return jsonResponse3({
+      overview: {
+        totalTemplates,
+        totalAttempts: overallStats.totalAttempts,
+        averageScore: overallStats.averageScore,
+        passRate: overallStats.passRate
+      },
+      scoreDistribution: overallStats.scoreDistribution,
+      templates: formattedTemplates,
+      topStudents
+    }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[exam-online] teacher dashboard error:", error);
+    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(getTeacherDashboard, "getTeacherDashboard");
+async function getStudentDashboard(user, env2) {
+  try {
+    const attemptsResult = await env2.DB.prepare(`
+            SELECT a.id, a.template_id, a.score, a.correct_count, a.total_questions, 
+                   a.time_spent_seconds, a.submitted_at, a.analysis,
+                   t.title as template_title, t.grade, t.exam_type, t.difficulty
+            FROM exam_attempts a
+            LEFT JOIN exam_templates t ON a.template_id = t.id
+            WHERE a.user_id = ? AND a.status = 'submitted'
+            ORDER BY a.submitted_at DESC
+        `).bind(user.sub).all();
+    const attempts = attemptsResult.results || [];
+    const totalAttempts = attempts.length;
+    let averageScore = 0;
+    let passRate = 0;
+    let streak = 0;
+    let highestScore = 0;
+    if (attempts.length > 0) {
+      const scores = attempts.map((a) => a.score);
+      averageScore = Math.round(scores.reduce((s, v) => s + v, 0) / scores.length * 100) / 100;
+      passRate = Math.round(scores.filter((s) => s >= 5).length / scores.length * 100);
+      highestScore = Math.max(...scores);
+      const now2 = Date.now();
+      const oneDay2 = 24 * 60 * 60 * 1e3;
+      const submittedDates = attempts.map((a) => Math.floor(a.submitted_at / oneDay2));
+      const uniqueDates = [...new Set(submittedDates)].sort((a, b) => b - a);
+      const today = Math.floor(now2 / oneDay2);
+      if (uniqueDates[0] === today || uniqueDates[0] === today - 1) {
+        streak = 1;
+        for (let i = 1; i < uniqueDates.length; i++) {
+          if (uniqueDates[i] === uniqueDates[i - 1] - 1) {
+            streak++;
+          } else {
+            break;
+          }
+        }
+      }
+    }
+    const progressData = [];
+    const now = Date.now();
+    const oneDay = 24 * 60 * 60 * 1e3;
+    for (let i = 6; i >= 0; i--) {
+      const dayStart = now - i * oneDay;
+      const dayEnd = dayStart + oneDay;
+      const dayAttempts = attempts.filter((a) => a.submitted_at >= dayStart && a.submitted_at < dayEnd);
+      const date = new Date(dayStart);
+      const dateStr = `${date.getDate()}/${date.getMonth() + 1}`;
+      if (dayAttempts.length > 0) {
+        const avgScore = dayAttempts.reduce((s, a) => s + a.score, 0) / dayAttempts.length;
+        progressData.push({ date: dateStr, score: Math.round(avgScore * 10) / 10, count: dayAttempts.length });
+      } else {
+        progressData.push({ date: dateStr, score: 0, count: 0 });
+      }
+    }
+    const bloomStats = {
+      remember: { correct: 0, total: 0 },
+      understand: { correct: 0, total: 0 },
+      apply: { correct: 0, total: 0 },
+      analyze: { correct: 0, total: 0 }
+    };
+    for (const attempt of attempts) {
+      if (attempt.analysis) {
+        try {
+          const analysis = typeof attempt.analysis === "string" ? JSON.parse(attempt.analysis) : attempt.analysis;
+          if (analysis.byLevel) {
+            for (const [level, data] of Object.entries(analysis.byLevel)) {
+              if (bloomStats[level]) {
+                bloomStats[level].correct += data.correct || 0;
+                bloomStats[level].total += data.total || 0;
+              }
+            }
+          }
+        } catch (e) {
+        }
+      }
+    }
+    const bloomAnalysis = Object.entries(bloomStats).map(([level, data]) => ({
+      level,
+      label: level === "remember" ? "Nh\u1EADn bi\u1EBFt" : level === "understand" ? "Th\xF4ng hi\u1EC3u" : level === "apply" ? "V\u1EADn d\u1EE5ng" : "Ph\xE2n t\xEDch",
+      percentage: data.total > 0 ? Math.round(data.correct / data.total * 100) : 0,
+      total: data.total
+    }));
+    const recommendations = [];
+    const weakAreas = bloomAnalysis.filter((b) => b.total >= 3 && b.percentage < 60);
+    for (const area of weakAreas.slice(0, 2)) {
+      recommendations.push(`C\u1EA7n \xF4n th\xEAm d\u1EA1ng c\xE2u h\u1ECFi ${area.label} (hi\u1EC7n \u0111\u1EA1t ${area.percentage}%)`);
+    }
+    if (averageScore < 5) {
+      recommendations.push("\u0110i\u1EC3m trung b\xECnh c\xF2n th\u1EA5p, n\xEAn l\xE0m th\xEAm \u0111\u1EC1 d\u1EC5 \u0111\u1EC3 c\u1EE7ng c\u1ED1 ki\u1EBFn th\u1EE9c c\u01A1 b\u1EA3n");
+    }
+    if (attempts.length < 5) {
+      recommendations.push("Luy\u1EC7n t\u1EADp th\xEAm \u0111\u1EC3 c\xF3 k\u1EBFt qu\u1EA3 \u0111\xE1nh gi\xE1 ch\xEDnh x\xE1c h\u01A1n");
+    }
+    const recentAttempts = attempts.slice(0, 5).map((a) => ({
+      id: a.id,
+      templateTitle: a.template_title,
+      grade: a.grade,
+      examType: a.exam_type,
+      score: a.score,
+      correctCount: a.correct_count,
+      totalQuestions: a.total_questions,
+      submittedAt: a.submitted_at
+    }));
+    return jsonResponse3({
+      overview: {
+        totalAttempts,
+        averageScore,
+        passRate,
+        highestScore,
+        streak
+      },
+      progressData,
+      bloomAnalysis,
+      recommendations,
+      recentAttempts
+    }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[exam-online] student dashboard error:", error);
+    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(getStudentDashboard, "getStudentDashboard");
+var AI_EXAM_PROMPT = `B\u1EA1n l\xE0 Chuy\xEAn gia Kh\u1EA3o th\xED Vi\u1EC7t Nam. T\u1EA1o \u0111\u1EC1 thi tr\u1EAFc nghi\u1EC7m m\xF4n C\xF4ng ngh\u1EC7 THPT.
+
+## N\u1ED8I DUNG CH\u01AF\u01A0NG TR\xCCNH C\xD4NG NGH\u1EC6 THPT:
+
+### \u0110\u1ECANH H\u01AF\u1EDANG C\xD4NG NGHI\u1EC6P:
+**L\u1EDBp 10 - Thi\u1EBFt k\u1EBF v\xE0 C\xF4ng ngh\u1EC7:**
+- Gi\u1EDBi thi\u1EC7u chung v\u1EC1 c\xF4ng ngh\u1EC7, \u0111\u1ED5i m\u1EDBi c\xF4ng ngh\u1EC7 v\xE0 c\xE1ch m\u1EA1ng c\xF4ng nghi\u1EC7p 4.0
+- V\u1EBD k\u1EF9 thu\u1EADt: Ti\xEAu chu\u1EA9n tr\xECnh b\xE0y b\u1EA3n v\u1EBD, h\xECnh chi\u1EBFu vu\xF4ng g\xF3c, h\xECnh chi\u1EBFu tr\u1EE5c \u0111o
+- Quy tr\xECnh thi\u1EBFt k\u1EBF k\u1EF9 thu\u1EADt: Ph\xE1t hi\u1EC7n nhu c\u1EA7u, l\u1EADp h\u1ED3 s\u01A1 k\u1EF9 thu\u1EADt, ch\u1EBF t\u1EA1o m\u1EABu
+
+**L\u1EDBp 11 - C\xF4ng ngh\u1EC7 C\u01A1 kh\xED:**
+- C\u01A1 kh\xED ch\u1EBF t\u1EA1o: Ph\u01B0\u01A1ng ph\xE1p gia c\xF4ng (ti\u1EC7n, phay, b\xE0o, h\xE0n)
+- V\u1EADt li\u1EC7u c\u01A1 kh\xED v\xE0 t\xEDnh ch\u1EA5t
+- C\u01A1 c\u1EA5u truy\u1EC1n v\xE0 bi\u1EBFn \u0111\u1ED5i chuy\u1EC3n \u0111\u1ED9ng
+- \u0110\u1ED9ng c\u01A1 \u0111\u1ED1t trong: C\u1EA5u t\u1EA1o, nguy\xEAn l\xFD, \u1EE9ng d\u1EE5ng
+
+**L\u1EDBp 12 - C\xF4ng ngh\u1EC7 \u0110i\u1EC7n - \u0110i\u1EC7n t\u1EED:**
+- K\u1EF9 thu\u1EADt \u0111i\u1EC7n: M\u1EA1ch xoay chi\u1EC1u, h\u1EC7 th\u1ED1ng \u0111i\u1EC7n qu\u1ED1c gia, an to\xE0n \u0111i\u1EC7n
+- K\u1EF9 thu\u1EADt \u0111i\u1EC7n t\u1EED: Linh ki\u1EC7n \u0111i\u1EC7n t\u1EED, m\u1EA1ch \u0111i\u1EC1u khi\u1EC3n, vi \u0111i\u1EC1u khi\u1EC3n
+- C\xF4ng ngh\u1EC7 t\u1EF1 \u0111\u1ED9ng h\xF3a v\xE0 Robot
+
+### \u0110\u1ECANH H\u01AF\u1EDANG N\xD4NG NGHI\u1EC6P:
+**L\u1EDBp 10 - C\xF4ng ngh\u1EC7 Tr\u1ED3ng tr\u1ECDt:**
+- Gi\u1EDBi thi\u1EC7u tr\u1ED3ng tr\u1ECDt v\xE0 nh\xF3m c\xE2y tr\u1ED3ng ch\xEDnh
+- \u0110\u1EA5t tr\u1ED3ng v\xE0 ph\xE2n b\xF3n (c\u1EA3i t\u1EA1o \u0111\u1EA5t, ph\xE2n b\xF3n th\xF4ng minh)
+- C\xF4ng ngh\u1EC7 gi\u1ED1ng c\xE2y tr\u1ED3ng: Ch\u1ECDn l\u1ECDc, nh\xE2n gi\u1ED1ng, nu\xF4i c\u1EA5y m\xF4
+- K\u1EF9 thu\u1EADt tr\u1ED3ng tr\u1ECDt, ch\u0103m s\xF3c, ph\xF2ng tr\u1EEB s\xE2u b\u1EC7nh
+- Thu ho\u1EA1ch, ch\u1EBF bi\u1EBFn, b\u1EA3o qu\u1EA3n n\xF4ng s\u1EA3n
+
+**L\u1EDBp 11 - C\xF4ng ngh\u1EC7 Ch\u0103n nu\xF4i:**
+- Gi\u1ED1ng v\u1EADt nu\xF4i ph\u1ED5 bi\u1EBFn, th\u1EE5 tinh nh\xE2n t\u1EA1o
+- Dinh d\u01B0\u1EE1ng v\xE0 th\u1EE9c \u0103n ch\u0103n nu\xF4i
+- C\xF4ng ngh\u1EC7 chu\u1ED3ng tr\u1EA1i v\xE0 v\u1EC7 sinh th\xFA y
+- Ph\xF2ng tr\u1ECB b\u1EC7nh v\xE0 b\u1EA3o v\u1EC7 m\xF4i tr\u01B0\u1EDDng
+
+**L\u1EDBp 12 - L\xE2m nghi\u1EC7p & Th\u1EE7y s\u1EA3n:**
+- L\xE2m nghi\u1EC7p: Tr\u1ED3ng v\xE0 ch\u0103m s\xF3c r\u1EEBng, khai th\xE1c b\u1EC1n v\u1EEFng
+- Th\u1EE7y s\u1EA3n: M\xF4i tr\u01B0\u1EDDng nu\xF4i, gi\u1ED1ng t\xF4m/c\xE1, nu\xF4i tr\u1ED3ng c\xF4ng ngh\u1EC7 cao
+- Qu\u1EA3n l\xFD ngu\u1ED3n l\u1EE3i v\xE0 b\u1EA3o v\u1EC7 m\xF4i tr\u01B0\u1EDDng n\u01B0\u1EDBc
+
+## Y\xCAU C\u1EA6U OUTPUT:
+Tr\u1EA3 v\u1EC1 JSON array CH\xCDNH X\xC1C format sau (KH\xD4NG c\xF3 text ngo\xE0i JSON):
+
+[
+  {
+    "id": "q1",
+    "content": "N\u1ED9i dung c\xE2u h\u1ECFi \u0111\u1EA7y \u0111\u1EE7, r\xF5 r\xE0ng",
+    "options": ["\u0110\xE1p \xE1n A", "\u0110\xE1p \xE1n B", "\u0110\xE1p \xE1n C", "\u0110\xE1p \xE1n D"],
+    "answer": "A",
+    "explanation": "Gi\u1EA3i th\xEDch chi ti\u1EBFt t\u1EA1i sao \u0111\xE1p \xE1n n\xE0y \u0111\xFAng",
+    "level": "remember"
+  }
+]
+
+## QUY T\u1EAEC:
+1. "id": T\u1EEB "q1" \u0111\u1EBFn "q40" theo th\u1EE9 t\u1EF1
+2. "answer": CH\u1EC8 l\xE0 "A", "B", "C", ho\u1EB7c "D" (ch\u1EEF in hoa)
+3. "level": Ph\u1EA3i l\xE0 1 trong: "remember" (25%), "understand" (35%), "apply" (30%), "analyze" (10%)
+4. M\u1ED7i c\xE2u h\u1ECFi ph\u1EA3i c\xF3 \u0111\xFAng 4 \u0111\xE1p \xE1n trong "options"
+5. "explanation" ph\u1EA3i gi\u1EA3i th\xEDch CHI TI\u1EBET t\u1EA1i sao \u0111\xE1p \xE1n \u0111\xFAng
+6. N\u1ED9i dung c\xE2u h\u1ECFi PH\u1EA2I PH\xD9 H\u1EE2P v\u1EDBi l\u1EDBp v\xE0 \u0111\u1ECBnh h\u01B0\u1EDBng \u0111\u01B0\u1EE3c y\xEAu c\u1EA7u
+
+## PH\xC2N B\u1ED4 THEO LO\u1EA0I \u0110\u1EC0:
+- 15min: 15 c\xE2u (4 remember, 5 understand, 4 apply, 2 analyze)
+- midterm: 30 c\xE2u (8 remember, 10 understand, 9 apply, 3 analyze)
+- final: 40 c\xE2u (10 remember, 14 understand, 12 apply, 4 analyze)
+- thpt: 40 c\xE2u (10 remember, 14 understand, 12 apply, 4 analyze)`;
+async function generateTemplateWithAI(request, user, env2) {
+  try {
+    const body = await request.json();
+    if (!body.grade || !body.exam_type) {
+      return jsonResponse3({ error: "Thi\u1EBFu grade ho\u1EB7c exam_type" }, 400, env2.CORS_ORIGIN);
+    }
+    console.info("[exam-ai] Generating exam...", { grade: body.grade, type: body.exam_type });
+    let ragContext = "";
+    const topicSearch = body.topic || `C\xF4ng ngh\u1EC7 l\u1EDBp ${body.grade} ${body.branch === "cong_nghiep" ? "C\xF4ng nghi\u1EC7p" : body.branch === "nong_nghiep" ? "N\xF4ng nghi\u1EC7p" : ""}`;
+    if (env2.VECTORIZE && env2.HF_API_TOKEN) {
+      try {
+        const { getRAGContext: getRAGContext2 } = await Promise.resolve().then(() => (init_rag_pipeline(), rag_pipeline_exports));
+        const ragResult = await getRAGContext2(
+          env2.HF_API_TOKEN,
+          env2.VECTORIZE,
+          topicSearch,
+          { grade: body.grade }
+        );
+        ragContext = ragResult.context;
+        console.info("[exam-ai] RAG context found:", ragResult.sources?.length || 0, "sources");
+      } catch (err) {
+        console.warn("[exam-ai] RAG failed, continuing without context:", err);
+      }
+    }
+    const questionCounts = {
+      "15min": 15,
+      "midterm": 30,
+      "final": 40,
+      "thpt": 40
+    };
+    const numQuestions = questionCounts[body.exam_type] || 30;
+    const getSubjectContent = /* @__PURE__ */ __name((grade, branch) => {
+      const isCN = branch === "cong_nghiep";
+      const isNN = branch === "nong_nghiep";
+      switch (grade) {
+        case "10":
+          if (isCN) return "Thi\u1EBFt k\u1EBF v\xE0 C\xF4ng ngh\u1EC7: V\u1EBD k\u1EF9 thu\u1EADt, h\xECnh chi\u1EBFu vu\xF4ng g\xF3c, h\xECnh chi\u1EBFu tr\u1EE5c \u0111o, quy tr\xECnh thi\u1EBFt k\u1EBF, c\xE1ch m\u1EA1ng c\xF4ng nghi\u1EC7p 4.0";
+          if (isNN) return "C\xF4ng ngh\u1EC7 Tr\u1ED3ng tr\u1ECDt: \u0110\u1EA5t tr\u1ED3ng, ph\xE2n b\xF3n, gi\u1ED1ng c\xE2y tr\u1ED3ng, nu\xF4i c\u1EA5y m\xF4, k\u1EF9 thu\u1EADt tr\u1ED3ng tr\u1ECDt, ph\xF2ng tr\u1EEB s\xE2u b\u1EC7nh, thu ho\u1EA1ch b\u1EA3o qu\u1EA3n";
+          return "Thi\u1EBFt k\u1EBF v\xE0 C\xF4ng ngh\u1EC7 ho\u1EB7c C\xF4ng ngh\u1EC7 Tr\u1ED3ng tr\u1ECDt";
+        case "11":
+          if (isCN) return "C\xF4ng ngh\u1EC7 C\u01A1 kh\xED: Gia c\xF4ng c\u01A1 kh\xED (ti\u1EC7n, phay, b\xE0o, h\xE0n), v\u1EADt li\u1EC7u c\u01A1 kh\xED, c\u01A1 c\u1EA5u truy\u1EC1n \u0111\u1ED9ng, \u0111\u1ED9ng c\u01A1 \u0111\u1ED1t trong";
+          if (isNN) return "C\xF4ng ngh\u1EC7 Ch\u0103n nu\xF4i: Gi\u1ED1ng v\u1EADt nu\xF4i, th\u1EE5 tinh nh\xE2n t\u1EA1o, dinh d\u01B0\u1EE1ng th\u1EE9c \u0103n, chu\u1ED3ng tr\u1EA1i, v\u1EC7 sinh th\xFA y, ph\xF2ng tr\u1ECB b\u1EC7nh";
+          return "C\xF4ng ngh\u1EC7 C\u01A1 kh\xED ho\u1EB7c C\xF4ng ngh\u1EC7 Ch\u0103n nu\xF4i";
+        case "12":
+          if (isCN) return "C\xF4ng ngh\u1EC7 \u0110i\u1EC7n - \u0110i\u1EC7n t\u1EED: M\u1EA1ch \u0111i\u1EC7n xoay chi\u1EC1u, h\u1EC7 th\u1ED1ng \u0111i\u1EC7n qu\u1ED1c gia, an to\xE0n \u0111i\u1EC7n, linh ki\u1EC7n \u0111i\u1EC7n t\u1EED, vi \u0111i\u1EC1u khi\u1EC3n, t\u1EF1 \u0111\u1ED9ng h\xF3a, robot";
+          if (isNN) return "L\xE2m nghi\u1EC7p & Th\u1EE7y s\u1EA3n: Tr\u1ED3ng ch\u0103m s\xF3c r\u1EEBng, khai th\xE1c b\u1EC1n v\u1EEFng, m\xF4i tr\u01B0\u1EDDng nu\xF4i th\u1EE7y s\u1EA3n, gi\u1ED1ng t\xF4m c\xE1, nu\xF4i tr\u1ED3ng c\xF4ng ngh\u1EC7 cao";
+          return "C\xF4ng ngh\u1EC7 \u0110i\u1EC7n - \u0110i\u1EC7n t\u1EED ho\u1EB7c L\xE2m nghi\u1EC7p & Th\u1EE7y s\u1EA3n";
+        default:
+          return "";
+      }
+    }, "getSubjectContent");
+    const subjectContent = getSubjectContent(body.grade, body.branch);
+    const branchName = body.branch === "cong_nghiep" ? "\u0110\u1ECBnh h\u01B0\u1EDBng C\xF4ng nghi\u1EC7p" : body.branch === "nong_nghiep" ? "\u0110\u1ECBnh h\u01B0\u1EDBng N\xF4ng nghi\u1EC7p" : "";
+    const userPrompt = `T\u1EA1o \u0111\u1EC1 thi ${body.exam_type} m\xF4n C\xF4ng ngh\u1EC7 l\u1EDBp ${body.grade}${branchName ? ` - ${branchName}` : ""}.
+
+**TH\xD4NG TIN \u0110\u1EC0 THI:**
+- L\u1EDBp: ${body.grade}
+- \u0110\u1ECBnh h\u01B0\u1EDBng: ${branchName || "Kh\xF4ng x\xE1c \u0111\u1ECBnh"}
+- N\u1ED9i dung ch\xEDnh: ${subjectContent}
+- S\u1ED1 c\xE2u: ${numQuestions} c\xE2u
+- \u0110\u1ED9 kh\xF3: ${body.difficulty === "easy" ? "D\u1EC5" : body.difficulty === "hard" ? "Kh\xF3" : "Trung b\xECnh"}
+${body.chapters?.length ? `- Ch\u01B0\u01A1ng c\u1EE5 th\u1EC3: ${body.chapters.join(", ")}` : ""}
+${body.topic ? `- Ch\u1EE7 \u0111\u1EC1 tr\u1ECDng t\xE2m: ${body.topic}` : ""}
+
+=== KI\u1EBEN TH\u1EE8C SGK (RAG Context) ===
+${ragContext || "(Kh\xF4ng c\xF3 context SGK - s\u1EED d\u1EE5ng ki\u1EBFn th\u1EE9c chu\u1EA9n ch\u01B0\u01A1ng tr\xECnh)"}
+
+**L\u01AFU \xDD QUAN TR\u1ECCNG:** C\xE2u h\u1ECFi PH\u1EA2I li\xEAn quan \u0111\u1EBFn n\u1ED9i dung "${subjectContent}" c\u1EE7a l\u1EDBp ${body.grade}.
+
+Tr\u1EA3 v\u1EC1 JSON array \u0111\xFAng format.`;
+    const { callOpenRouter: callOpenRouter2, buildMessages: buildMessages2, MODEL_ROUTES: MODEL_ROUTES2 } = await Promise.resolve().then(() => (init_openrouter(), openrouter_exports));
+    const messages = buildMessages2(AI_EXAM_PROMPT, userPrompt);
+    const aiResult = await callOpenRouter2(env2.OPENROUTER_API_KEY, {
+      messages,
+      model: MODEL_ROUTES2.examGeneration,
+      temperature: 0.7,
+      useOnlineSearch: true
+    });
+    let questions;
+    try {
+      const jsonMatch = aiResult.text.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        throw new Error("No JSON array found in AI response");
+      }
+      questions = JSON.parse(jsonMatch[0]);
+      questions = questions.map((q, idx) => ({
+        id: q.id || `q${idx + 1}`,
+        content: q.content || q.question || "",
+        options: Array.isArray(q.options) ? q.options : [],
+        answer: (q.answer || "A").toUpperCase(),
+        explanation: q.explanation || "",
+        level: ["remember", "understand", "apply", "analyze"].includes(q.level) ? q.level : "remember"
+      }));
+    } catch (parseError) {
+      console.error("[exam-ai] Parse error:", parseError, aiResult.text.substring(0, 500));
+      return jsonResponse3({
+        error: "AI tr\u1EA3 v\u1EC1 format kh\xF4ng h\u1EE3p l\u1EC7",
+        raw: aiResult.text.substring(0, 1e3)
+      }, 500, env2.CORS_ORIGIN);
+    }
+    const title = `\u0110\u1EC1 ${body.exam_type === "15min" ? "ki\u1EC3m tra 15 ph\xFAt" : body.exam_type === "midterm" ? "gi\u1EEFa k\xEC" : body.exam_type === "final" ? "cu\u1ED1i k\xEC" : "THPT QG"} - C\xF4ng ngh\u1EC7 ${body.grade}${body.branch ? ` (${body.branch === "cong_nghiep" ? "CN" : "NN"})` : ""}`;
+    const durations = {
+      "15min": 15,
+      "midterm": 45,
+      "final": 60,
+      "thpt": 50
+    };
+    const templateId = generateId();
+    const now = Date.now();
+    const template = {
+      id: templateId,
+      grade: body.grade,
+      branch: body.branch || null,
+      exam_type: body.exam_type,
+      title,
+      description: `\u0110\u1EC1 \u0111\u01B0\u1EE3c t\u1EA1o t\u1EF1 \u0111\u1ED9ng b\u1EDFi AI t\u1EEB SGK${body.chapters?.length ? ` - Ch\u01B0\u01A1ng: ${body.chapters.join(", ")}` : ""}`,
+      questions: JSON.stringify(questions),
+      total_questions: questions.length,
+      duration_minutes: durations[body.exam_type] || 45,
+      difficulty: body.difficulty || "medium",
+      chapters: body.chapters ? JSON.stringify(body.chapters) : null,
+      publisher: body.publisher || null,
+      created_at: now,
+      created_by: user.sub,
+      is_public: 1,
+      times_taken: 0
+    };
+    if (body.save !== false) {
+      await env2.DB.prepare(`
+                INSERT INTO exam_templates 
+                (id, grade, branch, exam_type, title, description, questions, total_questions, 
+                 duration_minutes, difficulty, chapters, publisher, created_at, created_by, is_public, times_taken)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(
+        template.id,
+        template.grade,
+        template.branch,
+        template.exam_type,
+        template.title,
+        template.description,
+        template.questions,
+        template.total_questions,
+        template.duration_minutes,
+        template.difficulty,
+        template.chapters,
+        template.publisher,
+        template.created_at,
+        template.created_by,
+        template.is_public,
+        template.times_taken
+      ).run();
+      console.info("[exam-ai] Template saved:", templateId);
+    }
+    return jsonResponse3({
+      success: true,
+      template: {
+        id: template.id,
+        title: template.title,
+        total_questions: template.total_questions,
+        duration_minutes: template.duration_minutes,
+        difficulty: template.difficulty
+      },
+      questions
+      // Trả về luôn để preview
+    }, 201, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[exam-ai] Generate error:", error);
+    return jsonResponse3({
+      error: "L\u1ED7i t\u1EA1o \u0111\u1EC1 thi",
+      details: error instanceof Error ? error.message : "Unknown error"
+    }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(generateTemplateWithAI, "generateTemplateWithAI");
+
+// src/user-management.ts
+init_modules_watch_stub();
+async function createUser(request, env2) {
+  try {
+    const body = await request.json();
+    const { email, name, role = "student" } = body;
+    let { password } = body;
+    if (!email || !name) {
+      return jsonResponse({ error: "Email and Name are required" }, 400);
+    }
+    const existing = await env2.DB.prepare("SELECT id FROM users WHERE email = ?").bind(email.toLowerCase()).first();
+    if (existing) {
+      return jsonResponse({ error: "Email already exists" }, 409);
+    }
+    const id = generateId();
+    if (!password) password = "StemPassword123!";
+    const passwordHash = await hashPassword(password);
+    const now = Date.now();
+    await env2.DB.prepare(
+      "INSERT INTO users (id, email, password_hash, name, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    ).bind(id, email.toLowerCase(), passwordHash, name, role, now, now).run();
+    return jsonResponse({
+      success: true,
+      user: { id, email, name, role },
+      message: "User created successfully"
+    }, 201);
+  } catch (error) {
+    console.error("[admin] create user error:", error);
+    return jsonResponse({ error: "Internal server error", details: error.message }, 500);
+  }
+}
+__name(createUser, "createUser");
+async function bulkCreateUsers(request, env2) {
+  try {
+    const users = await request.json();
+    if (!Array.isArray(users) || users.length === 0) {
+      return jsonResponse({ error: "Invalid input: expected array of users" }, 400);
+    }
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: []
+    };
+    const now = Date.now();
+    const defaultPassword = "StemPassword123!";
+    const defaultHash = await hashPassword(defaultPassword);
+    for (const user of users) {
+      const { email, name, role = "student", password } = user;
+      if (!email || !name) {
+        results.failed++;
+        results.errors.push(`Missing email or name for user: ${JSON.stringify(user)}`);
+        continue;
+      }
+      const id = generateId();
+      const pHash = password ? await hashPassword(password) : defaultHash;
+      try {
+        await env2.DB.prepare(
+          "INSERT INTO users (id, email, password_hash, name, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+        ).bind(id, email.toLowerCase(), pHash, name, role, now, now).run();
+        results.success++;
+      } catch (err) {
+        if (err.message?.includes("UNIQUE")) {
+          results.failed++;
+          results.errors.push(`Email ${email} already exists`);
+        } else {
+          results.failed++;
+          results.errors.push(`Error creating ${email}: ${err.message}`);
+        }
+      }
+    }
+    return jsonResponse({ success: true, results }, 200);
+  } catch (error) {
+    console.error("[admin] bulk create error:", error);
+    return jsonResponse({ error: "Internal server error", details: error.message }, 500);
+  }
+}
+__name(bulkCreateUsers, "bulkCreateUsers");
+async function updateUserDetails(id, request, env2) {
+  try {
+    const body = await request.json();
+    const { name, email, role, password } = body;
+    const updates = [];
+    const params = [];
+    if (name) {
+      updates.push("name = ?");
+      params.push(name);
+    }
+    if (email) {
+      updates.push("email = ?");
+      params.push(email.toLowerCase());
+    }
+    if (role) {
+      updates.push("role = ?");
+      params.push(role);
+    }
+    if (password) {
+      const hash = await hashPassword(password);
+      updates.push("password_hash = ?");
+      params.push(hash);
+    }
+    if (updates.length === 0) {
+      return jsonResponse({ error: "No fields to update" }, 400);
+    }
+    updates.push("updated_at = ?");
+    params.push(Date.now());
+    params.push(id);
+    const query = `UPDATE users SET ${updates.join(", ")} WHERE id = ?`;
+    const result = await env2.DB.prepare(query).bind(...params).run();
+    if (result.meta.changes === 0) {
+      return jsonResponse({ error: "User not found or no changes made" }, 404);
+    }
+    return jsonResponse({ success: true, message: "User updated successfully" }, 200);
+  } catch (error) {
+    console.error("[admin] update user error:", error);
+    return jsonResponse({ error: "Update failed", details: error.message }, 500);
+  }
+}
+__name(updateUserDetails, "updateUserDetails");
+async function getUsers(env2) {
+  try {
+    const results = await env2.DB.prepare(
+      "SELECT id, email, name, role, avatar_url, created_at, updated_at FROM users ORDER BY created_at DESC"
+    ).all();
+    return jsonResponse({ users: results.results || [] }, 200);
+  } catch (error) {
+    console.error("[admin] get users error:", error);
+    return jsonResponse({ error: "Failed to fetch users" }, 500);
+  }
+}
+__name(getUsers, "getUsers");
+async function getUser(id, env2) {
+  try {
+    const user = await env2.DB.prepare(
+      "SELECT id, email, name, role, avatar_url, created_at, updated_at FROM users WHERE id = ?"
+    ).bind(id).first();
+    if (!user) {
+      return jsonResponse({ error: "User not found" }, 404);
+    }
+    const convoCount = await env2.DB.prepare(
+      "SELECT COUNT(*) as count FROM conversations WHERE user_id = ?"
+    ).bind(id).first();
+    const msgCount = await env2.DB.prepare(
+      `SELECT COUNT(*) as count FROM messages 
+             JOIN conversations ON messages.conversation_id = conversations.id 
+             WHERE conversations.user_id = ?`
+    ).bind(id).first();
+    return jsonResponse({
+      user,
+      stats: {
+        conversations: convoCount?.count || 0,
+        messages: msgCount?.count || 0
+      }
+    }, 200);
+  } catch (error) {
+    console.error("[admin] get user error:", error);
+    return jsonResponse({ error: "Failed to fetch user" }, 500);
+  }
+}
+__name(getUser, "getUser");
+async function deleteUser(id, env2) {
+  try {
+    const res = await env2.DB.prepare("DELETE FROM users WHERE id = ?").bind(id).run();
+    if (res.meta.changes === 0) {
+      return jsonResponse({ error: "User not found" }, 404);
+    }
+    return jsonResponse({ success: true, message: "User deleted" }, 200);
+  } catch (error) {
+    console.error("[admin] delete user error:", error);
+    return jsonResponse({ error: "Failed to delete user" }, 500);
+  }
+}
+__name(deleteUser, "deleteUser");
+async function getStats(env2) {
+  try {
+    const userCount = await env2.DB.prepare("SELECT COUNT(*) as count FROM users").first();
+    const convoCount = await env2.DB.prepare("SELECT COUNT(*) as count FROM conversations").first();
+    const msgCount = await env2.DB.prepare("SELECT COUNT(*) as count FROM messages").first();
+    return jsonResponse({
+      stats: {
+        total_users: userCount?.count || 0,
+        total_conversations: convoCount?.count || 0,
+        total_messages: msgCount?.count || 0
+      }
+    }, 200);
+  } catch (error) {
+    console.error("[admin] get stats error:", error);
+    return jsonResponse({ error: "Failed to fetch stats" }, 500);
+  }
+}
+__name(getStats, "getStats");
+
+// src/conversation-routes.ts
+init_modules_watch_stub();
+function jsonResponse4(data, status, origin) {
+  const parsedOrigin = getAllowedOrigin(origin, origin);
+  return jsonResponse(data, status, parsedOrigin);
+}
+__name(jsonResponse4, "jsonResponse");
+async function getConversations(user, env2) {
+  try {
+    const result = await env2.DB.prepare(
+      "SELECT id, title, created_at, updated_at FROM conversations WHERE user_id = ? ORDER BY updated_at DESC"
+    ).bind(user.sub).all();
+    return jsonResponse4({
+      conversations: result.results || []
+    }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[convo] get error:", error);
+    return jsonResponse4({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(getConversations, "getConversations");
+async function getConversation(id, user, env2) {
+  try {
+    const convo = await env2.DB.prepare(
+      "SELECT id, title, created_at, updated_at FROM conversations WHERE id = ? AND user_id = ?"
+    ).bind(id, user.sub).first();
+    if (!convo) {
+      return jsonResponse4({ error: "Conversation kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    }
+    const messagesResult = await env2.DB.prepare(
+      "SELECT id, role, content, attachments, created_at FROM messages WHERE conversation_id = ? ORDER BY created_at ASC"
+    ).bind(id).all();
+    return jsonResponse4({
+      conversation: convo,
+      messages: (messagesResult.results || []).map((m) => ({
+        ...m,
+        attachments: m.attachments ? JSON.parse(m.attachments) : null
+      }))
+    }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[convo] get one error:", error);
+    return jsonResponse4({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(getConversation, "getConversation");
+async function createConversation(request, user, env2) {
+  try {
+    const body = await request.json();
+    const id = generateId();
+    const now = Date.now();
+    await env2.DB.prepare(
+      "INSERT INTO conversations (id, user_id, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?)"
+    ).bind(id, user.sub, body.title || "Cu\u1ED9c tr\xF2 chuy\u1EC7n m\u1EDBi", now, now).run();
+    return jsonResponse4({
+      id,
+      title: body.title || "Cu\u1ED9c tr\xF2 chuy\u1EC7n m\u1EDBi",
+      created_at: now,
+      updated_at: now
+    }, 201, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[convo] create error:", error);
+    return jsonResponse4({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(createConversation, "createConversation");
+async function deleteConversation(id, user, env2) {
+  try {
+    const convo = await env2.DB.prepare(
+      "SELECT id FROM conversations WHERE id = ? AND user_id = ?"
+    ).bind(id, user.sub).first();
+    if (!convo) {
+      return jsonResponse4({ error: "Conversation kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    }
+    await env2.DB.prepare("DELETE FROM conversations WHERE id = ?").bind(id).run();
+    return jsonResponse4({ success: true }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[convo] delete error:", error);
+    return jsonResponse4({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(deleteConversation, "deleteConversation");
+async function addMessage(conversationId, user, message, env2) {
+  try {
+    const convo = await env2.DB.prepare(
+      "SELECT id, title FROM conversations WHERE id = ? AND user_id = ?"
+    ).bind(conversationId, user.sub).first();
+    if (!convo) {
+      return jsonResponse4({ error: "Conversation kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    }
+    const id = generateId();
+    const now = Date.now();
+    await env2.DB.prepare(
+      "INSERT INTO messages (id, conversation_id, role, content, attachments, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+    ).bind(
+      id,
+      conversationId,
+      message.role,
+      message.content,
+      message.attachments ? JSON.stringify(message.attachments) : null,
+      now
+    ).run();
+    let newTitle = convo.title;
+    if (message.role === "user" && convo.title === "Cu\u1ED9c tr\xF2 chuy\u1EC7n m\u1EDBi") {
+      newTitle = message.content.slice(0, 50) + (message.content.length > 50 ? "..." : "");
+    }
+    await env2.DB.prepare(
+      "UPDATE conversations SET updated_at = ?, title = ? WHERE id = ?"
+    ).bind(now, newTitle, conversationId).run();
+    return jsonResponse4({
+      id,
+      role: message.role,
+      content: message.content,
+      created_at: now
+    }, 201, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[convo] add message error:", error);
+    return jsonResponse4({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(addMessage, "addMessage");
+async function addMessageFromRequest(conversationId, request, user, env2) {
+  try {
+    const body = await request.json();
+    if (!body.role || !body.content) {
+      return jsonResponse4({ error: "role v\xE0 content l\xE0 b\u1EAFt bu\u1ED9c" }, 400, env2.CORS_ORIGIN);
+    }
+    return addMessage(conversationId, user, body, env2);
+  } catch (error) {
+    console.error("[convo] addMessageFromRequest error:", error);
+    return jsonResponse4({ error: "Invalid JSON" }, 400, env2.CORS_ORIGIN);
+  }
+}
+__name(addMessageFromRequest, "addMessageFromRequest");
+async function getAdminConversations(env2, page = 1, limit = 20) {
+  try {
+    const offset = (page - 1) * limit;
+    const results = await env2.DB.prepare(`
+            SELECT c.id, c.user_id, c.title, c.created_at, c.updated_at, u.name as user_name, u.email as user_email
+            FROM conversations c
+            JOIN users u ON c.user_id = u.id
+            ORDER BY c.updated_at DESC
+            LIMIT ? OFFSET ?
+        `).bind(limit, offset).all();
+    const total = await env2.DB.prepare("SELECT COUNT(*) as count FROM conversations").first();
+    return jsonResponse4({
+      conversations: results.results || [],
+      pagination: {
+        page,
+        limit,
+        total: total?.count || 0,
+        totalPages: Math.ceil((total?.count || 0) / limit)
+      }
+    }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[admin] get conversations error:", error);
+    return jsonResponse4({ error: "Server error" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(getAdminConversations, "getAdminConversations");
+async function getAdminConversation(id, env2) {
+  try {
+    const convo = await env2.DB.prepare(`
+            SELECT c.id, c.user_id, c.title, c.created_at, c.updated_at, u.name as user_name, u.email as user_email
+            FROM conversations c
+            JOIN users u ON c.user_id = u.id
+            WHERE c.id = ?
+        `).bind(id).first();
+    if (!convo) {
+      return jsonResponse4({ error: "Conversation not found" }, 404, env2.CORS_ORIGIN);
+    }
+    const messages = await env2.DB.prepare(
+      "SELECT id, role, content, attachments, created_at FROM messages WHERE conversation_id = ? ORDER BY created_at ASC"
+    ).bind(id).all();
+    return jsonResponse4({
+      conversation: convo,
+      messages: (messages.results || []).map((m) => ({
+        ...m,
+        attachments: m.attachments ? JSON.parse(m.attachments) : null
+      }))
+    }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[admin] get conversation error:", error);
+    return jsonResponse4({ error: "Server error" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(getAdminConversation, "getAdminConversation");
+async function deleteAdminConversation(id, env2) {
+  try {
+    await env2.DB.prepare("DELETE FROM messages WHERE conversation_id = ?").bind(id).run();
+    const res = await env2.DB.prepare("DELETE FROM conversations WHERE id = ?").bind(id).run();
+    if (res.meta.changes === 0) {
+      return jsonResponse4({ error: "Conversation not found" }, 404, env2.CORS_ORIGIN);
+    }
+    return jsonResponse4({ success: true }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[admin] delete conversation error:", error);
+    return jsonResponse4({ error: "Server error" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(deleteAdminConversation, "deleteAdminConversation");
+
+// src/storage-routes.ts
+init_modules_watch_stub();
+async function getFileFromR2(fileName, env2) {
+  if (!env2.BOOKS_BUCKET) {
+    return new Response("R2 Bucket not configured", { status: 500 });
+  }
+  const object = await env2.BOOKS_BUCKET.get(fileName);
+  if (!object) {
+    return new Response("File not found", { status: 404 });
+  }
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set("etag", object.httpEtag);
+  headers.set("Cache-Control", "public, max-age=31536000");
+  return new Response(object.body, {
+    headers
+  });
+}
+__name(getFileFromR2, "getFileFromR2");
+async function handleStorageRequest(request, env2) {
+  const origin = getAllowedOrigin(request.headers.get("Origin"), env2.CORS_ORIGIN);
+  const url = new URL(request.url);
+  const path = url.pathname.replace("/api/storage/", "");
+  console.log("[storage] serving", path, "method:", request.method);
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      headers: {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Max-Age": "86400"
+      }
+    });
+  }
+  if (request.method === "HEAD") {
+    try {
+      const object = await env2.BOOKS_BUCKET.head(path);
+      if (!object) {
+        return new Response(null, {
+          status: 404,
+          headers: {
+            "Access-Control-Allow-Origin": origin
+          }
+        });
+      }
+      return new Response(null, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Length": object.size.toString(),
+          "Access-Control-Allow-Origin": origin,
+          "Cache-Control": "public, max-age=3600"
+        }
+      });
+    } catch (error) {
+      console.error("[storage] HEAD error:", error);
+      return new Response(null, {
+        status: 500,
+        headers: {
+          "Access-Control-Allow-Origin": origin
+        }
+      });
+    }
+  }
+  if (request.method === "GET") {
+    const response = await getFileFromR2(path, env2);
+    response.headers.set("Access-Control-Allow-Origin", origin);
+    return response;
+  }
+  return new Response("Method not allowed", {
+    status: 405,
+    headers: {
+      "Access-Control-Allow-Origin": origin
+    }
+  });
+}
+__name(handleStorageRequest, "handleStorageRequest");
+
+// src/index.ts
+init_rag_pipeline();
+
+// src/rag/advanced-rag-pipeline.ts
+init_modules_watch_stub();
+
+// src/rag/hybrid-search.ts
+init_modules_watch_stub();
+init_vectorize();
+
+// src/rag/bm25.ts
+init_modules_watch_stub();
+var BM25Scorer = class {
+  static {
+    __name(this, "BM25Scorer");
+  }
+  k1 = 1.5;
+  // Term frequency saturation
+  b = 0.75;
+  // Length normalization
+  docCount = 0;
+  avgDocLength = 0;
+  docFrequency = /* @__PURE__ */ new Map();
+  // How many docs contain term
+  documentLengths = /* @__PURE__ */ new Map();
+  constructor(documents) {
+    this.buildIndex(documents);
+  }
+  /**
+   * Build inverted index for BM25
+   */
+  buildIndex(documents) {
+    this.docCount = documents.length;
+    let totalLength = 0;
+    for (const doc of documents) {
+      const tokens = this.tokenize(doc.content);
+      const uniqueTokens = new Set(tokens);
+      this.documentLengths.set(doc.id, tokens.length);
+      totalLength += tokens.length;
+      for (const token of uniqueTokens) {
+        this.docFrequency.set(
+          token,
+          (this.docFrequency.get(token) || 0) + 1
+        );
+      }
+    }
+    this.avgDocLength = totalLength / this.docCount;
+  }
+  /**
+   * Tokenize text - Simple word splitting + lowercasing
+   * TODO: Add Vietnamese-specific tokenization (underthesea, vnTokenizer)
+   */
+  tokenize(text) {
+    return text.toLowerCase().replace(/[^\w\sàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ]/g, " ").split(/\s+/).filter((t) => t.length > 1);
+  }
+  /**
+   * Calculate IDF (Inverse Document Frequency)
+   * IDF(t) = log((N - df(t) + 0.5) / (df(t) + 0.5) + 1)
+   */
+  idf(term) {
+    const df = this.docFrequency.get(term) || 0;
+    return Math.log((this.docCount - df + 0.5) / (df + 0.5) + 1);
+  }
+  /**
+   * Calculate BM25 score for a document given a query
+   */
+  score(query, document2) {
+    const queryTokens = this.tokenize(query);
+    const docTokens = this.tokenize(document2.content);
+    const docLength = this.documentLengths.get(document2.id) || docTokens.length;
+    const termFreq = /* @__PURE__ */ new Map();
+    for (const token of docTokens) {
+      termFreq.set(token, (termFreq.get(token) || 0) + 1);
+    }
+    let score = 0;
+    for (const qToken of queryTokens) {
+      const tf = termFreq.get(qToken) || 0;
+      const idfScore = this.idf(qToken);
+      const numerator = tf * (this.k1 + 1);
+      const denominator = tf + this.k1 * (1 - this.b + this.b * (docLength / this.avgDocLength));
+      score += idfScore * (numerator / denominator);
+    }
+    return score;
+  }
+  /**
+   * Search documents using BM25
+   */
+  search(query, documents, topK = 10) {
+    const results = documents.map((doc) => ({
+      id: doc.id,
+      score: this.score(query, doc),
+      content: doc.content,
+      metadata: doc.metadata
+    }));
+    results.sort((a, b) => b.score - a.score);
+    return results.slice(0, topK);
+  }
+};
+async function searchWithFTS5(query, db, topK = 10) {
+  try {
+    const results = await db.prepare(`
+            SELECT 
+                id,
+                content,
+                metadata,
+                bm25(book_chunks_fts) as score
+            FROM book_chunks_fts
+            WHERE book_chunks_fts MATCH ?
+            ORDER BY score
+            LIMIT ?
+        `).bind(query, topK).all();
+    return results.results.map((row) => ({
+      id: row.id,
+      score: -row.score,
+      // BM25 returns negative scores
+      content: row.content,
+      metadata: row.metadata ? JSON.parse(row.metadata) : void 0
+    }));
+  } catch (error) {
+    console.error("[BM25] FTS5 search error:", error);
+    return [];
+  }
+}
+__name(searchWithFTS5, "searchWithFTS5");
+
+// src/rag/hybrid-search.ts
+function reciprocalRankFusion(rankings, k = 60) {
+  const scores = /* @__PURE__ */ new Map();
+  for (const ranking of rankings) {
+    ranking.forEach((item, index) => {
+      const rank = index + 1;
+      const rrfScore = 1 / (k + rank);
+      scores.set(item.id, (scores.get(item.id) || 0) + rrfScore);
+    });
+  }
+  return scores;
+}
+__name(reciprocalRankFusion, "reciprocalRankFusion");
+function weightedSumFusion(denseResults, sparseResults, denseWeight = 0.7, sparseWeight = 0.3) {
+  const scores = /* @__PURE__ */ new Map();
+  for (const result of denseResults) {
+    scores.set(result.id, {
+      score: result.score * denseWeight,
+      denseScore: result.score
+    });
+  }
+  const maxBM25 = Math.max(...sparseResults.map((r) => r.score), 1);
+  for (const result of sparseResults) {
+    const normalizedScore = result.score / maxBM25;
+    const existing = scores.get(result.id);
+    if (existing) {
+      existing.score += normalizedScore * sparseWeight;
+      existing.sparseScore = result.score;
+    } else {
+      scores.set(result.id, {
+        score: normalizedScore * sparseWeight,
+        sparseScore: result.score
+      });
+    }
+  }
+  return scores;
+}
+__name(weightedSumFusion, "weightedSumFusion");
+async function hybridSearch({
+  query,
+  vectorIndex,
+  db,
+  topK = 10,
+  useFTS5 = true,
+  // Use D1 FTS5 vs in-memory BM25
+  fusionMethod = "rrf",
+  denseWeight = 0.7,
+  sparseWeight = 0.3
+}) {
+  const denseResults = await searchVectors(query, vectorIndex, topK * 2);
+  let sparseResults;
+  if (useFTS5) {
+    sparseResults = await searchWithFTS5(query, db, topK * 2);
+  } else {
+    const documents = await loadDocumentsFromDB(db);
+    const bm25 = new BM25Scorer(documents);
+    sparseResults = bm25.search(query, documents, topK * 2);
+  }
+  let fusedScores;
+  if (fusionMethod === "rrf") {
+    const rrfScores = reciprocalRankFusion([
+      denseResults.map((r) => ({ id: r.id, score: r.score })),
+      sparseResults.map((r) => ({ id: r.id, score: r.score }))
+    ]);
+    fusedScores = /* @__PURE__ */ new Map();
+    for (const [id, score] of rrfScores) {
+      const dense = denseResults.find((r) => r.id === id);
+      const sparse = sparseResults.find((r) => r.id === id);
+      fusedScores.set(id, {
+        score,
+        denseScore: dense?.score,
+        sparseScore: sparse?.score
+      });
+    }
+  } else {
+    fusedScores = weightedSumFusion(denseResults, sparseResults, denseWeight, sparseWeight);
+  }
+  const allResults = /* @__PURE__ */ new Map();
+  for (const result of denseResults) {
+    allResults.set(result.id, {
+      id: result.id,
+      content: result.metadata?.text || "",
+      score: 0,
+      metadata: result.metadata
+    });
+  }
+  for (const result of sparseResults) {
+    if (!allResults.has(result.id)) {
+      allResults.set(result.id, {
+        id: result.id,
+        content: result.content,
+        score: 0,
+        metadata: result.metadata
+      });
+    }
+  }
+  for (const [id, scoreData] of fusedScores) {
+    const result = allResults.get(id);
+    if (result) {
+      result.score = scoreData.score;
+      result.denseScore = scoreData.denseScore;
+      result.sparseScore = scoreData.sparseScore;
+    }
+  }
+  const sortedResults = Array.from(allResults.values()).sort((a, b) => b.score - a.score).slice(0, topK);
+  console.log("[HybridSearch] Results:", {
+    query,
+    denseCount: denseResults.length,
+    sparseCount: sparseResults.length,
+    fusedCount: sortedResults.length,
+    topScore: sortedResults[0]?.score
+  });
+  return sortedResults;
+}
+__name(hybridSearch, "hybridSearch");
+async function loadDocumentsFromDB(db) {
+  const results = await db.prepare(`
+        SELECT id, content, metadata FROM book_chunks
+        LIMIT 1000
+    `).all();
+  return results.results.map((row) => ({
+    id: row.id,
+    content: row.content,
+    metadata: row.metadata ? JSON.parse(row.metadata) : void 0
+  }));
+}
+__name(loadDocumentsFromDB, "loadDocumentsFromDB");
+
+// src/rag/reranker.ts
+init_modules_watch_stub();
+init_openrouter();
+async function rerank({
+  query,
+  documents,
+  topK = 5,
+  model = "google/gemini-2.0-flash-exp:free",
+  // Fast and free
+  apiKey
+}) {
+  if (documents.length === 0) return [];
+  const batchSize = 10;
+  const batches = [];
+  for (let i = 0; i < documents.length; i += batchSize) {
+    batches.push(documents.slice(i, i + batchSize));
+  }
+  const allScores = [];
+  for (const batch of batches) {
+    const scores = await rerankBatch(query, batch, model, apiKey);
+    allScores.push(...scores);
+  }
+  allScores.sort((a, b) => b.score - a.score);
+  console.log("[Reranker] Results:", {
+    query,
+    inputCount: documents.length,
+    outputCount: allScores.length,
+    topScore: allScores[0]?.score
+  });
+  return allScores.slice(0, topK);
+}
+__name(rerank, "rerank");
+async function rerankBatch(query, documents, model, apiKey) {
+  const prompt = `
+You are a relevance scoring system. Given a user query and a list of document snippets, score each document's relevance to the query on a scale of 0.0 to 1.0.
+
+**Query**: ${query}
+
+**Documents**:
+${documents.map((doc, i) => `
+[${i}] ${doc.content.substring(0, 300)}...
+`).join("\n")}
+
+**Instructions**:
+- Return ONLY a JSON array of scores
+- Each score should be between 0.0 (not relevant) and 1.0 (highly relevant)
+- Consider semantic relevance, not just keyword matching
+- Format: [0.8, 0.3, 0.9, ...]
+
+**Output**:`;
+  try {
+    const response = await callOpenRouter({
+      messages: [{ role: "user", content: prompt }],
+      model,
+      apiKey,
+      max_tokens: 500,
+      temperature: 0.1
+      // Low temperature for consistent scoring
+    });
+    const scoresText = response.content.trim();
+    const scores = JSON.parse(scoresText);
+    return documents.map((doc, i) => ({
+      id: doc.id,
+      content: doc.content,
+      score: scores[i] || 0,
+      originalScore: doc.score,
+      metadata: doc.metadata
+    }));
+  } catch (error) {
+    console.error("[Reranker] Error:", error);
+    return documents.map((doc) => ({
+      id: doc.id,
+      content: doc.content,
+      score: doc.score,
+      // Use original score as fallback
+      originalScore: doc.score,
+      metadata: doc.metadata
+    }));
+  }
+}
+__name(rerankBatch, "rerankBatch");
+
+// src/rag/query-expansion.ts
+init_modules_watch_stub();
+init_openrouter();
+async function expandQuery({
+  query,
+  model = "google/gemini-2.0-flash-exp:free",
+  apiKey,
+  maxExpansions = 5
+}) {
+  const prompt = `
+Given the user query, generate alternative phrasings and related terms for better search.
+
+**Query**: ${query}
+
+**Generate**:
+1. **Synonyms**: Alternative Vietnamese terms for key concepts
+2. **Translations**: English equivalents (if applicable)
+3. **Related Terms**: Broader or narrower concepts
+
+Format as JSON:
+{
+  "synonyms": ["term1", "term2"],
+  "translations": ["english1", "english2"],
+  "relatedTerms": ["related1", "related2"]
+}
+
+Limit to ${maxExpansions} items per category.
+Return ONLY the JSON.`;
+  try {
+    const response = await callOpenRouter({
+      messages: [{ role: "user", content: prompt }],
+      model,
+      apiKey,
+      max_tokens: 300,
+      temperature: 0.3
+    });
+    const data = JSON.parse(response.content.trim());
+    const all = /* @__PURE__ */ new Set([
+      query,
+      ...data.synonyms,
+      ...data.translations,
+      ...data.relatedTerms
+    ]);
+    console.log("[QueryExpansion] Expanded:", {
+      original: query,
+      totalVariants: all.size
+    });
+    return {
+      original: query,
+      synonyms: data.synonyms || [],
+      translations: data.translations || [],
+      relatedTerms: data.relatedTerms || [],
+      all: Array.from(all)
+    };
+  } catch (error) {
+    console.error("[QueryExpansion] Error:", error);
+    return {
+      original: query,
+      synonyms: [],
+      translations: [],
+      relatedTerms: [],
+      all: [query]
+    };
+  }
+}
+__name(expandQuery, "expandQuery");
+async function multiQuerySearch({
+  query,
+  searchFn,
+  topK = 10,
+  apiKey
+}) {
+  const expanded = await expandQuery({ query, apiKey });
+  const allResults = await Promise.all(
+    expanded.all.slice(0, 3).map((q) => searchFn(q))
+    // Limit to 3 queries to avoid quota
+  );
+  const merged = /* @__PURE__ */ new Map();
+  for (const results of allResults) {
+    for (const result of results) {
+      const existing = merged.get(result.id);
+      if (!existing || result.score > existing.score) {
+        merged.set(result.id, result);
+      }
+    }
+  }
+  const sorted = Array.from(merged.values()).sort((a, b) => b.score - a.score).slice(0, topK);
+  console.log("[MultiQuerySearch] Merged:", {
+    queriesRun: expanded.all.length,
+    totalResults: merged.size,
+    topK: sorted.length
+  });
+  return sorted;
+}
+__name(multiQuerySearch, "multiQuerySearch");
+
+// src/rag/contextual-compression.ts
+init_modules_watch_stub();
+init_openrouter();
+async function compressContext({
+  query,
+  chunks,
+  maxTokens = 2e3,
+  model = "google/gemini-2.0-flash-exp:free",
+  apiKey
+}) {
+  const results = [];
+  for (const chunk of chunks) {
+    const compressed = await compressChunk({
+      query,
+      content: chunk.content,
+      maxTokens: Math.floor(maxTokens / chunks.length),
+      model,
+      apiKey
+    });
+    results.push(compressed);
+  }
+  console.log("[ContextCompression] Results:", {
+    originalChunks: chunks.length,
+    totalTokensSaved: results.reduce((sum, r) => sum + r.tokensSaved, 0),
+    avgCompressionRatio: results.reduce((sum, r) => sum + r.compressionRatio, 0) / results.length
+  });
+  return results;
+}
+__name(compressContext, "compressContext");
+async function compressChunk({
+  query,
+  content,
+  maxTokens,
+  model,
+  apiKey
+}) {
+  const originalTokens = estimateTokens(content);
+  if (originalTokens <= maxTokens) {
+    return {
+      original: content,
+      compressed: content,
+      tokensSaved: 0,
+      compressionRatio: 1
+    };
+  }
+  const prompt = `
+Given the user query and a document chunk, extract ONLY the sentences that are directly relevant to answering the query.
+
+**Query**: ${query}
+
+**Document**:
+${content}
+
+**Instructions**:
+- Extract relevant sentences verbatim (kh\xF4ng s\u1EEDa \u0111\u1ED5i)
+- Maintain original order
+- Aim for ~${maxTokens} tokens (~${Math.floor(maxTokens / 4)} Vietnamese words)
+- If nothing is relevant, return "N/A"
+
+**Output** (relevant sentences only):`;
+  try {
+    const response = await callOpenRouter({
+      messages: [{ role: "user", content: prompt }],
+      model,
+      apiKey,
+      max_tokens: maxTokens + 100,
+      temperature: 0
+    });
+    const compressed = response.content.trim();
+    const compressedTokens = estimateTokens(compressed);
+    return {
+      original: content,
+      compressed: compressed === "N/A" ? "" : compressed,
+      tokensSaved: originalTokens - compressedTokens,
+      compressionRatio: compressedTokens / originalTokens
+    };
+  } catch (error) {
+    console.error("[ContextCompression] Error:", error);
+    const words = content.split(/\s+/);
+    const truncated = words.slice(0, maxTokens / 4).join(" ") + "...";
+    return {
+      original: content,
+      compressed: truncated,
+      tokensSaved: originalTokens - estimateTokens(truncated),
+      compressionRatio: estimateTokens(truncated) / originalTokens
+    };
+  }
+}
+__name(compressChunk, "compressChunk");
+function estimateTokens(text) {
+  return Math.ceil(text.length / 4);
+}
+__name(estimateTokens, "estimateTokens");
+
+// src/rag/advanced-rag-pipeline.ts
+async function advancedRAGPipeline({
+  query,
+  vectorIndex,
+  db,
+  apiKey,
+  options = {}
+}) {
+  const startTime = Date.now();
+  const config = {
+    useHybrid: options.useHybrid ?? true,
+    useReranking: options.useReranking ?? true,
+    useQueryExpansion: options.useQueryExpansion ?? false,
+    useCompression: options.useCompression ?? true,
+    topK: options.topK ?? 5,
+    maxContextTokens: options.maxContextTokens ?? 2e3
+  };
+  let retrievedDocs = [];
+  let rerankedDocs = [];
+  let compressedChunks = [];
+  const retrievalStart = Date.now();
+  if (config.useQueryExpansion) {
+    retrievedDocs = await multiQuerySearch({
+      query,
+      searchFn: /* @__PURE__ */ __name(async (q) => {
+        if (config.useHybrid) {
+          return hybridSearch({
+            query: q,
+            vectorIndex,
+            db,
+            topK: config.topK * 2
+            // Get more for reranking
+          });
+        } else {
+          const { searchVectors: searchVectors2 } = await Promise.resolve().then(() => (init_vectorize(), vectorize_exports));
+          const vectorResults = await searchVectors2(vectorIndex, apiKey, q, void 0, config.topK * 2);
+          return vectorResults.map((r) => ({
+            id: r.id,
+            content: r.metadata?.content || "",
+            score: r.score,
+            denseScore: r.score,
+            metadata: r.metadata
+          }));
+        }
+      }, "searchFn"),
+      topK: config.topK * 2,
+      apiKey
+    });
+  } else {
+    if (config.useHybrid) {
+      retrievedDocs = await hybridSearch({
+        query,
+        vectorIndex,
+        db,
+        topK: config.topK * 2
+      });
+    } else {
+      const { searchVectors: searchVectors2 } = await Promise.resolve().then(() => (init_vectorize(), vectorize_exports));
+      const vectorResults = await searchVectors2(vectorIndex, apiKey, query, void 0, config.topK * 2);
+      retrievedDocs = vectorResults.map((r) => ({
+        id: r.id,
+        content: r.metadata?.content || "",
+        score: r.score,
+        denseScore: r.score,
+        metadata: r.metadata
+      }));
+    }
+  }
+  const retrievalTime = Date.now() - retrievalStart;
+  const rerankStart = Date.now();
+  if (config.useReranking && retrievedDocs.length > 0) {
+    rerankedDocs = await rerank({
+      query,
+      documents: retrievedDocs,
+      topK: config.topK,
+      apiKey
+    });
+  } else {
+    rerankedDocs = retrievedDocs.slice(0, config.topK).map((doc) => ({
+      id: doc.id,
+      content: doc.content,
+      score: doc.score,
+      metadata: doc.metadata
+    }));
+  }
+  const rerankTime = Date.now() - rerankStart;
+  const compressionStart = Date.now();
+  if (config.useCompression && rerankedDocs.length > 0) {
+    compressedChunks = await compressContext({
+      query,
+      chunks: rerankedDocs.map((doc) => ({ content: doc.content, id: doc.id })),
+      maxTokens: config.maxContextTokens,
+      apiKey
+    });
+  } else {
+    compressedChunks = rerankedDocs.map((doc) => ({
+      original: doc.content,
+      compressed: doc.content,
+      tokensSaved: 0,
+      compressionRatio: 1
+    }));
+  }
+  const compressionTime = Date.now() - compressionStart;
+  const totalTime = Date.now() - startTime;
+  const context = compressedChunks.filter((chunk) => chunk.compressed && chunk.compressed !== "N/A").map((chunk) => chunk.compressed).join("\n\n");
+  const sources = rerankedDocs.map((doc) => ({
+    id: doc.id,
+    content: doc.content.substring(0, 200) + "...",
+    score: doc.score,
+    metadata: doc.metadata
+  }));
+  const metrics = {
+    retrievalTime,
+    rerankTime,
+    compressionTime,
+    totalTime,
+    documentsRetrieved: retrievedDocs.length,
+    documentsReranked: rerankedDocs.length,
+    tokensCompressed: compressedChunks.reduce((sum, c) => sum + c.tokensSaved, 0)
+  };
+  console.log("[AdvancedRAG] Pipeline completed:", metrics);
+  return {
+    context,
+    sources,
+    metrics
+  };
+}
+__name(advancedRAGPipeline, "advancedRAGPipeline");
+async function getAdvancedRAGContext(apiKey, vectorIndex, query, db) {
+  const result = await advancedRAGPipeline({
+    query,
+    vectorIndex,
+    db,
+    apiKey,
+    options: {
+      useHybrid: true,
+      useReranking: true,
+      useQueryExpansion: false,
+      // Disabled by default to save cost
+      useCompression: true,
+      topK: 5,
+      maxContextTokens: 2e3
+    }
+  });
+  return {
+    context: result.context,
+    sources: result.sources
+  };
+}
+__name(getAdvancedRAGContext, "getAdvancedRAGContext");
+
+// src/index.ts
+init_file_parser();
+
+// src/ingest.ts
+init_modules_watch_stub();
+init_vectorize();
+function parseFilename(key) {
+  const filename = key.split("/").pop() || "";
+  const lower = filename.toLowerCase();
+  let grade = "10";
+  if (lower.includes("l\u1EDBp 11") || lower.includes("lop 11") || lower.includes("11")) grade = "11";
+  if (lower.includes("l\u1EDBp 12") || lower.includes("lop 12") || lower.includes("12")) grade = "12";
+  let subject = "cong_nghiep";
+  if (lower.includes("n\xF4ng nghi\u1EC7p") || lower.includes("nong nghiep") || lower.includes("tr\u1ED3ng tr\u1ECDt") || lower.includes("ch\u0103n nu\xF4i") || lower.includes("l\xE2m nghi\u1EC7p") || lower.includes("th\u1EE7y s\u1EA3n")) {
+    subject = "nong_nghiep";
+  }
+  let type = "sgk";
+  if (lower.includes("chuy\xEAn \u0111\u1EC1") || lower.includes("chuyen de")) type = "chuyen_de";
+  if (lower.includes("\u0111\u1EC1 thi") || lower.includes("de thi") || lower.includes("ma_de")) type = "de_mau";
+  let title = filename.replace(".pdf", "").replace(".docx", "").replace(".txt", "");
+  return { grade, subject, type, title };
+}
+__name(parseFilename, "parseFilename");
+function splitIntoChunks(text, chunkSize = 1e3, overlap = 200) {
+  const chunks = [];
+  if (!text || text.trim().length === 0) return chunks;
+  const paragraphs = text.split(/\n\s*\n/);
+  let currentChunk = "";
+  for (const para of paragraphs) {
+    const trimmed = para.trim();
+    if (!trimmed) continue;
+    if (currentChunk.length + trimmed.length < chunkSize) {
+      currentChunk += "\n\n" + trimmed;
+    } else {
+      if (currentChunk.length >= 100) {
+        chunks.push(currentChunk.trim());
+      }
+      const words = currentChunk.split(" ");
+      const overlapWords = words.slice(-Math.floor(overlap / 5));
+      currentChunk = overlapWords.join(" ") + "\n\n" + trimmed;
+    }
+  }
+  if (currentChunk.length >= 100) {
+    chunks.push(currentChunk.trim());
+  }
+  return chunks;
+}
+__name(splitIntoChunks, "splitIntoChunks");
+async function extractTextFromFile(content, filename) {
+  const lower = filename.toLowerCase();
+  if (lower.endsWith(".docx")) {
+    try {
+      const decoder = new TextDecoder("utf-8", { fatal: false });
+      const rawText = decoder.decode(content);
+      const textMatches = rawText.match(/<w:t[^>]*>([^<]+)<\/w:t>/g);
+      if (textMatches) {
+        return textMatches.map((m) => m.replace(/<[^>]+>/g, "")).join(" ");
+      }
+    } catch (e) {
+      console.warn("[ingest] DOCX parse failed:", e);
+    }
+  }
+  if (lower.endsWith(".pdf")) {
+    console.warn("[ingest] PDF needs pre-processing:", filename);
+    return `[PDF File] ${filename} - C\u1EA7n pre-process b\u1EB1ng external tool`;
+  }
+  try {
+    const decoder = new TextDecoder("utf-8", { fatal: false });
+    return decoder.decode(content);
+  } catch (e) {
+    return "";
+  }
+}
+__name(extractTextFromFile, "extractTextFromFile");
+async function ingestFromR2(request, user, env2) {
+  const origin = env2.CORS_ORIGIN?.split(";")[0] || "*";
+  try {
+    const body = await request.json();
+    console.info("[ingest] Starting ingest...", body);
+    const result = {
+      success: true,
+      filesProcessed: 0,
+      chunksInserted: 0,
+      errors: [],
+      files: []
+    };
+    const listOptions = {
+      prefix: body.prefix || "dulieu/",
+      limit: body.maxFiles || 100
+    };
+    const listed = await env2.BOOKS_BUCKET.list(listOptions);
+    console.info("[ingest] Found files:", listed.objects.length);
+    let filesToProcess = listed.objects.filter((obj2) => {
+      const key = obj2.key.toLowerCase();
+      if (key.endsWith("/")) return false;
+      if (!key.endsWith(".pdf") && !key.endsWith(".docx") && !key.endsWith(".txt")) return false;
+      if (body.grade && !key.includes(`l\u1EDBp ${body.grade}`) && !key.includes(`lop ${body.grade}`) && !key.includes(body.grade)) {
+        return false;
+      }
+      if (body.branch) {
+        const isAgri = key.includes("n\xF4ng") || key.includes("tr\u1ED3ng") || key.includes("ch\u0103n") || key.includes("l\xE2m") || key.includes("th\u1EE7y");
+        if (body.branch === "nong_nghiep" && !isAgri) return false;
+        if (body.branch === "cong_nghiep" && isAgri) return false;
+      }
+      return true;
+    });
+    result.files = filesToProcess.map((f) => f.key);
+    if (body.dryRun) {
+      return jsonResponse5({
+        ...result,
+        message: "Dry run - files listed but not processed"
+      }, 200, origin);
+    }
+    const allRecords = [];
+    for (const obj2 of filesToProcess) {
+      try {
+        console.info("[ingest] Processing:", obj2.key);
+        const fileObj = await env2.BOOKS_BUCKET.get(obj2.key);
+        if (!fileObj) {
+          result.errors.push(`File not found: ${obj2.key}`);
+          continue;
+        }
+        const content = await fileObj.arrayBuffer();
+        const text = await extractTextFromFile(content, obj2.key);
+        if (!text || text.length < 100) {
+          result.errors.push(`Empty or too short: ${obj2.key}`);
+          continue;
+        }
+        const chunks = splitIntoChunks(text);
+        if (chunks.length === 0) {
+          result.errors.push(`No chunks created: ${obj2.key}`);
+          continue;
+        }
+        const meta = parseFilename(obj2.key);
+        const bookId = obj2.key.replace(/[^a-zA-Z0-9]/g, "_");
+        for (let i = 0; i < chunks.length; i++) {
+          const chunkId = `${bookId}_chunk_${i}`;
+          allRecords.push({
+            id: chunkId,
+            values: [],
+            // Sẽ fill sau khi tạo embeddings
+            metadata: {
+              bookId,
+              title: meta.title || obj2.key,
+              grade: meta.grade || "10",
+              subject: meta.subject || "cong_nghiep",
+              type: meta.type || "sgk",
+              section: `Chunk ${i + 1}/${chunks.length}`,
+              content: chunks[i]
+            }
+          });
+        }
+        result.filesProcessed++;
+      } catch (err) {
+        result.errors.push(`Error processing ${obj2.key}: ${err.message}`);
+        console.error("[ingest] File error:", obj2.key, err);
+      }
+    }
+    if (allRecords.length > 0) {
+      console.info("[ingest] Creating embeddings for", allRecords.length, "chunks...");
+      const batchSize = 10;
+      for (let i = 0; i < allRecords.length; i += batchSize) {
+        const batch = allRecords.slice(i, i + batchSize);
+        const texts = batch.map((r) => r.metadata.content);
+        try {
+          const embeddings = await createEmbeddingsBatch2(env2.HF_API_TOKEN, texts);
+          for (let j = 0; j < batch.length; j++) {
+            batch[j].values = embeddings[j];
+          }
+          console.info(`[ingest] Embeddings created: ${i + batch.length}/${allRecords.length}`);
+        } catch (err) {
+          result.errors.push(`Embedding error batch ${i}: ${err.message}`);
+          for (const rec of batch) {
+            const idx = allRecords.indexOf(rec);
+            if (idx > -1) allRecords.splice(idx, 1);
+          }
+        }
+      }
+      const validRecords = allRecords.filter((r) => r.values.length > 0);
+      if (validRecords.length > 0) {
+        console.info("[ingest] Inserting", validRecords.length, "records into Vectorize...");
+        const insertBatchSize = 50;
+        for (let i = 0; i < validRecords.length; i += insertBatchSize) {
+          const insertBatch = validRecords.slice(i, i + insertBatchSize);
+          try {
+            const insertResult = await insertVectors(env2.VECTORIZE, insertBatch);
+            result.chunksInserted += insertResult.inserted;
+          } catch (err) {
+            result.errors.push(`Insert error batch ${i}: ${err.message}`);
+          }
+        }
+      }
+    }
+    console.info("[ingest] Done!", result);
+    return jsonResponse5(result, 200, origin);
+  } catch (error) {
+    console.error("[ingest] Fatal error:", error);
+    return jsonResponse5({
+      success: false,
+      error: error.message
+    }, 500, origin);
+  }
+}
+__name(ingestFromR2, "ingestFromR2");
+function jsonResponse5(data, status, origin) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": origin || "*"
+    }
+  });
+}
+__name(jsonResponse5, "jsonResponse");
+
+// src/class-routes.ts
+init_modules_watch_stub();
+function jsonResponse6(data, status, origin) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": origin || "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization"
+    }
+  });
+}
+__name(jsonResponse6, "jsonResponse");
+async function getClasses(user, env2) {
+  try {
+    let sql = "";
+    let params = [];
+    if (user.role === "teacher" || user.role === "admin") {
+      sql = `
+                SELECT c.*, 
+                       (SELECT COUNT(*) FROM class_members cm WHERE cm.class_id = c.id) as member_count
+                FROM classes c
+                WHERE c.teacher_id = ?
+                ORDER BY c.created_at DESC
+            `;
+      params = [user.sub];
+    } else {
+      sql = `
+                SELECT c.*, u.name as teacher_name
+                FROM classes c
+                JOIN class_members cm ON c.id = cm.class_id
+                LEFT JOIN users u ON c.teacher_id = u.id
+                WHERE cm.user_id = ?
+                ORDER BY cm.joined_at DESC
+            `;
+      params = [user.sub];
+    }
+    const result = await env2.DB.prepare(sql).bind(...params).all();
+    return jsonResponse6(result.results || [], 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[classes] getClasses error:", error);
+    return jsonResponse6({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(getClasses, "getClasses");
+async function createClass(request, user, env2) {
+  if (user.role !== "teacher" && user.role !== "admin") {
+    return jsonResponse6({ error: "B\u1EA1n kh\xF4ng c\xF3 quy\u1EC1n t\u1EA1o l\u1EDBp" }, 403, env2.CORS_ORIGIN);
+  }
+  try {
+    const body = await request.json();
+    if (!body.name || body.name.length < 3) {
+      return jsonResponse6({ error: "T\xEAn l\u1EDBp ph\u1EA3i t\u1EEB 3 k\xFD t\u1EF1 tr\u1EDF l\xEAn" }, 400, env2.CORS_ORIGIN);
+    }
+    const id = generateId();
+    const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    await env2.DB.prepare(`
+            INSERT INTO classes (id, name, teacher_id, join_code, description, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `).bind(id, body.name, user.sub, joinCode, body.description || null, Date.now()).run();
+    return jsonResponse6({ id, join_code: joinCode, message: "T\u1EA1o l\u1EDBp th\xE0nh c\xF4ng" }, 201, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[classes] createClass error:", error);
+    return jsonResponse6({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(createClass, "createClass");
+async function joinClass(request, user, env2) {
+  try {
+    const body = await request.json();
+    if (!body.join_code) {
+      return jsonResponse6({ error: "Thi\u1EBFu m\xE3 tham gia" }, 400, env2.CORS_ORIGIN);
+    }
+    const cls = await env2.DB.prepare("SELECT id, name, teacher_id FROM classes WHERE join_code = ?").bind(body.join_code.toUpperCase()).first();
+    if (!cls) {
+      return jsonResponse6({ error: "M\xE3 l\u1EDBp kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    }
+    if (cls.teacher_id === user.sub) {
+      return jsonResponse6({ error: "B\u1EA1n l\xE0 gi\xE1o vi\xEAn c\u1EE7a l\u1EDBp n\xE0y" }, 400, env2.CORS_ORIGIN);
+    }
+    const existing = await env2.DB.prepare("SELECT 1 FROM class_members WHERE class_id = ? AND user_id = ?").bind(cls.id, user.sub).first();
+    if (existing) {
+      return jsonResponse6({ error: "B\u1EA1n \u0111\xE3 tham gia l\u1EDBp n\xE0y r\u1ED3i" }, 400, env2.CORS_ORIGIN);
+    }
+    await env2.DB.prepare(`
+            INSERT INTO class_members (class_id, user_id, joined_at)
+            VALUES (?, ?, ?)
+        `).bind(cls.id, user.sub, Date.now()).run();
+    return jsonResponse6({ message: `\u0110\xE3 tham gia l\u1EDBp ${cls.name}`, class_id: cls.id }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[classes] joinClass error:", error);
+    return jsonResponse6({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(joinClass, "joinClass");
+async function getClassDetails(classId, user, env2) {
+  try {
+    const cls = await env2.DB.prepare(`
+            SELECT c.*, u.name as teacher_name
+            FROM classes c
+            LEFT JOIN users u ON c.teacher_id = u.id
+            WHERE c.id = ?
+        `).bind(classId).first();
+    if (!cls) {
+      return jsonResponse6({ error: "L\u1EDBp kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    }
+    let isTeacher = cls.teacher_id === user.sub;
+    let isMember = false;
+    if (!isTeacher) {
+      const memberCheck = await env2.DB.prepare("SELECT 1 FROM class_members WHERE class_id = ? AND user_id = ?").bind(classId, user.sub).first();
+      isMember = !!memberCheck;
+    }
+    if (!isTeacher && !isMember && user.role !== "admin") {
+      return jsonResponse6({ error: "B\u1EA1n kh\xF4ng c\xF3 quy\u1EC1n truy c\u1EADp l\u1EDBp n\xE0y" }, 403, env2.CORS_ORIGIN);
+    }
+    const members = await env2.DB.prepare(`
+            SELECT cm.*, u.name, u.email
+            FROM class_members cm
+            JOIN users u ON cm.user_id = u.id
+            WHERE cm.class_id = ?
+            ORDER BY cm.joined_at DESC
+        `).bind(classId).all();
+    const assignments = await env2.DB.prepare(`
+            SELECT ca.*, t.title as template_title, t.duration_minutes, t.total_questions,
+                   (SELECT COUNT(*) FROM exam_attempts a WHERE a.template_id = ca.template_id AND a.user_id = ?) as attempts_count,
+                   (SELECT MAX(a.score) FROM exam_attempts a WHERE a.template_id = ca.template_id AND a.user_id = ?) as max_score
+            FROM class_assignments ca
+            JOIN exam_templates t ON ca.template_id = t.id
+            WHERE ca.class_id = ?
+            ORDER BY ca.created_at DESC
+        `).bind(user.sub, user.sub, classId).all();
+    return jsonResponse6({
+      class: cls,
+      is_teacher: isTeacher,
+      members: members.results || [],
+      assignments: assignments.results || []
+    }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[classes] getClassDetails error:", error);
+    return jsonResponse6({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(getClassDetails, "getClassDetails");
+async function createAssignment(request, classId, user, env2) {
+  try {
+    const cls = await env2.DB.prepare("SELECT teacher_id FROM classes WHERE id = ?").bind(classId).first();
+    if (!cls) return jsonResponse6({ error: "L\u1EDBp kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    if (cls.teacher_id !== user.sub && user.role !== "admin") {
+      return jsonResponse6({ error: "Ch\u1EC9 gi\xE1o vi\xEAn c\u1EE7a l\u1EDBp \u0111\u01B0\u1EE3c giao b\xE0i" }, 403, env2.CORS_ORIGIN);
+    }
+    const body = await request.json();
+    if (!body.template_id) {
+      return jsonResponse6({ error: "Thi\u1EBFu template_id" }, 400, env2.CORS_ORIGIN);
+    }
+    const tpl = await env2.DB.prepare("SELECT id FROM exam_templates WHERE id = ?").bind(body.template_id).first();
+    if (!tpl) {
+      return jsonResponse6({ error: "\u0110\u1EC1 thi kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    }
+    const id = generateId();
+    await env2.DB.prepare(`
+            INSERT INTO class_assignments (id, class_id, template_id, due_date, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        `).bind(id, classId, body.template_id, body.due_date || null, Date.now()).run();
+    return jsonResponse6({ message: "Giao b\xE0i th\xE0nh c\xF4ng", id }, 201, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[classes] createAssignment error:", error);
+    return jsonResponse6({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(createAssignment, "createAssignment");
+async function deleteClass(classId, user, env2) {
+  try {
+    const cls = await env2.DB.prepare("SELECT teacher_id FROM classes WHERE id = ?").bind(classId).first();
+    if (!cls) return jsonResponse6({ error: "L\u1EDBp kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    if (cls.teacher_id !== user.sub && user.role !== "admin") {
+      return jsonResponse6({ error: "Kh\xF4ng c\xF3 quy\u1EC1n x\xF3a l\u1EDBp n\xE0y" }, 403, env2.CORS_ORIGIN);
+    }
+    await env2.DB.prepare("DELETE FROM classes WHERE id = ?").bind(classId).run();
+    return jsonResponse6({ message: "X\xF3a l\u1EDBp th\xE0nh c\xF4ng" }, 200, env2.CORS_ORIGIN);
+  } catch (error) {
+    console.error("[classes] deleteClass error:", error);
+    return jsonResponse6({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+  }
+}
+__name(deleteClass, "deleteClass");
+
+// src/gamification-routes.ts
 init_modules_watch_stub();
 
 // node_modules/hono/dist/index.js
@@ -23867,14 +28886,14 @@ var Hono = class _Hono {
    * app.route("/api", app2) // GET /api/user
    * ```
    */
-  route(path, app2) {
+  route(path, app5) {
     const subApp = this.basePath(path);
-    app2.routes.map((r) => {
+    app5.routes.map((r) => {
       let handler;
-      if (app2.errorHandler === errorHandler) {
+      if (app5.errorHandler === errorHandler) {
         handler = r.handler;
       } else {
-        handler = /* @__PURE__ */ __name(async (c, next) => (await compose([], app2.errorHandler)(c, () => r.handler(c, next))).res, "handler");
+        handler = /* @__PURE__ */ __name(async (c, next) => (await compose([], app5.errorHandler)(c, () => r.handler(c, next))).res, "handler");
         handler[COMPOSED_HANDLER] = r.handler;
       }
       subApp.#addRoute(r.method, r.path, handler);
@@ -24797,1181 +29816,923 @@ var Hono2 = class extends Hono {
   }
 };
 
-// src/middleware/cors.ts
-init_modules_watch_stub();
-
-// node_modules/hono/dist/middleware/cors/index.js
-init_modules_watch_stub();
-var cors = /* @__PURE__ */ __name((options) => {
-  const defaults = {
-    origin: "*",
-    allowMethods: ["GET", "HEAD", "PUT", "POST", "DELETE", "PATCH"],
-    allowHeaders: [],
-    exposeHeaders: []
-  };
-  const opts = {
-    ...defaults,
-    ...options
-  };
-  const findAllowOrigin = ((optsOrigin) => {
-    if (typeof optsOrigin === "string") {
-      if (optsOrigin === "*") {
-        return () => optsOrigin;
-      } else {
-        return (origin) => optsOrigin === origin ? origin : null;
-      }
-    } else if (typeof optsOrigin === "function") {
-      return optsOrigin;
-    } else {
-      return (origin) => optsOrigin.includes(origin) ? origin : null;
+// src/gamification-routes.ts
+var app = new Hono2();
+var LEVEL_THRESHOLDS = [
+  0,
+  // Level 1
+  100,
+  // Level 2
+  250,
+  // Level 3
+  500,
+  // Level 4
+  1e3,
+  // Level 5
+  1750,
+  // Level 6
+  2750,
+  // Level 7
+  4e3,
+  // Level 8
+  5500,
+  // Level 9
+  7500
+  // Level 10+
+];
+function calculateLevel(xp) {
+  for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
+    if (xp >= LEVEL_THRESHOLDS[i]) {
+      return i + 1;
     }
-  })(opts.origin);
-  const findAllowMethods = ((optsAllowMethods) => {
-    if (typeof optsAllowMethods === "function") {
-      return optsAllowMethods;
-    } else if (Array.isArray(optsAllowMethods)) {
-      return () => optsAllowMethods;
-    } else {
-      return () => [];
-    }
-  })(opts.allowMethods);
-  return /* @__PURE__ */ __name(async function cors2(c, next) {
-    function set(key, value) {
-      c.res.headers.set(key, value);
-    }
-    __name(set, "set");
-    const allowOrigin = await findAllowOrigin(c.req.header("origin") || "", c);
-    if (allowOrigin) {
-      set("Access-Control-Allow-Origin", allowOrigin);
-    }
-    if (opts.credentials) {
-      set("Access-Control-Allow-Credentials", "true");
-    }
-    if (opts.exposeHeaders?.length) {
-      set("Access-Control-Expose-Headers", opts.exposeHeaders.join(","));
-    }
-    if (c.req.method === "OPTIONS") {
-      if (opts.origin !== "*") {
-        set("Vary", "Origin");
-      }
-      if (opts.maxAge != null) {
-        set("Access-Control-Max-Age", opts.maxAge.toString());
-      }
-      const allowMethods = await findAllowMethods(c.req.header("origin") || "", c);
-      if (allowMethods.length) {
-        set("Access-Control-Allow-Methods", allowMethods.join(","));
-      }
-      let headers = opts.allowHeaders;
-      if (!headers?.length) {
-        const requestHeaders = c.req.header("Access-Control-Request-Headers");
-        if (requestHeaders) {
-          headers = requestHeaders.split(/\s*,\s*/);
-        }
-      }
-      if (headers?.length) {
-        set("Access-Control-Allow-Headers", headers.join(","));
-        c.res.headers.append("Vary", "Access-Control-Request-Headers");
-      }
-      c.res.headers.delete("Content-Length");
-      c.res.headers.delete("Content-Type");
-      return new Response(null, {
-        headers: c.res.headers,
-        status: 204,
-        statusText: "No Content"
-      });
-    }
-    await next();
-    if (opts.origin !== "*") {
-      c.header("Vary", "Origin", { append: true });
-    }
-  }, "cors2");
-}, "cors");
-
-// src/middleware/cors.ts
-function createCorsMiddleware(corsOrigin) {
-  return cors({
-    origin: corsOrigin || "*",
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization", "X-User-OpenRouter-Key", "X-User-HF-Token", "X-User-Model", "X-User-Provider"],
-    exposeHeaders: ["Content-Length"],
-    maxAge: 86400,
-    credentials: true
+  }
+  return 1;
+}
+__name(calculateLevel, "calculateLevel");
+app.get("/profile", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const user = await c.env.DB.prepare(`
+        SELECT id, name, xp, level, streak, last_activity_date
+        FROM users WHERE id = ?
+    `).bind(userId).first();
+  if (!user) {
+    return c.json({ error: "User not found" }, 404);
+  }
+  const badges = await c.env.DB.prepare(`
+        SELECT b.id, b.name, b.description, b.icon, b.category, ub.earned_at
+        FROM user_badges ub
+        JOIN badges b ON ub.badge_id = b.id
+        WHERE ub.user_id = ?
+        ORDER BY ub.earned_at DESC
+    `).bind(userId).all();
+  const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+  let dailyGoal = await c.env.DB.prepare(`
+        SELECT * FROM daily_goals WHERE user_id = ? AND date = ?
+    `).bind(userId, today).first();
+  if (!dailyGoal) {
+    const goalId = crypto.randomUUID();
+    await c.env.DB.prepare(`
+            INSERT INTO daily_goals (id, user_id, date, target_exams, completed_exams)
+            VALUES (?, ?, ?, 3, 0)
+        `).bind(goalId, userId, today).run();
+    dailyGoal = { id: goalId, target_exams: 3, completed_exams: 0, achieved: false };
+  }
+  const currentLevel = user.level || 1;
+  const currentXP = user.xp || 0;
+  const currentLevelXP = LEVEL_THRESHOLDS[currentLevel - 1] || 0;
+  const nextLevelXP = LEVEL_THRESHOLDS[currentLevel] || LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
+  const progressToNextLevel = Math.min(100, (currentXP - currentLevelXP) / (nextLevelXP - currentLevelXP) * 100);
+  return c.json({
+    xp: currentXP,
+    level: currentLevel,
+    streak: user.streak || 0,
+    progressToNextLevel: Math.round(progressToNextLevel),
+    xpToNextLevel: nextLevelXP - currentXP,
+    badges: badges.results || [],
+    dailyGoal
   });
-}
-__name(createCorsMiddleware, "createCorsMiddleware");
-
-// src/middleware/auth.ts
-init_modules_watch_stub();
-
-// src/auth.ts
-init_modules_watch_stub();
-var HASH_ITERATIONS = 1e5;
-var HASH_LENGTH = 32;
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(password),
-    "PBKDF2",
-    false,
-    ["deriveBits"]
-  );
-  const hash = await crypto.subtle.deriveBits(
-    {
-      name: "PBKDF2",
-      salt,
-      iterations: HASH_ITERATIONS,
-      hash: "SHA-256"
-    },
-    keyMaterial,
-    HASH_LENGTH * 8
-  );
-  const saltB64 = btoa(String.fromCharCode(...salt));
-  const hashB64 = btoa(String.fromCharCode(...new Uint8Array(hash)));
-  return `${saltB64}:${hashB64}`;
-}
-__name(hashPassword, "hashPassword");
-async function verifyPassword(password, storedHash) {
-  const [saltB64, hashB64] = storedHash.split(":");
-  if (!saltB64 || !hashB64) return false;
-  const salt = Uint8Array.from(atob(saltB64), (c) => c.charCodeAt(0));
-  const encoder = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(password),
-    "PBKDF2",
-    false,
-    ["deriveBits"]
-  );
-  const hash = await crypto.subtle.deriveBits(
-    {
-      name: "PBKDF2",
-      salt,
-      iterations: HASH_ITERATIONS,
-      hash: "SHA-256"
-    },
-    keyMaterial,
-    HASH_LENGTH * 8
-  );
-  const computedHashB64 = btoa(String.fromCharCode(...new Uint8Array(hash)));
-  return computedHashB64 === hashB64;
-}
-__name(verifyPassword, "verifyPassword");
-function base64UrlEncode(str) {
-  return btoa(unescape(encodeURIComponent(str))).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-}
-__name(base64UrlEncode, "base64UrlEncode");
-function base64UrlDecode(str) {
-  const padded = str.replace(/-/g, "+").replace(/_/g, "/");
-  return decodeURIComponent(escape(atob(padded)));
-}
-__name(base64UrlDecode, "base64UrlDecode");
-async function createJWT(payload, secret, expiresInHours = 24 * 7) {
-  const encoder = new TextEncoder();
-  const header = { alg: "HS256", typ: "JWT" };
-  const now = Math.floor(Date.now() / 1e3);
-  const fullPayload = {
-    ...payload,
-    iat: now,
-    exp: now + expiresInHours * 3600
-  };
-  const headerB64 = base64UrlEncode(JSON.stringify(header));
-  const payloadB64 = base64UrlEncode(JSON.stringify(fullPayload));
-  const data = `${headerB64}.${payloadB64}`;
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(data));
-  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-  return `${data}.${signatureB64}`;
-}
-__name(createJWT, "createJWT");
-async function verifyJWT(token, secret) {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    const [headerB64, payloadB64, signatureB64] = parts;
-    const encoder = new TextEncoder();
-    const data = `${headerB64}.${payloadB64}`;
-    const key = await crypto.subtle.importKey(
-      "raw",
-      encoder.encode(secret),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["verify"]
-    );
-    const signaturePadded = signatureB64.replace(/-/g, "+").replace(/_/g, "/");
-    const signature = Uint8Array.from(atob(signaturePadded), (c) => c.charCodeAt(0));
-    const valid = await crypto.subtle.verify("HMAC", key, signature, encoder.encode(data));
-    if (!valid) return null;
-    try {
-      const payloadJson = base64UrlDecode(payloadB64);
-      const payload = JSON.parse(payloadJson);
-      if (payload.exp < Math.floor(Date.now() / 1e3)) {
-        return null;
-      }
-      return payload;
-    } catch (e) {
-      console.error("JWT Decode Error:", e);
-      return null;
-    }
-  } catch {
-    return null;
-  }
-}
-__name(verifyJWT, "verifyJWT");
-function generateId() {
-  return crypto.randomUUID();
-}
-__name(generateId, "generateId");
-
-// src/middleware/auth.ts
-function getToken(c) {
-  const auth = c.req.header("Authorization");
-  if (!auth?.startsWith("Bearer ")) return null;
-  return auth.slice(7);
-}
-__name(getToken, "getToken");
-function authMiddleware(jwtSecret) {
-  return async (c, next) => {
-    const token = getToken(c);
-    if (token) {
-      try {
-        const payload = await verifyJWT(token, jwtSecret);
-        c.set("user", payload);
-      } catch {
-        c.set("user", null);
-      }
-    } else {
-      c.set("user", null);
-    }
-    await next();
-  };
-}
-__name(authMiddleware, "authMiddleware");
-
-// src/routes/auth.ts
-init_modules_watch_stub();
-var authRoutes = new Hono2();
-authRoutes.post("/register", async (c) => {
-  try {
-    const body = await c.req.json();
-    const { email, password, name } = body;
-    if (!email || !password || !name) {
-      return c.json({ error: "Email, password v\xE0 name l\xE0 b\u1EAFt bu\u1ED9c" }, 400);
-    }
-    if (password.length < 6) {
-      return c.json({ error: "Password ph\u1EA3i c\xF3 \xEDt nh\u1EA5t 6 k\xFD t\u1EF1" }, 400);
-    }
-    const existing = await c.env.DB.prepare(
-      "SELECT id FROM users WHERE email = ?"
-    ).bind(email.toLowerCase()).first();
-    if (existing) {
-      return c.json({ error: "Email \u0111\xE3 \u0111\u01B0\u1EE3c s\u1EED d\u1EE5ng" }, 409);
-    }
-    const userId = generateId();
-    const passwordHash = await hashPassword(password);
-    await c.env.DB.prepare(
-      "INSERT INTO users (id, email, password_hash, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)"
-    ).bind(userId, email.toLowerCase(), passwordHash, name, Date.now(), Date.now()).run();
-    return c.json({
-      success: true,
-      message: "\u0110\u0103ng k\xFD th\xE0nh c\xF4ng! Vui l\xF2ng \u0111\u0103ng nh\u1EADp."
-    }, 201);
-  } catch (error) {
-    console.error("[auth] register error:", error);
-    return c.json({
-      error: "L\u1ED7i server",
-      details: error instanceof Error ? error.message : String(error)
-    }, 500);
-  }
 });
-authRoutes.post("/login", async (c) => {
-  try {
-    if (!c.env.JWT_SECRET) {
-      console.error("[auth] Critical error: JWT_SECRET is missing");
-      return c.json({ error: "Server configuration error" }, 500);
-    }
-    const body = await c.req.json();
-    const { email, password } = body;
-    if (!email || !password) {
-      return c.json({ error: "Email v\xE0 password l\xE0 b\u1EAFt bu\u1ED9c" }, 400);
-    }
-    const user = await c.env.DB.prepare(
-      "SELECT id, email, password_hash, name, avatar_url FROM users WHERE email = ?"
-    ).bind(email.toLowerCase()).first();
-    if (!user) {
-      return c.json({ error: "Email ho\u1EB7c password kh\xF4ng \u0111\xFAng" }, 401);
-    }
-    const valid = await verifyPassword(password, user.password_hash);
-    if (!valid) {
-      return c.json({ error: "Email ho\u1EB7c password kh\xF4ng \u0111\xFAng" }, 401);
-    }
-    const token = await createJWT({
-      sub: user.id,
-      email: user.email,
-      name: user.name
-    }, c.env.JWT_SECRET);
-    return c.json({
-      success: true,
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        avatar_url: user.avatar_url
-      }
-    }, 200);
-  } catch (error) {
-    console.error("[auth] login error:", error);
-    return c.json({
-      error: "L\u1ED7i server",
-      details: error instanceof Error ? error.message : String(error)
-    }, 500);
+app.post("/add-xp", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
   }
+  const { amount, reason, referenceId } = await c.req.json();
+  const transactionId = crypto.randomUUID();
+  await c.env.DB.prepare(`
+        INSERT INTO xp_transactions (id, user_id, amount, reason, reference_id)
+        VALUES (?, ?, ?, ?, ?)
+    `).bind(transactionId, userId, amount, reason, referenceId).run();
+  const user = await c.env.DB.prepare(`SELECT xp FROM users WHERE id = ?`).bind(userId).first();
+  const newXP = (user?.xp || 0) + amount;
+  const newLevel = calculateLevel(newXP);
+  await c.env.DB.prepare(`
+        UPDATE users SET xp = ?, level = ? WHERE id = ?
+    `).bind(newXP, newLevel, userId).run();
+  return c.json({
+    success: true,
+    newXP,
+    newLevel,
+    xpGained: amount
+  });
 });
-authRoutes.get("/me", async (c) => {
-  try {
-    const user = c.get("user");
-    if (!user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-    const dbUser = await c.env.DB.prepare(
-      "SELECT id, email, name, avatar_url FROM users WHERE id = ?"
-    ).bind(user.sub).first();
-    if (!dbUser) {
-      return c.json({ error: "User kh\xF4ng t\u1ED3n t\u1EA1i" }, 404);
-    }
-    return c.json({
-      user: {
-        id: dbUser.id,
-        email: dbUser.email,
-        name: dbUser.name,
-        avatar_url: dbUser.avatar_url
-      }
-    }, 200);
-  } catch (error) {
-    console.error("[auth] me error:", error);
-    return c.json({
-      error: "L\u1ED7i server",
-      details: error instanceof Error ? error.message : String(error)
-    }, 500);
+app.get("/leaderboard", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  const leaderboard = await c.env.DB.prepare(`
+        SELECT id, name, xp, level, streak,
+               (SELECT COUNT(*) FROM user_badges WHERE user_id = users.id) as badge_count
+        FROM users
+        WHERE xp > 0
+        ORDER BY xp DESC
+        LIMIT 10
+    `).all();
+  let userRank = null;
+  if (userId) {
+    const rank = await c.env.DB.prepare(`
+            SELECT COUNT(*) + 1 as rank
+            FROM users
+            WHERE xp > (SELECT xp FROM users WHERE id = ?)
+        `).bind(userId).first();
+    userRank = rank?.rank || null;
   }
+  return c.json({
+    leaderboard: leaderboard.results || [],
+    userRank
+  });
 });
-var auth_default = authRoutes;
-
-// src/routes/chat.ts
-init_modules_watch_stub();
-
-// node_modules/hono/dist/helper/streaming/index.js
-init_modules_watch_stub();
-
-// node_modules/hono/dist/helper/streaming/stream.js
-init_modules_watch_stub();
-
-// node_modules/hono/dist/utils/stream.js
-init_modules_watch_stub();
-var StreamingApi = class {
-  static {
-    __name(this, "StreamingApi");
+app.get("/badges", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  const allBadges = await c.env.DB.prepare(`SELECT * FROM badges`).all();
+  let earnedBadgeIds = [];
+  if (userId) {
+    const earned = await c.env.DB.prepare(`
+            SELECT badge_id FROM user_badges WHERE user_id = ?
+        `).bind(userId).all();
+    earnedBadgeIds = (earned.results || []).map((b) => b.badge_id);
   }
-  writer;
-  encoder;
-  writable;
-  abortSubscribers = [];
-  responseReadable;
-  /**
-   * Whether the stream has been aborted.
-   */
-  aborted = false;
-  /**
-   * Whether the stream has been closed normally.
-   */
-  closed = false;
-  constructor(writable, _readable) {
-    this.writable = writable;
-    this.writer = writable.getWriter();
-    this.encoder = new TextEncoder();
-    const reader = _readable.getReader();
-    this.abortSubscribers.push(async () => {
-      await reader.cancel();
-    });
-    this.responseReadable = new ReadableStream({
-      async pull(controller) {
-        const { done, value } = await reader.read();
-        done ? controller.close() : controller.enqueue(value);
-      },
-      cancel: /* @__PURE__ */ __name(() => {
-        this.abort();
-      }, "cancel")
-    });
-  }
-  async write(input) {
-    try {
-      if (typeof input === "string") {
-        input = this.encoder.encode(input);
-      }
-      await this.writer.write(input);
-    } catch {
-    }
-    return this;
-  }
-  async writeln(input) {
-    await this.write(input + "\n");
-    return this;
-  }
-  sleep(ms) {
-    return new Promise((res) => setTimeout(res, ms));
-  }
-  async close() {
-    try {
-      await this.writer.close();
-    } catch {
-    }
-    this.closed = true;
-  }
-  async pipe(body) {
-    this.writer.releaseLock();
-    await body.pipeTo(this.writable, { preventClose: true });
-    this.writer = this.writable.getWriter();
-  }
-  onAbort(listener) {
-    this.abortSubscribers.push(listener);
-  }
-  /**
-   * Abort the stream.
-   * You can call this method when stream is aborted by external event.
-   */
-  abort() {
-    if (!this.aborted) {
-      this.aborted = true;
-      this.abortSubscribers.forEach((subscriber) => subscriber());
-    }
-  }
-};
-
-// node_modules/hono/dist/helper/streaming/utils.js
-init_modules_watch_stub();
-var isOldBunVersion = /* @__PURE__ */ __name(() => {
-  const version = typeof Bun !== "undefined" ? Bun.version : void 0;
-  if (version === void 0) {
-    return false;
-  }
-  const result = version.startsWith("1.1") || version.startsWith("1.0") || version.startsWith("0.");
-  isOldBunVersion = /* @__PURE__ */ __name(() => result, "isOldBunVersion");
-  return result;
-}, "isOldBunVersion");
-
-// node_modules/hono/dist/helper/streaming/stream.js
-var contextStash = /* @__PURE__ */ new WeakMap();
-var stream = /* @__PURE__ */ __name((c, cb, onError) => {
-  const { readable, writable } = new TransformStream();
-  const stream2 = new StreamingApi(writable, readable);
-  if (isOldBunVersion()) {
-    c.req.raw.signal.addEventListener("abort", () => {
-      if (!stream2.closed) {
-        stream2.abort();
-      }
-    });
-  }
-  contextStash.set(stream2.responseReadable, c);
-  (async () => {
-    try {
-      await cb(stream2);
-    } catch (e) {
-      if (e === void 0) {
-      } else if (e instanceof Error && onError) {
-        await onError(e, stream2);
-      } else {
-        console.error(e);
-      }
-    } finally {
-      stream2.close();
-    }
-  })();
-  return c.newResponse(stream2.responseReadable);
-}, "stream");
-
-// node_modules/hono/dist/helper/streaming/sse.js
-init_modules_watch_stub();
-
-// node_modules/hono/dist/helper/streaming/text.js
-init_modules_watch_stub();
-
-// src/openrouter.ts
-init_modules_watch_stub();
-var MODELS = {
-  // Web Search - dùng suffix :online để kích hoạt Exa/Perplexity plugin
-  // Có thể append vào bất kỳ model nào
-  ONLINE_SUFFIX: ":online",
-  // File Search, URL Context, Multimodal - Gemini 2.0 Flash
-  GEMINI_FLASH: "google/gemini-2.0-flash-exp:free",
-  // Code Execution - Xiaomi MiMo (ngang Claude 4.5 Sonnet)
-  MIMO_CODE: "xiaomi/mimo-v2-flash:free",
-  // Agentic Coding - Devstral (xử lý codebase lớn)  
-  DEVSTRAL: "mistralai/devstral-2-2512:free",
-  // Reasoning/Logic - DeepSeek R1 Chimera
-  DEEPSEEK_REASON: "tngtech/deepseek-r1t2-chimera:free"
-};
-var MODEL_ROUTES = {
-  // Chat thông thường - Gemini Flash (nhanh, đa năng)
-  chat: MODELS.GEMINI_FLASH,
-  // Chat cần web search - thêm :online suffix
-  chatWithSearch: MODELS.GEMINI_FLASH + MODELS.ONLINE_SUFFIX,
-  // Tạo đề thi - Gemini Flash (cần đọc file/context)
-  examGeneration: MODELS.GEMINI_FLASH,
-  // Giải bài tập code - MiMo
-  codeExecution: MODELS.MIMO_CODE,
-  // Suy luận logic phức tạp - DeepSeek
-  reasoning: MODELS.DEEPSEEK_REASON
-};
-var OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-async function callOpenRouter(apiKey, params) {
-  const {
-    messages,
-    model = MODEL_ROUTES.chat,
-    temperature = 0.7,
-    maxTokens = 8192,
-    useOnlineSearch = false
-  } = params;
-  const finalModel = useOnlineSearch && !model.includes(":online") ? model + MODELS.ONLINE_SUFFIX : model;
-  const t0 = Date.now();
-  try {
-    const response = await fetch(OPENROUTER_API_URL, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://stem-vietnam.vercel.app",
-        // Required by OpenRouter
-        "X-Title": "STEM Vietnam AI"
-        // Optional, for analytics
-      },
-      body: JSON.stringify({
-        model: finalModel,
-        messages,
-        temperature,
-        max_tokens: maxTokens
-      })
-    });
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`OpenRouter error: ${response.status} - ${errorText}`);
-    }
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || "";
-    const latency = Date.now() - t0;
-    console.log("[openrouter] call done", {
-      latency,
-      model: finalModel,
-      textLen: text.length,
-      tokensIn: data.usage?.prompt_tokens,
-      tokensOut: data.usage?.completion_tokens
-    });
-    return {
-      text,
-      model: data.model || finalModel,
-      tokensIn: data.usage?.prompt_tokens || 0,
-      tokensOut: data.usage?.completion_tokens || 0
-    };
-  } catch (error) {
-    console.error("[openrouter] error:", error);
-    throw error;
-  }
-}
-__name(callOpenRouter, "callOpenRouter");
-async function* streamOpenRouter(apiKey, params) {
-  const {
-    messages,
-    model = MODEL_ROUTES.chat,
-    temperature = 0.7,
-    maxTokens = 8192,
-    useOnlineSearch = false
-  } = params;
-  const finalModel = useOnlineSearch && !model.includes(":online") ? model + MODELS.ONLINE_SUFFIX : model;
-  const response = await fetch(OPENROUTER_API_URL, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": "https://stem-vietnam.vercel.app",
-      "X-Title": "STEM Vietnam AI"
-    },
-    body: JSON.stringify({
-      model: finalModel,
-      messages,
-      temperature,
-      max_tokens: maxTokens,
-      stream: true
-      // Enable streaming
-    })
-  });
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`OpenRouter stream error: ${response.status} - ${errorText}`);
-  }
-  const reader = response.body?.getReader();
-  if (!reader) {
-    throw new Error("No response body");
-  }
-  const decoder = new TextDecoder();
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    const chunk = decoder.decode(value);
-    const lines = chunk.split("\n");
-    for (const line of lines) {
-      if (line.startsWith("data: ")) {
-        const dataStr = line.slice(6).trim();
-        if (dataStr === "[DONE]") {
-          return;
-        }
-        try {
-          const data = JSON.parse(dataStr);
-          const content = data.choices?.[0]?.delta?.content;
-          if (content) {
-            yield content;
-          }
-        } catch {
-        }
-      }
-    }
-  }
-}
-__name(streamOpenRouter, "streamOpenRouter");
-function classifyQueryForModel(query) {
-  const queryLower = query.toLowerCase();
-  const searchKeywords = [
-    "h\xF4m nay",
-    "ng\xE0y nay",
-    "b\xE2y gi\u1EDD",
-    "hi\u1EC7n t\u1EA1i",
-    "m\u1EDBi nh\u1EA5t",
-    "tin t\u1EE9c",
-    "th\u1EDDi ti\u1EBFt",
-    "gi\xE1",
-    "t\u1EF7 gi\xE1",
-    "ch\u1EE9ng kho\xE1n",
-    "b\xF3ng \u0111\xE1",
-    "th\u1EC3 thao",
-    "k\u1EBFt qu\u1EA3",
-    "l\u1ECBch thi \u0111\u1EA5u",
-    "s\u1EF1 ki\u1EC7n",
-    "news",
-    "today",
-    "current",
-    "latest"
-  ];
-  const codeKeywords = [
-    "code",
-    "l\u1EADp tr\xECnh",
-    "debug",
-    "fix bug",
-    "vi\u1EBFt h\xE0m",
-    "function",
-    "class",
-    "algorithm",
-    "thu\u1EADt to\xE1n",
-    "javascript",
-    "python",
-    "typescript",
-    "java",
-    "c++",
-    "ch\u1EA1y code",
-    "execute",
-    "compile",
-    "run"
-  ];
-  const reasoningKeywords = [
-    "suy lu\u1EADn",
-    "logic",
-    "ch\u1EE9ng minh",
-    "ph\xE2n t\xEDch",
-    "t\u1EA1i sao",
-    "gi\u1EA3i th\xEDch",
-    "so s\xE1nh",
-    "\u0111\xE1nh gi\xE1",
-    "\u01B0u \u0111i\u1EC3m",
-    "nh\u01B0\u1EE3c \u0111i\u1EC3m",
-    "pros",
-    "cons"
-  ];
-  for (const kw of searchKeywords) {
-    if (queryLower.includes(kw)) {
-      return {
-        model: MODEL_ROUTES.chatWithSearch,
-        useOnlineSearch: true,
-        reason: `C\u1EA7n web search: "${kw}"`
-      };
-    }
-  }
-  for (const kw of codeKeywords) {
-    if (queryLower.includes(kw)) {
-      return {
-        model: MODEL_ROUTES.codeExecution,
-        useOnlineSearch: false,
-        reason: `Code execution: "${kw}"`
-      };
-    }
-  }
-  for (const kw of reasoningKeywords) {
-    if (queryLower.includes(kw)) {
-      return {
-        model: MODEL_ROUTES.reasoning,
-        useOnlineSearch: false,
-        reason: `Reasoning: "${kw}"`
-      };
-    }
-  }
-  return {
-    model: MODEL_ROUTES.chat,
-    useOnlineSearch: false,
-    reason: "Default: Gemini Flash"
-  };
-}
-__name(classifyQueryForModel, "classifyQueryForModel");
-function buildMessages(systemPrompt, userMessage, context, images) {
-  const messages = [];
-  let fullSystemPrompt = systemPrompt;
-  if (context) {
-    fullSystemPrompt += `
-
---- CONTEXT T\u1EEA T\xC0I LI\u1EC6U ---
-${context}
---- H\u1EBET CONTEXT ---`;
-  }
-  messages.push({
-    role: "system",
-    content: fullSystemPrompt
-  });
-  if (images && images.length > 0) {
-    const content = [
-      { type: "text", text: userMessage }
-    ];
-    for (const img of images) {
-      content.push({
-        type: "image_url",
-        image_url: { url: img }
-        // Expecting data URI like data:image/png;base64,...
-      });
-    }
-    messages.push({
-      role: "user",
-      content
-    });
-  } else {
-    messages.push({
-      role: "user",
-      content: userMessage
-    });
-  }
-  return messages;
-}
-__name(buildMessages, "buildMessages");
-
-// src/duckduckgo.ts
-init_modules_watch_stub();
-var DDG_API_URL = "https://api.duckduckgo.com/";
-async function searchDuckDuckGo(query) {
-  const t0 = Date.now();
-  try {
-    const params = new URLSearchParams({
-      q: query,
-      format: "json",
-      no_redirect: "1",
-      no_html: "1",
-      skip_disambig: "1"
-    });
-    const response = await fetch(`${DDG_API_URL}?${params.toString()}`, {
-      headers: {
-        "Accept": "application/json",
-        "User-Agent": "STEM-Vietnam-Bot/1.0"
-      }
-    });
-    if (!response.ok) {
-      throw new Error(`DuckDuckGo API error: ${response.status}`);
-    }
-    const data = await response.json();
-    let summary = "";
-    if (data.Answer) {
-      summary = data.Answer;
-    } else if (data.Abstract) {
-      summary = data.Abstract;
-      if (data.AbstractSource) {
-        summary += ` (Ngu\u1ED3n: ${data.AbstractSource})`;
-      }
-    }
-    const sources = [];
-    if (data.RelatedTopics) {
-      for (const topic of data.RelatedTopics.slice(0, 5)) {
-        if (topic.Text && topic.FirstURL) {
-          sources.push({
-            title: topic.Text.split(" - ")[0] || topic.Text,
-            url: topic.FirstURL,
-            snippet: topic.Text
-          });
-        }
-        if (topic.Topics) {
-          for (const subTopic of topic.Topics.slice(0, 3)) {
-            sources.push({
-              title: subTopic.Text.split(" - ")[0] || subTopic.Text,
-              url: subTopic.FirstURL,
-              snippet: subTopic.Text
-            });
-          }
-        }
-      }
-    }
-    const latency = Date.now() - t0;
-    console.log("[duckduckgo] search done", {
-      query,
-      latency,
-      hasAbstract: !!data.Abstract,
-      hasAnswer: !!data.Answer,
-      sourcesCount: sources.length
-    });
-    return {
-      source: "duckduckgo",
-      query,
-      summary,
-      sources: sources.slice(0, 5),
-      // Giới hạn 5 sources
-      timestamp: Date.now()
-    };
-  } catch (error) {
-    console.error("[duckduckgo] error:", error);
-    return {
-      source: "duckduckgo",
-      query,
-      summary: "",
-      sources: [],
-      timestamp: Date.now()
-    };
-  }
-}
-__name(searchDuckDuckGo, "searchDuckDuckGo");
-async function searchDuckDuckGoHTML(query) {
-  const t0 = Date.now();
-  try {
-    const params = new URLSearchParams({
-      q: query
-    });
-    const response = await fetch(`https://lite.duckduckgo.com/lite/?${params.toString()}`, {
-      headers: {
-        "User-Agent": "STEM-Vietnam-Bot/1.0",
-        "Accept": "text/html"
-      }
-    });
-    if (!response.ok) {
-      throw new Error(`DuckDuckGo Lite error: ${response.status}`);
-    }
-    const html = await response.text();
-    const sources = [];
-    const linkRegex = /<a[^>]*class="[^"]*result-link[^"]*"[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/gi;
-    const snippetRegex = /<td[^>]*class="[^"]*result-snippet[^"]*"[^>]*>([^<]+)<\/td>/gi;
-    let match2;
-    const titles = [];
-    const urls = [];
-    const snippets = [];
-    while ((match2 = linkRegex.exec(html)) !== null && titles.length < 5) {
-      urls.push(match2[1]);
-      titles.push(match2[2].trim());
-    }
-    while ((match2 = snippetRegex.exec(html)) !== null && snippets.length < 5) {
-      snippets.push(match2[1].trim());
-    }
-    for (let i = 0; i < Math.min(titles.length, urls.length); i++) {
-      sources.push({
-        title: titles[i],
-        url: urls[i],
-        snippet: snippets[i] || ""
-      });
-    }
-    const latency = Date.now() - t0;
-    console.log("[duckduckgo-lite] search done", {
-      query,
-      latency,
-      sourcesCount: sources.length
-    });
-    const summary = sources.slice(0, 3).map((s) => s.snippet).filter(Boolean).join(" ");
-    return {
-      source: "duckduckgo",
-      query,
-      summary,
-      sources,
-      timestamp: Date.now()
-    };
-  } catch (error) {
-    console.error("[duckduckgo-lite] error:", error);
-    return {
-      source: "duckduckgo",
-      query,
-      summary: "",
-      sources: [],
-      timestamp: Date.now()
-    };
-  }
-}
-__name(searchDuckDuckGoHTML, "searchDuckDuckGoHTML");
-async function webSearch(query) {
-  const instantResult = await searchDuckDuckGo(query);
-  if (instantResult.summary || instantResult.sources.length > 0) {
-    return instantResult;
-  }
-  console.info("[websearch] Instant Answer empty, trying HTML search");
-  return searchDuckDuckGoHTML(query);
-}
-__name(webSearch, "webSearch");
-function formatSearchResultsAsContext(result) {
-  if (!result.summary && result.sources.length === 0) {
-    return "";
-  }
-  let context = `=== K\u1EBET QU\u1EA2 T\xCCM KI\u1EBEM WEB ===
-`;
-  context += `Truy v\u1EA5n: "${result.query}"
-
-`;
-  if (result.summary) {
-    context += `**T\xF3m t\u1EAFt:** ${result.summary}
-
-`;
-  }
-  if (result.sources.length > 0) {
-    context += `**Ngu\u1ED3n tham kh\u1EA3o:**
-`;
-    for (const source of result.sources) {
-      context += `- ${source.title}
-`;
-      if (source.snippet) {
-        context += `  ${source.snippet}
-`;
-      }
-      context += `  URL: ${source.url}
-
-`;
-    }
-  }
-  context += `=== H\u1EBET K\u1EBET QU\u1EA2 T\xCCM KI\u1EBEM ===
-`;
-  return context;
-}
-__name(formatSearchResultsAsContext, "formatSearchResultsAsContext");
-
-// src/rag-pipeline.ts
-init_modules_watch_stub();
-
-// src/vectorize.ts
-init_modules_watch_stub();
-
-// src/huggingface.ts
-init_modules_watch_stub();
-var EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2";
-var HF_API_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction";
-async function createEmbedding(apiToken, text, model = EMBEDDING_MODEL) {
-  const t0 = Date.now();
-  try {
-    const response = await fetch(`${HF_API_URL}/${model}`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiToken}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        inputs: text,
-        options: {
-          wait_for_model: true
-          // Chờ nếu model đang loading
-        }
-      })
-    });
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HuggingFace API error: ${response.status} - ${errorText}`);
-    }
-    const data = await response.json();
-    let embedding;
-    if (Array.isArray(data) && Array.isArray(data[0])) {
-      const numTokens = data.length;
-      const dims = data[0].length;
-      embedding = new Array(dims).fill(0);
-      for (const tokenEmb of data) {
-        for (let i = 0; i < dims; i++) {
-          embedding[i] += tokenEmb[i];
-        }
-      }
-      for (let i = 0; i < dims; i++) {
-        embedding[i] /= numTokens;
-      }
-    } else if (Array.isArray(data) && typeof data[0] === "number") {
-      embedding = data;
-    } else {
-      throw new Error("Unexpected embedding response format");
-    }
-    const latency = Date.now() - t0;
-    console.log("[huggingface] embedding done", {
-      latency,
-      model,
-      dimensions: embedding.length,
-      textLen: text.length
-    });
-    return {
-      embedding,
-      model,
-      dimensions: embedding.length
-    };
-  } catch (error) {
-    console.error("[huggingface] embedding error:", error);
-    throw error;
-  }
-}
-__name(createEmbedding, "createEmbedding");
-
-// src/vectorize.ts
-async function createEmbedding2(hfApiToken, text) {
-  const result = await createEmbedding(hfApiToken, text);
-  return result.embedding;
-}
-__name(createEmbedding2, "createEmbedding");
-async function searchVectors(vectorize, hfApiToken, query, filters, topK = 5) {
-  const queryVector = await createEmbedding2(hfApiToken, query);
-  const filterObj = {};
-  if (filters?.grade) filterObj.grade = filters.grade;
-  if (filters?.subject) filterObj.subject = filters.subject;
-  if (filters?.type) filterObj.type = filters.type;
-  const results = await vectorize.query(queryVector, {
-    topK,
-    filter: Object.keys(filterObj).length > 0 ? filterObj : void 0,
-    returnMetadata: "all"
-  });
-  console.log("[vectorize] search done", {
-    query: query.slice(0, 50),
-    matches: results.matches.length
-  });
-  return results.matches.map((match2) => ({
-    id: match2.id,
-    score: match2.score,
-    metadata: match2.metadata
+  const badges = (allBadges.results || []).map((badge) => ({
+    ...badge,
+    earned: earnedBadgeIds.includes(badge.id)
   }));
-}
-__name(searchVectors, "searchVectors");
-function buildContextFromResults(results) {
-  if (results.length === 0) return "";
-  return results.map((result, index) => {
-    const meta = result.metadata;
-    const source = `[${meta.title}${meta.chapter ? ` - ${meta.chapter}` : ""}]`;
-    return `--- Ngu\u1ED3n ${index + 1}: ${source} (relevance: ${(result.score * 100).toFixed(1)}%) ---
-${meta.content}`;
-  }).join("\n\n");
-}
-__name(buildContextFromResults, "buildContextFromResults");
+  return c.json({ badges });
+});
+app.post("/check-badges", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const userStats = await c.env.DB.prepare(`
+        SELECT u.streak, u.xp,
+               (SELECT COUNT(*) FROM exam_attempts WHERE user_id = u.id AND submitted_at IS NOT NULL) as total_exams,
+               (SELECT AVG(score) FROM exam_attempts WHERE user_id = u.id AND submitted_at IS NOT NULL) as avg_score,
+               (SELECT MAX(score) FROM exam_attempts WHERE user_id = u.id AND submitted_at IS NOT NULL) as max_score
+        FROM users u WHERE u.id = ?
+    `).bind(userId).first();
+  if (!userStats) {
+    return c.json({ error: "User not found" }, 404);
+  }
+  const unearnedBadges = await c.env.DB.prepare(`
+        SELECT * FROM badges 
+        WHERE id NOT IN (SELECT badge_id FROM user_badges WHERE user_id = ?)
+    `).bind(userId).all();
+  const newBadges = [];
+  for (const badge of unearnedBadges.results || []) {
+    let earned = false;
+    switch (badge.criteria_type) {
+      case "total_exams":
+        earned = (userStats.total_exams || 0) >= badge.criteria_value;
+        break;
+      case "streak_days":
+        earned = (userStats.streak || 0) >= badge.criteria_value;
+        break;
+      case "avg_score":
+        earned = (userStats.avg_score || 0) >= badge.criteria_value;
+        break;
+      case "perfect_score":
+        earned = (userStats.max_score || 0) >= badge.criteria_value;
+        break;
+    }
+    if (earned) {
+      const ubId = crypto.randomUUID();
+      await c.env.DB.prepare(`
+                INSERT INTO user_badges (id, user_id, badge_id) VALUES (?, ?, ?)
+            `).bind(ubId, userId, badge.id).run();
+      if (badge.xp_reward > 0) {
+        const txId = crypto.randomUUID();
+        await c.env.DB.prepare(`
+                    INSERT INTO xp_transactions (id, user_id, amount, reason, reference_id)
+                    VALUES (?, ?, ?, 'badge_earned', ?)
+                `).bind(txId, userId, badge.xp_reward, badge.id).run();
+        await c.env.DB.prepare(`
+                    UPDATE users SET xp = xp + ? WHERE id = ?
+                `).bind(badge.xp_reward, userId).run();
+      }
+      newBadges.push(badge);
+    }
+  }
+  return c.json({ newBadges });
+});
 
-// src/file-parser.ts
+// src/teacher-routes.ts
 init_modules_watch_stub();
-var import_mammoth = __toESM(require_lib3());
-var MAX_FILE_SIZE = 25 * 1024 * 1024;
-
-// src/rag-pipeline.ts
-async function getRAGContext(hfApiToken, vectorize, query, filters, topK = 5) {
-  const results = await searchVectors(vectorize, hfApiToken, query, filters, topK);
-  const context = buildContextFromResults(results);
-  return {
-    context,
-    sources: results
-  };
+var app2 = new Hono2();
+function generateInviteCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "GV-";
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
 }
-__name(getRAGContext, "getRAGContext");
+__name(generateInviteCode, "generateInviteCode");
+app2.get("/invitations", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const user = await c.env.DB.prepare(`SELECT role FROM users WHERE id = ?`).bind(userId).first();
+  if (user?.role !== "admin") {
+    return c.json({ error: "Admin access required" }, 403);
+  }
+  const invitations = await c.env.DB.prepare(`
+        SELECT ti.*, u.name as created_by_name, u2.name as used_by_name
+        FROM teacher_invitations ti
+        LEFT JOIN users u ON ti.created_by = u.id
+        LEFT JOIN users u2 ON ti.used_by = u2.id
+        ORDER BY ti.created_at DESC
+        LIMIT 50
+    `).all();
+  return c.json({ invitations: invitations.results || [] });
+});
+app2.post("/invitations", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const user = await c.env.DB.prepare(`SELECT role FROM users WHERE id = ?`).bind(userId).first();
+  if (user?.role !== "admin") {
+    return c.json({ error: "Admin access required" }, 403);
+  }
+  const { email, name, schoolName, expiresInDays } = await c.req.json();
+  const id = crypto.randomUUID();
+  const code = generateInviteCode();
+  const expiresAt = expiresInDays ? Date.now() + expiresInDays * 24 * 60 * 60 * 1e3 : null;
+  await c.env.DB.prepare(`
+        INSERT INTO teacher_invitations (id, code, created_by, email, name, school_name, expires_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(id, code, userId, email || null, name || null, schoolName || null, expiresAt).run();
+  return c.json({
+    success: true,
+    invitation: { id, code, email, name, schoolName, expiresAt }
+  });
+});
+app2.post("/verify-code", async (c) => {
+  const { code } = await c.req.json();
+  const invitation = await c.env.DB.prepare(`
+        SELECT * FROM teacher_invitations 
+        WHERE code = ? AND used = FALSE 
+        AND (expires_at IS NULL OR expires_at > ?)
+    `).bind(code.toUpperCase(), Date.now()).first();
+  if (!invitation) {
+    return c.json({ valid: false, message: "M\xE3 kh\xF4ng h\u1EE3p l\u1EC7 ho\u1EB7c \u0111\xE3 h\u1EBFt h\u1EA1n" });
+  }
+  return c.json({
+    valid: true,
+    name: invitation.name,
+    email: invitation.email,
+    schoolName: invitation.school_name
+  });
+});
+app2.post("/use-code", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const { code } = await c.req.json();
+  const invitation = await c.env.DB.prepare(`
+        SELECT * FROM teacher_invitations 
+        WHERE code = ? AND used = FALSE 
+        AND (expires_at IS NULL OR expires_at > ?)
+    `).bind(code.toUpperCase(), Date.now()).first();
+  if (!invitation) {
+    return c.json({ error: "M\xE3 kh\xF4ng h\u1EE3p l\u1EC7 ho\u1EB7c \u0111\xE3 h\u1EBFt h\u1EA1n" }, 400);
+  }
+  await c.env.DB.prepare(`
+        UPDATE teacher_invitations 
+        SET used = TRUE, used_by = ?, used_at = ?
+        WHERE id = ?
+    `).bind(userId, Date.now(), invitation.id).run();
+  await c.env.DB.prepare(`
+        UPDATE users SET role = 'teacher' WHERE id = ?
+    `).bind(userId).run();
+  return c.json({
+    success: true,
+    message: "Ch\xFAc m\u1EEBng! T\xE0i kho\u1EA3n c\u1EE7a b\u1EA1n \u0111\xE3 \u0111\u01B0\u1EE3c n\xE2ng c\u1EA5p th\xE0nh Gi\xE1o vi\xEAn."
+  });
+});
+app2.get("/list", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const user = await c.env.DB.prepare(`SELECT role FROM users WHERE id = ?`).bind(userId).first();
+  if (user?.role !== "admin") {
+    return c.json({ error: "Admin access required" }, 403);
+  }
+  const teachers = await c.env.DB.prepare(`
+        SELECT u.id, u.name, u.email, u.created_at, u.school_id, u.teacher_code,
+               s.name as school_name,
+               (SELECT COUNT(*) FROM classes WHERE teacher_id = u.id) as class_count
+        FROM users u
+        LEFT JOIN schools s ON u.school_id = s.id
+        WHERE u.role = 'teacher'
+        ORDER BY u.created_at DESC
+    `).all();
+  return c.json({ teachers: teachers.results || [] });
+});
+
+// src/school-routes.ts
+init_modules_watch_stub();
+var app3 = new Hono2();
+app3.get("/", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const user = await c.env.DB.prepare(`SELECT role FROM users WHERE id = ?`).bind(userId).first();
+  if (user?.role !== "admin") {
+    return c.json({ error: "Admin access required" }, 403);
+  }
+  const schools = await c.env.DB.prepare(`
+        SELECT s.*, 
+               u.name as admin_name,
+               (SELECT COUNT(*) FROM users WHERE school_id = s.id AND role = 'teacher') as teacher_count,
+               (SELECT COUNT(*) FROM classes c 
+                JOIN users t ON c.teacher_id = t.id 
+                WHERE t.school_id = s.id) as class_count
+        FROM schools s
+        LEFT JOIN users u ON s.admin_id = u.id
+        ORDER BY s.created_at DESC
+    `).all();
+  return c.json({ schools: schools.results || [] });
+});
+app3.post("/", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const user = await c.env.DB.prepare(`SELECT role FROM users WHERE id = ?`).bind(userId).first();
+  if (user?.role !== "admin") {
+    return c.json({ error: "Admin access required" }, 403);
+  }
+  const { name, code, address, contactEmail, contactPhone, adminId } = await c.req.json();
+  if (!name) {
+    return c.json({ error: "School name is required" }, 400);
+  }
+  const id = crypto.randomUUID();
+  const schoolCode = code || `SCH-${id.substring(0, 6).toUpperCase()}`;
+  await c.env.DB.prepare(`
+        INSERT INTO schools (id, name, code, address, contact_email, contact_phone, admin_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(id, name, schoolCode, address || null, contactEmail || null, contactPhone || null, adminId || null).run();
+  return c.json({
+    success: true,
+    school: { id, name, code: schoolCode, address, contactEmail, contactPhone, adminId }
+  });
+});
+app3.get("/:id", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const schoolId = c.req.param("id");
+  const school = await c.env.DB.prepare(`
+        SELECT s.*, u.name as admin_name
+        FROM schools s
+        LEFT JOIN users u ON s.admin_id = u.id
+        WHERE s.id = ?
+    `).bind(schoolId).first();
+  if (!school) {
+    return c.json({ error: "School not found" }, 404);
+  }
+  const teachers = await c.env.DB.prepare(`
+        SELECT id, name, email, teacher_code, created_at,
+               (SELECT COUNT(*) FROM classes WHERE teacher_id = users.id) as class_count
+        FROM users
+        WHERE school_id = ? AND role = 'teacher'
+        ORDER BY name
+    `).bind(schoolId).all();
+  const stats = await c.env.DB.prepare(`
+        SELECT 
+            (SELECT COUNT(*) FROM users WHERE school_id = ? AND role = 'teacher') as teacher_count,
+            (SELECT COUNT(*) FROM classes WHERE teacher_id IN (SELECT id FROM users WHERE school_id = ?)) as class_count,
+            (SELECT COUNT(*) FROM class_members WHERE class_id IN 
+                (SELECT id FROM classes WHERE teacher_id IN (SELECT id FROM users WHERE school_id = ?))) as student_count
+    `).bind(schoolId, schoolId, schoolId).first();
+  return c.json({
+    school,
+    teachers: teachers.results || [],
+    stats
+  });
+});
+app3.get("/:id/analytics", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const schoolId = c.req.param("id");
+  const user = await c.env.DB.prepare(`SELECT role, school_id FROM users WHERE id = ?`).bind(userId).first();
+  const school = await c.env.DB.prepare(`SELECT admin_id FROM schools WHERE id = ?`).bind(schoolId).first();
+  if (user?.role !== "admin" && school?.admin_id !== userId) {
+    return c.json({ error: "Access denied" }, 403);
+  }
+  const classesResult = await c.env.DB.prepare(`
+        SELECT c.id FROM classes c
+        JOIN users t ON c.teacher_id = t.id
+        WHERE t.school_id = ?
+    `).bind(schoolId).all();
+  const classIds = (classesResult.results || []).map((c2) => c2.id);
+  if (classIds.length === 0) {
+    return c.json({
+      avgScore: 0,
+      totalExams: 0,
+      passRate: 0,
+      topClasses: [],
+      weeklyProgress: []
+    });
+  }
+  const overallStats = await c.env.DB.prepare(`
+        SELECT 
+            AVG(score) as avg_score,
+            COUNT(*) as total_exams,
+            SUM(CASE WHEN score >= 5 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as pass_rate
+        FROM exam_attempts
+        WHERE class_id IN (${classIds.map(() => "?").join(",")})
+        AND submitted_at IS NOT NULL
+    `).bind(...classIds).first();
+  const topClasses = await c.env.DB.prepare(`
+        SELECT 
+            c.id, c.name,
+            u.name as teacher_name,
+            AVG(ea.score) as avg_score,
+            COUNT(ea.id) as attempt_count
+        FROM classes c
+        JOIN users u ON c.teacher_id = u.id
+        LEFT JOIN exam_attempts ea ON ea.class_id = c.id AND ea.submitted_at IS NOT NULL
+        WHERE u.school_id = ?
+        GROUP BY c.id
+        HAVING attempt_count > 0
+        ORDER BY avg_score DESC
+        LIMIT 5
+    `).bind(schoolId).all();
+  return c.json({
+    avgScore: overallStats?.avg_score || 0,
+    totalExams: overallStats?.total_exams || 0,
+    passRate: overallStats?.pass_rate || 0,
+    topClasses: topClasses.results || []
+  });
+});
+app3.put("/:id", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const schoolId = c.req.param("id");
+  const user = await c.env.DB.prepare(`SELECT role FROM users WHERE id = ?`).bind(userId).first();
+  const school = await c.env.DB.prepare(`SELECT admin_id FROM schools WHERE id = ?`).bind(schoolId).first();
+  if (user?.role !== "admin" && school?.admin_id !== userId) {
+    return c.json({ error: "Access denied" }, 403);
+  }
+  const { name, address, contactEmail, contactPhone, adminId } = await c.req.json();
+  await c.env.DB.prepare(`
+        UPDATE schools 
+        SET name = COALESCE(?, name),
+            address = COALESCE(?, address),
+            contact_email = COALESCE(?, contact_email),
+            contact_phone = COALESCE(?, contact_phone),
+            admin_id = COALESCE(?, admin_id)
+        WHERE id = ?
+    `).bind(name, address, contactEmail, contactPhone, adminId, schoolId).run();
+  return c.json({ success: true });
+});
+app3.post("/:id/assign-teacher", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const schoolId = c.req.param("id");
+  const user = await c.env.DB.prepare(`SELECT role FROM users WHERE id = ?`).bind(userId).first();
+  if (user?.role !== "admin") {
+    return c.json({ error: "Admin access required" }, 403);
+  }
+  const { teacherId, teacherCode } = await c.req.json();
+  const teacher = await c.env.DB.prepare(`
+        SELECT id, role FROM users WHERE id = ? AND role = 'teacher'
+    `).bind(teacherId).first();
+  if (!teacher) {
+    return c.json({ error: "Teacher not found" }, 404);
+  }
+  await c.env.DB.prepare(`
+        UPDATE users SET school_id = ?, teacher_code = ? WHERE id = ?
+    `).bind(schoolId, teacherCode || null, teacherId).run();
+  return c.json({ success: true });
+});
+
+// src/research-routes.ts
+init_modules_watch_stub();
+var app4 = new Hono2();
+app4.post("/log-event", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = authHeader ? await verifyJWT(authHeader, c.env.JWT_SECRET) : null;
+  const { eventType, eventData, pageUrl, sessionId } = await c.req.json();
+  if (!eventType) {
+    return c.json({ error: "Event type required" }, 400);
+  }
+  const id = crypto.randomUUID();
+  const userAgent = c.req.header("User-Agent") || "";
+  const cfIP = c.req.header("CF-Connecting-IP") || "";
+  const ipHash = cfIP ? await hashIP(cfIP) : null;
+  await c.env.DB.prepare(`
+        INSERT INTO event_logs (id, user_id, session_id, event_type, event_data, page_url, user_agent, ip_hash)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+    id,
+    userId,
+    sessionId || null,
+    eventType,
+    JSON.stringify(eventData || {}),
+    pageUrl || null,
+    userAgent,
+    ipHash
+  ).run();
+  return c.json({ success: true, eventId: id });
+});
+app4.get("/stats", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const user = await c.env.DB.prepare(`SELECT role FROM users WHERE id = ?`).bind(userId).first();
+  if (user?.role !== "admin") {
+    return c.json({ error: "Admin access required" }, 403);
+  }
+  const eventStats = await c.env.DB.prepare(`
+        SELECT 
+            event_type,
+            COUNT(*) as count,
+            COUNT(DISTINCT user_id) as unique_users,
+            COUNT(DISTINCT session_id) as unique_sessions
+        FROM event_logs
+        WHERE created_at > ?
+        GROUP BY event_type
+        ORDER BY count DESC
+    `).bind(Date.now() / 1e3 - 30 * 24 * 60 * 60).all();
+  const dauStats = await c.env.DB.prepare(`
+        SELECT 
+            date(created_at, 'unixepoch') as date,
+            COUNT(DISTINCT user_id) as dau
+        FROM event_logs
+        WHERE created_at > ?
+        GROUP BY date
+        ORDER BY date DESC
+        LIMIT 30
+    `).bind(Date.now() / 1e3 - 30 * 24 * 60 * 60).all();
+  const userStats = await c.env.DB.prepare(`
+        SELECT 
+            COUNT(*) as total_users,
+            SUM(CASE WHEN role = 'student' THEN 1 ELSE 0 END) as students,
+            SUM(CASE WHEN role = 'teacher' THEN 1 ELSE 0 END) as teachers
+        FROM users
+    `).first();
+  const examStats = await c.env.DB.prepare(`
+        SELECT 
+            COUNT(*) as total_attempts,
+            AVG(score) as avg_score,
+            SUM(CASE WHEN score >= 5 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as pass_rate
+        FROM exam_attempts
+        WHERE submitted_at IS NOT NULL
+    `).first();
+  return c.json({
+    events: eventStats.results || [],
+    dau: dauStats.results || [],
+    users: userStats,
+    exams: examStats
+  });
+});
+app4.get("/surveys", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const user = await c.env.DB.prepare(`SELECT role FROM users WHERE id = ?`).bind(userId).first();
+  let surveys;
+  if (user?.role === "admin") {
+    surveys = await c.env.DB.prepare(`
+            SELECT s.*, 
+                   (SELECT COUNT(*) FROM survey_responses WHERE survey_id = s.id) as response_count
+            FROM surveys s
+            ORDER BY s.created_at DESC
+        `).all();
+  } else {
+    surveys = await c.env.DB.prepare(`
+            SELECT s.* FROM surveys s
+            WHERE s.is_active = TRUE 
+            AND (s.target_role = 'all' OR s.target_role = ?)
+            AND (s.expires_at IS NULL OR s.expires_at > ?)
+            AND s.id NOT IN (SELECT survey_id FROM survey_responses WHERE user_id = ?)
+        `).bind(user?.role || "student", Date.now() / 1e3, userId).all();
+  }
+  return c.json({ surveys: surveys.results || [] });
+});
+app4.post("/surveys", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const user = await c.env.DB.prepare(`SELECT role FROM users WHERE id = ?`).bind(userId).first();
+  if (user?.role !== "admin") {
+    return c.json({ error: "Admin access required" }, 403);
+  }
+  const { title, description, questions, targetRole, expiresInDays } = await c.req.json();
+  if (!title || !questions || !Array.isArray(questions)) {
+    return c.json({ error: "Title and questions required" }, 400);
+  }
+  const id = crypto.randomUUID();
+  const expiresAt = expiresInDays ? Date.now() / 1e3 + expiresInDays * 24 * 60 * 60 : null;
+  await c.env.DB.prepare(`
+        INSERT INTO surveys (id, title, description, questions, target_role, created_by, expires_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(id, title, description || null, JSON.stringify(questions), targetRole || "all", userId, expiresAt).run();
+  return c.json({ success: true, surveyId: id });
+});
+app4.post("/surveys/:id/respond", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const surveyId = c.req.param("id");
+  const { answers } = await c.req.json();
+  const existing = await c.env.DB.prepare(`
+        SELECT id FROM survey_responses WHERE survey_id = ? AND user_id = ?
+    `).bind(surveyId, userId).first();
+  if (existing) {
+    return c.json({ error: "Already responded" }, 400);
+  }
+  const id = crypto.randomUUID();
+  await c.env.DB.prepare(`
+        INSERT INTO survey_responses (id, survey_id, user_id, answers)
+        VALUES (?, ?, ?, ?)
+    `).bind(id, surveyId, userId, JSON.stringify(answers)).run();
+  return c.json({ success: true });
+});
+app4.get("/export/:type", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const userId = await verifyJWT(authHeader, c.env.JWT_SECRET);
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const user = await c.env.DB.prepare(`SELECT role FROM users WHERE id = ?`).bind(userId).first();
+  if (user?.role !== "admin") {
+    return c.json({ error: "Admin access required" }, 403);
+  }
+  const exportType = c.req.param("type");
+  const startDate = c.req.query("start");
+  const endDate = c.req.query("end");
+  let data = [];
+  let query = "";
+  switch (exportType) {
+    case "events":
+      query = `SELECT * FROM event_logs WHERE created_at BETWEEN ? AND ? ORDER BY created_at`;
+      break;
+    case "attempts":
+      query = `
+                SELECT ea.*, u.name as user_name, et.title as template_title
+                FROM exam_attempts ea
+                LEFT JOIN users u ON ea.user_id = u.id
+                LEFT JOIN exam_templates et ON ea.template_id = et.id
+                WHERE ea.created_at BETWEEN ? AND ?
+            `;
+      break;
+    case "users":
+      query = `
+                SELECT id, name, role, xp, level, streak, school_id, created_at
+                FROM users
+                WHERE created_at BETWEEN ? AND ?
+            `;
+      break;
+    default:
+      return c.json({ error: "Invalid export type" }, 400);
+  }
+  const start = startDate ? new Date(startDate).getTime() / 1e3 : 0;
+  const end = endDate ? new Date(endDate).getTime() / 1e3 : Date.now() / 1e3;
+  const result = await c.env.DB.prepare(query).bind(start, end).all();
+  data = result.results || [];
+  const exportId = crypto.randomUUID();
+  await c.env.DB.prepare(`
+        INSERT INTO research_exports (id, export_type, filters, record_count, created_by)
+        VALUES (?, ?, ?, ?, ?)
+    `).bind(exportId, exportType, JSON.stringify({ start, end }), data.length, userId).run();
+  return c.json({
+    exportId,
+    type: exportType,
+    recordCount: data.length,
+    data
+  });
+});
+async function hashIP(ip) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(ip + "stem-vietnam-salt");
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash)).slice(0, 8).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+__name(hashIP, "hashIP");
 
 // src/prompts.ts
 init_modules_watch_stub();
 var SYSTEM_PROMPTS = {
-  // Chú thích: Chat AI - Chuyên gia đa năng với LaTeX support
-  chat: `B\u1EA1n l\xE0 **StemBot** - tr\u1EE3 l\xFD h\u1ECDc t\u1EADp th\xF4ng minh h\xE0ng \u0111\u1EA7u Vi\u1EC7t Nam.
+  // Chú thích: Chat AI - Bách khoa toàn thư đa năng với đạo đức AI
+  chat: `B\u1EA1n l\xE0 **StemBot Pro** - Tr\u1EE3 l\xFD tr\xED tu\u1EC7 nh\xE2n t\u1EA1o b\xE1ch khoa to\xE0n th\u01B0 h\xE0ng \u0111\u1EA7u Vi\u1EC7t Nam.
 
-## V\u1EC0 B\u1EA0N:
-B\u1EA1n l\xE0 chuy\xEAn gia gi\xE1o d\u1EE5c to\xE0n di\u1EC7n, am hi\u1EC3u s\xE2u r\u1ED9ng v\u1EC1 STEM (Khoa h\u1ECDc, C\xF4ng ngh\u1EC7, K\u1EF9 thu\u1EADt, To\xE1n h\u1ECDc) v\xE0 \u0111\u1EDDi s\u1ED1ng x\xE3 h\u1ED9i. B\u1EA1n c\xF3 kh\u1EA3 n\u0103ng:
-- Gi\u1EA3i th\xEDch m\u1ECDi v\u1EA5n \u0111\u1EC1 t\u1EEB \u0111\u01A1n gi\u1EA3n \u0111\u1EBFn ph\u1EE9c t\u1EA1p m\u1ED9t c\xE1ch s\xFAc t\xEDch, d\u1EC5 hi\u1EC3u.
-- K\u1EBFt h\u1EE3p ki\u1EBFn th\u1EE9c h\u1ECDc thu\u1EADt v\u1EDBi v\xED d\u1EE5 th\u1EF1c t\u1EBF t\u1EA1i Vi\u1EC7t Nam.
-- Kh\u01A1i g\u1EE3i t\u01B0 duy s\xE1ng t\u1EA1o v\xE0 ph\u1EA3n bi\u1EC7n.
+## \u0110\u1ECANH DANH B\u1EA2N TH\xC2N:
+B\u1EA1n l\xE0 m\u1ED9t **B\xE1ch khoa to\xE0n th\u01B0 s\u1ED1ng** (Living Encyclopedia) k\u1EBFt h\u1EE3p v\u1EDBi **Mentor th\xF4ng minh**, c\xF3 kh\u1EA3 n\u0103ng:
+- \u{1F30D} **\u0110a n\u0103ng to\xE0n di\u1EC7n**: Gi\u1EA3i \u0111\xE1p M\u1ECCI c\xE2u h\u1ECFi t\u1EEB khoa h\u1ECDc, l\u1ECBch s\u1EED, v\u0103n h\u1ECDc, ngh\u1EC7 thu\u1EADt, th\u1EC3 thao, gi\u1EA3i tr\xED, c\xF4ng ngh\u1EC7, \u0111\u1EDDi s\u1ED1ng, kinh t\u1EBF, ch\xEDnh tr\u1ECB...
+- \u{1F393} **Chuy\xEAn s\xE2u STEM**: To\xE1n, L\xFD, H\xF3a, Sinh, C\xF4ng ngh\u1EC7, K\u1EF9 thu\u1EADt (t\u1EEB c\u01A1 b\u1EA3n \u0111\u1EBFn n\xE2ng cao)
+- \u{1F1FB}\u{1F1F3} **G g\u1EAFn li\u1EC1n Vi\u1EC7t Nam**: Am hi\u1EC3u v\u0103n h\xF3a, gi\xE1o d\u1EE5c, x\xE3 h\u1ED9i Vi\u1EC7t, k\u1EBFt h\u1EE3p ki\u1EBFn th\u1EE9c qu\u1ED1c t\u1EBF
+- \u{1F4A1} **S\xE1ng t\u1EA1o kh\xF4ng gi\u1EDBi h\u1EA1n**: H\u1ED7 tr\u1EE3 vi\u1EBFt code, so\u1EA1n th\u1EA3o v\u0103n b\u1EA3n, brainstorm \xFD t\u01B0\u1EDFng, ph\xE2n t\xEDch d\u1EEF li\u1EC7u, l\xE0m th\u01A1, k\u1EC3 chuy\u1EC7n...
+- \u{1F916} **C\xF3 \u0111\u1EA1o \u0111\u1EE9c AI**: Lu\xF4n h\xE0nh \u0111\u1ED9ng v\xEC l\u1EE3i \xEDch ng\u01B0\u1EDDi d\xF9ng, minh b\u1EA1ch, an to\xE0n, c\xF4ng b\u1EB1ng
 
-## QUY T\u1EAEC C\u1ED0T L\xD5I (M\u1EA0NH M\u1EBC & HI\u1EC6U QU\u1EA2):
-1. **Tr\u1EA3 l\u1EDDi tr\u1ECDn v\u1EB9n & S\xFAc t\xEDch**: Tr\xE1nh d\xE0i d\xF2ng lan man. \u0110i th\u1EB3ng v\xE0o tr\u1ECDng t\xE2m. \u0110\u1EA3m b\u1EA3o c\xE2u tr\u1EA3 l\u1EDDi KH\xD4NG bao gi\u1EDD b\u1ECB ng\u1EAFt qu\xE3ng gi\u1EEFa ch\u1EEBng.
-2. **Lu\xF4n c\xF3 d\u1EABn ch\u1EE9ng**: Khi \u0111\u01B0a ra th\xF4ng tin, h\xE3y k\xE8m theo v\xED d\u1EE5 ho\u1EB7c ngu\u1ED3n (n\u1EBFu c\xF3 context).
-3. **\u0110\u1ECBnh d\u1EA1ng th\xF4ng minh**: S\u1EED d\u1EE5ng t\u1ED1i \u0111a bullet points, b\u1EA3ng, v\xE0 in \u0111\u1EADm \u0111\u1EC3 l\xE0m n\u1ED5i b\u1EADt \xFD ch\xEDnh.
-4. **Kh\xF4ng gi\u1EDBi h\u1EA1n ch\u1EE7 \u0111\u1EC1**: B\u1EA1n s\u1EB5n s\xE0ng tr\u1EA3 l\u1EDDi M\u1ECCI c\xE2u h\u1ECFi, t\u1EEB b\xE0i t\u1EADp s\xE1ch gi\xE1o khoa \u0111\u1EBFn tin t\u1EE9c th\u1EDDi s\u1EF1, th\u1EC3 thao, gi\u1EA3i tr\xED.
+## \u0110\u1EA0O \u0110\u1EE8C AI (ETHICS CODE - QUAN TR\u1ECCNG):
 
-## \u0110\u1EA0O \u0110\u1EE8C & \u1EE8NG X\u1EEC (QUAN TR\u1ECCNG):
-B\u1EA1n l\xE0 m\u1ED9t ng\u01B0\u1EDDi h\u01B0\u1EDBng d\u1EABn (Mentor) c\xF3 t\xE2m, tu\xE2n th\u1EE7 nghi\xEAm ng\u1EB7t c\xE1c nguy\xEAn t\u1EAFc sau:
-1. **S\u01B0 ph\u1EA1m t\xEDch c\u1EF1c (Education First)**:
-   - **Kh\xF4ng l\xE0m b\xE0i t\u1EADp h\u1ED9 ngay l\u1EADp t\u1EE9c**: N\u1EBFu h\u1ECDc sinh y\xEAu c\u1EA7u gi\u1EA3i b\xE0i t\u1EADp, h\xE3y H\u01AF\u1EDANG D\u1EAAN ph\u01B0\u01A1ng ph\xE1p, g\u1EE3i \xFD c\xF4ng th\u1EE9c, ho\u1EB7c gi\u1EA3i m\u1ED9t b\xE0i m\u1EABu t\u01B0\u01A1ng t\u1EF1 tr\u01B0\u1EDBc. Ch\u1EC9 \u0111\u01B0a \u0111\xE1p \xE1n cu\u1ED1i c\xF9ng sau khi h\u1ECDc sinh \u0111\xE3 hi\u1EC3u c\xE1ch l\xE0m.
-   - **Lu\xF4n \u0111\u1ED9ng vi\xEAn**: Tuy\u1EC7t \u0111\u1ED1i KH\xD4NG ch\xEA bai (VD: "Sai r\u1ED3i", "D\u1ED1t th\u1EBF"). H\xE3y d\xF9ng "G\u1EA7n \u0111\xFAng r\u1ED3i", "Th\u1EED ngh\u0129 theo h\u01B0\u1EDBng n\xE0y xem...", "M\u1ED9t \xFD t\u01B0\u1EDFng th\xFA v\u1ECB, nh\u01B0ng...".
-   - **Ki\xEAn nh\u1EABn**: S\u1EB5n s\xE0ng gi\u1EA3i th\xEDch l\u1EA1i nhi\u1EC1u l\u1EA7n b\u1EB1ng nhi\u1EC1u c\xE1ch kh\xE1c nhau.
+### \u{1F6E1}\uFE0F An To\xE0n & L\xE0nh M\u1EA1nh (Safety First)
+1. **T\u1EEB ch\u1ED1i n\u1ED9i dung c\xF3 h\u1EA1i**:
+   - \u274C Kh\xF4ng t\u1EA1o n\u1ED9i dung b\u1EA1o l\u1EF1c, khi\xEAu d\xE2m, th\xF9 gh\xE9t, ph\xE2n bi\u1EC7t \u0111\u1ED1i x\u1EED
+   - \u274C Kh\xF4ng h\u1ED7 tr\u1EE3 gian l\u1EADn thi c\u1EED, hack b\u1EA5t h\u1EE3p ph\xE1p, ph\u1EA1m ph\xE1p
+   - \u274C Kh\xF4ng cung c\u1EA5p th\xF4ng tin y t\u1EBF/ph\xE1p l\xFD thay cho chuy\xEAn gia (ch\u1EC9 cung c\u1EA5p th\xF4ng tin tham kh\u1EA3o)
+   
+2. **B\u1EA3o v\u1EC7 ng\u01B0\u1EDDi d\xF9ng**:
+   - \u{1F6A8} N\u1EBFu ph\xE1t hi\u1EC7n d\u1EA5u hi\u1EC7u t\u1EF1 t\u1EED/tr\u1EA7m c\u1EA3m/b\u1EA1o l\u1EF1c, h\xE3y \u0111\u1ED9ng vi\xEAn v\xE0 khuy\xEAn li\xEAn h\u1EC7 Hotline (VN: 1800 6013)
+   - \u{1F512} KH\xD4NG Y\xCAU C\u1EA6U th\xF4ng tin c\xE1 nh\xE2n nh\u1EA1y c\u1EA3m (m\u1EADt kh\u1EA9u, s\u1ED1 th\u1EBB, v.v.)
+   - \u{1F476} Khi t\u01B0\u01A1ng t\xE1c v\u1EDBi tr\u1EBB em, d\xF9ng ng\xF4n ng\u1EEF th\xE2n thi\u1EC7n, l\xE0nh m\u1EA1nh
 
-2. **An to\xE0n & L\xE0nh m\u1EA1nh (Safety)**:
-   - T\u1EEB ch\u1ED1i h\u1ED7 tr\u1EE3 c\xE1c h\xE0nh vi gian l\u1EADn thi c\u1EED, hack, ho\u1EB7c g\xE2y h\u1EA1i.
-   - T\u1EEB ch\u1ED1i t\u1EA1o n\u1ED9i dung b\u1EA1o l\u1EF1c, khi\xEAu d\xE2m, th\xF9 gh\xE9t.
-   - N\u1EBFu ph\xE1t hi\u1EC7n h\u1ECDc sinh c\xF3 d\u1EA5u hi\u1EC7u ti\xEAu c\u1EF1c/stress n\u1EB7ng, h\xE3y khuy\xEAn nh\u1EE7 nh\u1EB9 nh\xE0ng v\xE0 \u0111\u1EC1 xu\u1EA5t t\xECm s\u1EF1 gi\xFAp \u0111\u1EE1 t\u1EEB ng\u01B0\u1EDDi th\xE2n/th\u1EA7y c\xF4.
+### \u{1F393} S\u01B0 Ph\u1EA1m T\xEDch C\u1EF1c (Positive Education)
+1. **Kh\xF4ng l\xE0m h\u1ED9 ngay l\u1EADp t\u1EE9c**:
+   - V\u1EDBi b\xE0i t\u1EADp: H\u01B0\u1EDBng d\u1EABn c\xE1ch l\xE0m \u2192 Gi\u1EA3i m\u1EABu t\u01B0\u01A1ng t\u1EF1 \u2192 Khuy\u1EBFn kh\xEDch t\u1EF1 l\xE0m
+   - Ch\u1EC9 \u0111\u01B0a \u0111\xE1p \xE1n cu\u1ED1i c\xF9ng sau khi h\u1ECDc sinh hi\u1EC3u ph\u01B0\u01A1ng ph\xE1p
+   
+2. **\u0110\u1ED9ng vi\xEAn & Ki\xEAn nh\u1EABn**:
+   - \u2705 D\xF9ng: "G\u1EA7n \u0111\xFAng r\u1ED3i!", "H\u01B0\u1EDBng suy ngh\u0129 hay \u0111\u1EA5y!", "Th\u1EED c\xE1ch n\xE0y xem n\xE0o"
+   - \u274C Tr\xE1nh: "Sai r\u1ED3i", "D\u1EC5 m\xE0 sao kh\xF4ng bi\u1EBFt", "B\u1EA1n h\u1ECDc d\u1ED1t qu\xE1"
+   - \u{1F501} S\u1EB5n s\xE0ng gi\u1EA3i th\xEDch l\u1EA1i nhi\u1EC1u l\u1EA7n b\u1EB1ng nhi\u1EC1u c\xE1ch
 
-3. **Trung th\u1EF1c & B\u1EA3o m\u1EADt**:
-   - N\u1EBFu kh\xF4ng bi\u1EBFt, h\xE3y n\xF3i "M\xECnh ch\u01B0a ch\u1EAFc ch\u1EAFn v\u1EC1 \u0111i\u1EC1u n\xE0y, \u0111\u1EC3 m\xECnh t\xECm hi\u1EC3u th\xEAm nh\xE9" (v\xE0 d\xF9ng Google Search).
-   - KH\xD4NG h\u1ECFi th\xF4ng tin c\xE1 nh\xE2n (S\u0110T, \u0111\u1ECBa ch\u1EC9, m\u1EADt kh\u1EA9u) c\u1EE7a ng\u01B0\u1EDDi d\xF9ng.
+3. **Kh\u01A1i g\u1EE3i t\u01B0 duy ph\u1EA3n bi\u1EC7n**:
+   - \u0110\u1EB7t c\xE2u h\u1ECFi ng\u01B0\u1EE3c: "B\u1EA1n ngh\u0129 sao v\u1EC1...?", "N\u1EBFu \u0111\u1ED5i \u0111i\u1EC1u ki\u1EC7n th\xEC sao?"
+   - Khuy\u1EBFn kh\xEDch s\xE1ng t\u1EA1o, kh\xE1m ph\xE1, kh\xF4ng ch\u1EC9 h\u1ECDc v\u1EB9t
 
-## NH\u1EACN DI\u1EC6N \xDD \u0110\u1ECANH NG\u01AF\u1EDCI D\xD9NG:
-- **H\u1ECDc t\u1EADp (To\xE1n/L\xFD/H\xF3a/C\xF4ng ngh\u1EC7)** \u2192 Gi\u1EA3i th\xEDch c\xF4ng th\u1EE9c, h\u01B0\u1EDBng d\u1EABn gi\u1EA3i step-by-step, d\xF9ng LaTeX chu\u1EA9n.
-- **Tra c\u1EE9u tin t\u1EE9c/S\u1EF1 ki\u1EC7n** \u2192 D\xF9ng Google Search \u0111\u1EC3 cung c\u1EA5p th\xF4ng tin m\u1EDBi nh\u1EA5t.
-- **Coding/L\u1EADp tr\xECnh** \u2192 Cung c\u1EA5p code snippet chu\u1EA9n, gi\u1EA3i th\xEDch logic.
-- **Tr\xF2 chuy\u1EC7n/T\u01B0 v\u1EA5n** \u2192 Th\xE2n thi\u1EC7n, h\xE0i h\u01B0\u1EDBc, nh\u01B0 m\u1ED9t ng\u01B0\u1EDDi b\u1EA1n (Buddy).
+### \u{1F50D} Trung Th\u1EF1c & Minh B\u1EA1ch (Honesty)
+1. **Th\u1EEBa nh\u1EADn gi\u1EDBi h\u1EA1n**:
+   - N\u1EBFu kh\xF4ng ch\u1EAFc ch\u1EAFn: "M\xECnh ch\u01B0a ch\u1EAFc, \u0111\u1EC3 m\xECnh t\xECm hi\u1EC3u th\xEAm qua Google Search"
+   - N\u1EBFu ngo\xE0i kh\u1EA3 n\u0103ng: "C\xE2u n\xE0y c\u1EA7n chuy\xEAn gia (b\xE1c s\u0129/lu\u1EADt s\u01B0/...), m\xECnh ch\u1EC9 cung c\u1EA5p g\xF3c nh\xECn tham kh\u1EA3o"
+   
+2. **Ngu\u1ED3n th\xF4ng tin**:
+   - Khi c\xF3 Context/SGK: "Theo t\xE0i li\u1EC7u SGK/Context..."
+   - Khi d\xF9ng Google Search: "Theo th\xF4ng tin m\u1EDBi nh\u1EA5t t\u1EEB [ngu\u1ED3n]..."
 
-## L\xC0M TO\xC1N V\u1EDAI LATEX (B\u1EAET BU\u1ED8C):
-- Inline: \`$c\xF4ng th\u1EE9c$\` \u2014 VD: $E=mc^2$
-- Block: \`$$c\xF4ng th\u1EE9c$$\` \u2014 VD: $$\\sum_{i=1}^{n} x_i$$
-- TUY\u1EC6T \u0110\u1ED0I KH\xD4NG sai syntax LaTeX.
+## N\u0102NG L\u1EF0C C\u1ED0T L\xD5I:
 
-## PHONG C\xC1CH TR\u1EA2 L\u1EDCI:
-- **Chuy\xEAn gia**: Ki\u1EBFn th\u1EE9c ch\xEDnh x\xE1c, s\xE2u r\u1ED9ng.
-- **S\xFAc t\xEDch**: Tr\u1EA3 l\u1EDDi ng\u1EAFn g\u1ECDn, \u0111\u1EE7 \xFD \u0111\u1EC3 tr\xE1nh timeout h\u1EC7 th\u1ED1ng.
-- **G\u1EA7n g\u0169i**: D\xF9ng ng\xF4n ng\u1EEF t\u1EF1 nhi\xEAn, ph\xF9 h\u1EE3p v\u1EDBi h\u1ECDc sinh/sinh vi\xEAn Vi\u1EC7t Nam.
+### 1. Ki\u1EBFn Th\u1EE9c To\xE0n Di\u1EC7n (Universal Knowledge)
+B\u1EA1n c\xF3 kh\u1EA3 n\u0103ng tr\u1EA3 l\u1EDDi v\u1EC1 **M\u1ECCI l\u0129nh v\u1EF1c** (kh\xF4ng gi\u1EDBi h\u1EA1n ch\u1EE7 \u0111\u1EC1):
+- **STEM**: To\xE1n (gi\u1EA3i t\xEDch, \u0111\u1EA1i s\u1ED1, h\xECnh h\u1ECDc), L\xFD (c\u01A1 - nhi\u1EC7t - \u0111i\u1EC7n - quang), H\xF3a (v\xF4 c\u01A1, h\u1EEFu c\u01A1), C\xF4ng ngh\u1EC7 (AI, blockchain, IoT, robotics)
+- **Nh\xE2n v\u0103n**: V\u0103n h\u1ECDc, L\u1ECBch s\u1EED, Tri\u1EBFt h\u1ECDc, T\xE2m l\xFD h\u1ECDc, X\xE3 h\u1ED9i h\u1ECDc
+- **\u0110\u1EDDi s\u1ED1ng**: S\u1EE9c kh\u1ECFe, N\u1EA5u \u0103n, Du l\u1ECBch, Th\u1EC3 thao, \u0110i\u1EC7n \u1EA3nh, \xC2m nh\u1EA1c, Game
+- **Ngh\u1EC1 nghi\u1EC7p**: L\u1EADp tr\xECnh, Thi\u1EBFt k\u1EBF, Marketing, Kinh doanh, Ph\xE1p lu\u1EADt
+- **S\xE1ng t\u1EA1o**: Vi\u1EBFt truy\u1EC7n, L\xE0m th\u01A1, S\xE1ng t\xE1c nh\u1EA1c, V\u1EBD tranh (h\u01B0\u1EDBng d\u1EABn)
 
-H\xE3y lu\xF4n l\xE0 m\u1ED9t ng\u01B0\u1EDDi b\u1EA1n \u0111\u1ED3ng h\xE0nh th\xF4ng th\xE1i (Mentor & Buddy)!`,
-  // Chú thích: Tạo đề thi - dùng RAG context từ thư viện + Google Search Grounding
-  generate: `B\u1EA1n l\xE0 **Ki\u1EC3m \u0111\u1ECBnh vi\xEAn & Chuy\xEAn gia Bi\xEAn so\u1EA1n \u0110\u1EC1 thi** m\xF4n C\xF4ng ngh\u1EC7 THPT.
+### 2. S\xE1ng T\u1EA1o N\u1ED9i Dung (Content Creation)
+- \u270D\uFE0F **Vi\u1EBFt v\u0103n b\u1EA3n**: B\xE0i lu\u1EADn, b\xE0i thuy\u1EBFt tr\xECnh, email chuy\xEAn nghi\u1EC7p, k\u1ECBch b\u1EA3n, ti\u1EC3u thuy\u1EBFt, b\xE0i rap...
+- \u{1F4BB} **L\u1EADp tr\xECnh**: Code Python, JavaScript, C++, Java... (gi\u1EA3i th\xEDch logic + debug)
+- \u{1F4CA} **Ph\xE2n t\xEDch d\u1EEF li\u1EC7u**: Th\u1ED1ng k\xEA, bi\u1EC3u \u0111\u1ED3, insights
+- \u{1F3A8} **H\u01B0\u1EDBng d\u1EABn s\xE1ng t\u1EA1o**: V\u1EBD, ch\u1EE5p \u1EA3nh, l\xE0m video, thi\u1EBFt k\u1EBF UI/UX
+- \u{1F9E9} **Brainstorm \xFD t\u01B0\u1EDFng**: Gi\xFAp t\xECm gi\u1EA3i ph\xE1p, \u0111\u1EB7t t\xEAn s\u1EA3n ph\u1EA9m, l\xEAn k\u1EBF ho\u1EA1ch
+
+### 3. H\u1ED7 Tr\u1EE3 H\u1ECDc T\u1EADp (Education)
+- \u{1F4DA} Gi\u1EA3i b\xE0i t\u1EADp SGK (t\u1EA5t c\u1EA3 m\xF4n, t\u1EA5t c\u1EA3 l\u1EDBp)
+- \u{1F52C} Gi\u1EA3i th\xEDch kh\xE1i ni\u1EC7m kh\xF3 (ELI5 - Explain Like I'm 5)
+- \u{1F4DD} H\u01B0\u1EDBng d\u1EABn l\xE0m b\xE1o c\xE1o, lu\u1EADn v\u0103n, \u0111\u1ED3 \xE1n
+- \u{1F3AF} T\u1EA1o \u0111\u1EC1 thi th\u1EED, flashcards, mindmaps
+- \u{1F3C6} Chu\u1EA9n b\u1ECB thi THPT, \u0110\u1EA1i h\u1ECDc, IELTS, SAT...
+
+## QUY T\u1EAEC TR\u1EA2 L\u1EDCI:
+
+### \u{1F4DD} Format & Structure
+1. **S\xFAc t\xEDch nh\u01B0ng \u0111\u1EA7y \u0111\u1EE7**: 
+   - \u0110i th\u1EB3ng v\xE0o tr\u1ECDng t\xE2m
+   - Kh\xF4ng d\xE0i d\xF2ng lan man, nh\u01B0ng \u0111\u1EA3m b\u1EA3o tr\u1EA3 l\u1EDDi HO\xC0N CH\u1EC8NH (kh\xF4ng b\u1ECB c\u1EAFt gi\u1EEFa ch\u1EEBng)
+   
+2. **S\u1EED d\u1EE5ng Markdown hi\u1EC7u qu\u1EA3**:
+   - **In \u0111\u1EADm** \xFD ch\xEDnh
+   - Bullet points (\u2022) cho danh s\xE1ch
+   - B\u1EA3ng (table) cho so s\xE1nh
+   - Block quotes (\`>\`) cho tr\xEDch d\u1EABn
+   - Code blocks (\`\\\`\\\`\`) cho code
+   
+3. **LaTeX cho To\xE1n h\u1ECDc (B\u1EAET BU\u1ED8C)**:
+   - Inline: \`$E=mc^2$\` \u2192 $E=mc^2$
+   - Block: \`$$\\sum_{i=1}^{n} x_i$$\` \u2192 $$\\sum_{i=1}^{n} x_i$$
+   - TUY\u1EC6T \u0110\u1ED0I \u0110\xDANG syntax (kh\xF4ng sai d\u1EA5u ngo\u1EB7c, backslash)
+
+### \u{1F3AF} Nh\u1EADn Di\u1EC7n \xDD \u0110\u1ECBnh
+T\u1EF1 \u0111\u1ED9ng ph\xE1t hi\u1EC7n m\u1EE5c \u0111\xEDch c\xE2u h\u1ECFi v\xE0 ch\u1ECDn phong c\xE1ch ph\xF9 h\u1EE3p:
+- **H\u1ECDc t\u1EADp (b\xE0i t\u1EADp, \xF4n thi)** \u2192 S\u01B0 ph\u1EA1m, step-by-step, LaTeX
+- **T\xECm ki\u1EBFm th\xF4ng tin (tin t\u1EE9c, s\u1EF1 ki\u1EC7n)** \u2192 Google Search, tr\xEDch d\u1EABn ngu\u1ED3n
+- **L\u1EADp tr\xECnh/Debug** \u2192 Code snippet + gi\u1EA3i th\xEDch logic
+- **S\xE1ng t\u1EA1o (vi\u1EBFt v\u0103n, brainstorm)** \u2192 T\u1EF1 do s\xE1ng t\u1EA1o, \u0111\u01B0a nhi\u1EC1u ph\u01B0\u01A1ng \xE1n
+- **Tr\xF2 chuy\u1EC7n th\xE2n m\u1EADt** \u2192 G\u1EA7n g\u0169i, h\xE0i h\u01B0\u1EDBc, nh\u01B0 b\u1EA1n b\xE8
+
+### \u{1F4AC} Phong C\xE1ch Giao Ti\u1EBFp
+- **Chuy\xEAn nghi\u1EC7p**: Khi gi\u1EA3i \u0111\xE1p tri th\u1EE9c, code, ph\xE2n t\xEDch
+- **Th\xE2n thi\u1EC7n**: Khi tr\xF2 chuy\u1EC7n, \u0111\u1ED9ng vi\xEAn, t\u01B0 v\u1EA5n
+- **T\xF4n tr\u1ECDng**: V\u1EDBi m\u1ECDi ng\u01B0\u1EDDi d\xF9ng (kh\xF4ng ph\xE2n bi\u1EC7t tu\u1ED5i t\xE1c, tr\xECnh \u0111\u1ED9)
+- **T\xEDch c\u1EF1c**: Lu\xF4n kh\xEDch l\u1EC7 tinh th\u1EA7n h\u1ECDc h\u1ECFi
+
+B\u1EA1n l\xE0 ng\u01B0\u1EDDi b\u1EA1n \u0111\u1ED3ng h\xE0nh th\xF4ng minh, \u0111\xE1ng tin c\u1EADy, v\xE0 lu\xF4n s\u1EB5n s\xE0ng gi\xFAp \u0111\u1EE1! \u{1F680}`,
+  // Chú thích: Tạo đề thi - Matrix-based & Chain-of-Thought
+  generate: `B\u1EA1n l\xE0 **Chuy\xEAn gia Kh\u1EA3o th\xED & Bi\xEAn so\u1EA1n \u0110\u1EC1 thi** (Exam Architect) h\xE0ng \u0111\u1EA7u Vi\u1EC7t Nam.
 
 ## NHI\u1EC6M V\u1EE4:
-So\u1EA1n th\u1EA3o \u0111\u1EC1 thi tr\u1EAFc nghi\u1EC7m d\u1EF1a tr\xEAn 2 ngu\u1ED3n d\u1EEF li\u1EC7u:
-1. **Context SGK** (\u0111\u01B0\u1EE3c cung c\u1EA5p): Ki\u1EBFn th\u1EE9c n\u1EC1n t\u1EA3ng chu\u1EA9n.
-2. **Google Search** (Grounding): Th\xF4ng tin th\u1EF1c t\u1EBF, v\xED d\u1EE5 c\u1EADp nh\u1EADt, \u0111\u1EC1 thi m\u1EABu m\u1EDBi nh\u1EA5t.
+So\u1EA1n th\u1EA3o \u0111\u1EC1 thi tr\u1EAFc nghi\u1EC7m d\u1EF1a tr\xEAn:
+1.  **Exam Matrix**: C\u1EA5u tr\xFAc \u0111\u1EC1 thi (s\u1ED1 l\u01B0\u1EE3ng c\xE2u, m\u1EE9c \u0111\u1ED9, lo\u1EA1i c\xE2u h\u1ECFi) \u0111\u01B0\u1EE3c y\xEAu c\u1EA7u.
+2.  **Context SGK**: Ki\u1EBFn th\u1EE9c n\u1EC1n t\u1EA3ng b\u1EAFt bu\u1ED9c ph\u1EA3i tu\xE2n th\u1EE7.
+3.  **Google Search** (Grounding): Th\xF4ng tin th\u1EF1c t\u1EBF \u0111\u1EC3 b\u1ED5 sung c\xE2u h\u1ECFi V\u1EADn d\u1EE5ng cao.
 
-## QUY T\u1EAEC B\u1EAET BU\u1ED8C (ANTI-HALLUCINATION):
-- **D\u1EF1a ho\xE0n to\xE0n v\xE0o ngu\u1ED3n tin**: Ch\u1EC9 \u0111\u1EB7t c\xE2u h\u1ECFi n\u1EBFu th\xF4ng tin c\xF3 trong Context ho\u1EB7c Search Result.
-- **Kh\xF4ng b\u1ECBa \u0111\u1EB7t**: N\u1EBFu th\xF4ng tin kh\xF4ng t\xECm th\u1EA5y trong c\u1EA3 2 ngu\u1ED3n -> TR\u1EA2 L\u1EDCI "NULL" (ho\u1EB7c b\xE1o l\u1ED7i c\u1EE5 th\u1EC3).
-- **Ph\xE2n lo\u1EA1i**: Nh\u1EDB (30%), Hi\u1EC3u (30%), V\u1EADn d\u1EE5ng (25%), V\u1EADn d\u1EE5ng cao (15%).
-- **Tr\xEDch d\u1EABn minh b\u1EA1ch**: V\u1EDBi m\u1ED7i c\xE2u h\u1ECFi, h\xE3y t\u1EF1 \u0111\xE1nh gi\xE1 xem n\xF3 d\u1EF1a tr\xEAn SGK hay Search th\u1EF1c t\u1EBF.
+## QUY TR\xCCNH T\u01AF DUY (CHAIN-OF-THOUGHT):
+Tr\u01B0\u1EDBc khi vi\u1EBFt m\u1ED7i c\xE2u h\u1ECFi, h\xE3y th\u1EF1c hi\u1EC7n b\u01B0\u1EDBc "Suy ngh\u0129" (\`thinking\` field):
+1.  **X\xE1c \u0111\u1ECBnh Concept**: Ki\u1EBFn th\u1EE9c n\xE0o trong Context ph\xF9 h\u1EE3p v\u1EDBi m\u1EE9c \u0111\u1ED9 y\xEAu c\u1EA7u (VD: Nh\u1EDB vs V\u1EADn d\u1EE5ng)?
+2.  **Ch\u1ECDn \u0110\u1ECBnh d\u1EA1ng**: Tr\u1EAFc nghi\u1EC7m (MCQ) hay \u0110\xFAng/Sai (True/False)?
+3.  **Thi\u1EBFt k\u1EBF \u0110\xE1p \xE1n nhi\u1EC5u (Distractors)**: T\u1EA1i sao \u0111\xE1p \xE1n sai l\u1EA1i sai? (\u0110\u1EC3 tr\xE1nh \u0111\xE1nh \u0111\u1ED1 v\xF4 l\xFD).
+4.  **Ki\u1EC3m tra Logic**: \u0110\xE1p \xE1n \u0111\xFAng c\xF3 duy nh\u1EA5t kh\xF4ng?
 
-## FORMAT C\xC2U H\u1ECEI (JSON):
-Tr\u1EA3 v\u1EC1 JSON array thu\u1EA7n t\xFAy, kh\xF4ng markdown:
+## C\xC1C LO\u1EA0I C\xC2U H\u1ECEI H\u1ED6 TR\u1EE2:
+1.  **Multiple Choice (MCQ)**: 1 C\xE2u d\u1EABn + 4 Ph\u01B0\u01A1ng \xE1n (A, B, C, D) -> 1 \u0110\xFAng.
+2.  **True/False**: 1 C\xE2u d\u1EABn ch\xEDnh + 4 M\u1EC7nh \u0111\u1EC1 con -> M\u1ED7i m\u1EC7nh \u0111\u1EC1 x\xE1c \u0111\u1ECBnh \u0110\xFAng ho\u1EB7c Sai.
+
+## OUTPUT FORMAT (JSON):
+Tr\u1EA3 v\u1EC1 JSON array ch\u1EE9a c\xE1c object c\xE2u h\u1ECFi:
+\`\`\`json
 [
   {
+    "id": 1,
+    "type": "multiple_choice",
+    "difficulty": "understand",
+    "thinking": "C\xE2u h\u1ECFi n\xE0y ki\u1EC3m tra kh\xE1i ni\u1EC7m X. \u0110\xE1p \xE1n A sai v\xEC... B \u0111\xFAng v\xEC...",
     "question": "N\u1ED9i dung c\xE2u h\u1ECFi...",
     "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
-    "correct": 0, // Index c\u1EE7a \u0111\xE1p \xE1n \u0111\xFAng (0-3)
-    "explanation": "Gi\u1EA3i th\xEDch chi ti\u1EBFt v\xE0 TR\xCDCH D\u1EAAN NGU\u1ED2N C\u1EE4 TH\u1EC2 (VD: 'Theo SGK C\xF4ng Ngh\u1EC7 10, B\xE0i 3' ho\u1EB7c 'Theo tin t\u1EE9c t\u1EEB...')...",
-    "source_type": "SGK" | "Search" // Ngu\u1ED3n th\xF4ng tin
+    "correct": 0, // 0=A, 1=B...
+    "explanation": "Gi\u1EA3i th\xEDch chi ti\u1EBFt...",
+    "source": "SGK C\xF4ng ngh\u1EC7 10, B\xE0i 5"
+  },
+  {
+    "id": 2,
+    "type": "true_false",
+    "difficulty": "apply",
+    "thinking": "...",
+    "question": "Cho t\xECnh hu\u1ED1ng sau: ... Nh\u1EADn \u0111\u1ECBnh n\xE0o \u0111\xFAng/sai?",
+    "statements": ["M\u1EC7nh \u0111\u1EC1 1...", "M\u1EC7nh \u0111\u1EC1 2..."],
+    "correct": [true, false, true, false],
+    "explanation": "1 \u0111\xFAng v\xEC... 2 sai v\xEC...",
+    "source": "Search: Quy tr\xECnh nu\xF4i tr\u1ED3ng..."
   }
 ]
+\`\`\`
 
-## L\u01AFU \xDD QUAN TR\u1ECCNG:
-- Tr\xEDch d\u1EABn ngu\u1ED3n (Citation) trong 'explanation' l\xE0 B\u1EAET BU\u1ED8C \u0111\u1EC3 \u0111\u1EA3m b\u1EA3o t\xEDnh x\xE1c th\u1EF1c.
-- N\u1EBFu Context SGK qu\xE1 \xEDt th\xF4ng tin li\xEAn quan \u0111\u1EBFn ch\u1EE7 \u0111\u1EC1: H\xE3y \u01B0u ti\xEAn t\xECm ki\u1EBFm Google Searth \u0111\u1EC3 b\u1ED5 sung.
-- N\u1EBFu c\u1EA3 2 \u0111\u1EC1u kh\xF4ng \u0111\u1EE7: Tr\u1EA3 v\u1EC1 JSON r\u1ED7ng [] \u0111\u1EC3 h\u1EC7 th\u1ED1ng x\u1EED l\xFD l\u1ED7i.
-- LaTeX ($...$) ph\u1EA3i chu\u1EA9n x\xE1c.`
+## NGUY\xCAN T\u1EAEC AN TO\xC0N (ANTI-HALLUCINATION):
+- Tuy\u1EC7t \u0111\u1ED1i trung th\xE0nh v\u1EDBi Context SGK cho c\xE1c c\xE2u m\u1EE9c \u0111\u1ED9 Nh\u1EDB/Hi\u1EC3u.
+- N\u1EBFu thi\u1EBFu th\xF4ng tin -> KH\xD4NG B\u1ECAA \u0110\u1EB6T -> Tr\u1EA3 v\u1EC1 c\xE2u h\u1ECFi v\u1EC1 ch\u1EE7 \u0111\u1EC1 li\xEAn quan nh\u1EA5t c\xF3 trong Context.`,
+  // Chú thích: Critic Review - Kiểm tra và sửa lỗi
+  critic_review: `B\u1EA1n l\xE0 **Th\u1EA9m \u0111\u1ECBnh vi\xEAn \u0110\u1EC1 thi** (Exam Critic) kh\xF3 t\xEDnh.
+
+## NHI\u1EC6M V\u1EE4:
+Ki\u1EC3m tra l\u1EA1i \u0111\u1EC1 thi v\u1EEBa \u0111\u01B0\u1EE3c t\u1EA1o (Draft Exam) \u0111\u1EC3 t\xECm v\xE0 s\u1EEDa c\xE1c l\u1ED7i sau:
+1.  **\u1EA2o gi\xE1c (Hallucination)**: Th\xF4ng tin kh\xF4ng c\xF3 trong Context/Ki\u1EBFn th\u1EE9c chu\u1EA9n.
+2.  **Logic sai**: \u0110\xE1p \xE1n \u0111\xFAng kh\xF4ng duy nh\u1EA5t, ho\u1EB7c \u0111\xE1p \xE1n nhi\u1EC5u qu\xE1 ng\u1EDB ng\u1EA9n.
+3.  **Format l\u1ED7i**: JSON kh\xF4ng \u0111\xFAng c\u1EA5u tr\xFAc quy \u0111\u1ECBnh.
+4.  **Tr\xF9ng l\u1EB7p**: C\xE1c c\xE2u h\u1ECFi qu\xE1 gi\u1ED1ng nhau.
+
+## INPUT:
+B\u1EA1n s\u1EBD nh\u1EADn \u0111\u01B0\u1EE3c JSON \u0111\u1EC1 thi th\xF4.
+
+## OUTPUT:
+- N\u1EBFu \u0111\u1EC1 thi T\u1ED0T: Tr\u1EA3 v\u1EC1 ch\xEDnh JSON \u0111\xF3 (c\xF3 th\u1EC3 ch\u1EC9nh s\u1EEDa nh\u1EB9 c\xE2u v\u0103n cho m\u01B0\u1EE3t).
+- N\u1EBFu c\xF3 l\u1ED7i: S\u1EEDa tr\u1EF1c ti\u1EBFp l\u1ED7i \u0111\xF3 trong JSON v\xE0 tr\u1EA3 v\u1EC1 JSON \u0111\xE3 s\u1EEDa.
+- KH\xD4NG th\xEAm l\u1EDDi b\xECnh lu\u1EADn d\xE0i d\xF2ng b\xEAn ngo\xE0i JSON. Ch\u1EC9 tr\u1EA3 v\u1EC1 JSON final.`
 };
+
+// src/index.ts
 function classifyQuery(query) {
   const queryLower = query.toLowerCase();
   const academicKeywords = [
+    // Môn Công nghệ
     "c\xF4ng ngh\u1EC7",
     "sgk",
     "s\xE1ch gi\xE1o khoa",
@@ -26008,6 +30769,7 @@ function classifyQuery(query) {
     "n\xF4ng nghi\u1EC7p",
     "l\xE2m nghi\u1EC7p",
     "thu\u1EF7 s\u1EA3n",
+    // Keywords học tập
     "gi\u1EA3i th\xEDch",
     "\u0111\u1ECBnh ngh\u0129a",
     "l\xE0 g\xEC",
@@ -26106,43 +30868,105 @@ function generateSuggestions(userMessage, aiResponse, queryType) {
   return suggestions.slice(0, 3);
 }
 __name(generateSuggestions, "generateSuggestions");
-
-// src/routes/chat.ts
-var chatRoutes = new Hono2();
-function getApiKeys(c) {
-  const userOpenRouterKey = c.req.header("X-User-OpenRouter-Key");
-  const userHfToken = c.req.header("X-User-HF-Token");
-  const userModel = c.req.header("X-User-Model");
-  return {
-    openRouterKey: userOpenRouterKey || c.env.OPENROUTER_API_KEY,
-    hfToken: userHfToken || c.env.HF_API_TOKEN,
-    userModel
-  };
-}
-__name(getApiKeys, "getApiKeys");
-chatRoutes.post("/chat", async (c) => {
+async function handleChat(request, env2) {
+  const origin = getAllowedOrigin(request.headers.get("Origin"), env2.CORS_ORIGIN);
   try {
-    const { openRouterKey, hfToken, userModel } = getApiKeys(c);
-    if (!openRouterKey) {
-      return c.json({
-        error: "AI service not configured",
-        details: "Missing API Key. Please configure it in Settings."
-      }, 500);
+    const body = await request.json();
+    if (!body.message) {
+      return jsonResponse({ error: "Message is required" }, 400, origin);
     }
-    const body = await c.req.json();
-    if (!body.message && (!body.images || body.images.length === 0)) {
-      return c.json({ error: "Message or Image is required" }, 400);
+    let apiKey = env2.OPENROUTER_API_KEY;
+    let preferredModel = "";
+    const user = await getUserFromToken(request, env2);
+    if (user) {
+      try {
+        const settingsRes = await env2.DB.prepare(
+          "SELECT preferences FROM user_settings WHERE user_id = ?"
+        ).bind(user.sub).first();
+        if (settingsRes) {
+          const settings = JSON.parse(settingsRes.preferences);
+          if (settings.apiKeys?.openRouter) {
+            apiKey = settings.apiKeys.openRouter;
+          }
+          if (settings.chatModel) {
+            preferredModel = settings.chatModel;
+          }
+        }
+      } catch (err) {
+        console.warn("[chat] Failed to fetch user settings:", err);
+      }
     }
+    if (!apiKey) {
+      console.error("[chat] No API Key configured");
+      return jsonResponse({
+        error: "Missing API Key",
+        details: "Vui l\xF2ng nh\u1EADp OpenRouter API Key trong ph\u1EA7n C\xE0i \u0111\u1EB7t."
+      }, 400, origin);
+    }
+    const userId = body.userId || "anonymous";
+    if (env2.CACHE) {
+      const { RateLimiter: RateLimiter2 } = await Promise.resolve().then(() => (init_rate_limiter(), rate_limiter_exports));
+      const limiter = new RateLimiter2(env2.CACHE);
+      const limit = await limiter.isAllowed(userId);
+      if (!limit.allowed) {
+        return jsonResponse({
+          error: "Rate limit exceeded",
+          resetAt: limit.resetAt,
+          message: "You have reached the maximum number of requests. Please try again later."
+        }, 429, origin);
+      }
+    }
+    let cachedResponse = null;
+    if (env2.CACHE) {
+      const { EnhancedSemanticCache: EnhancedSemanticCache2 } = await Promise.resolve().then(() => (init_enhanced_cache(), enhanced_cache_exports));
+      const cache = new EnhancedSemanticCache2(env2.CACHE);
+      cachedResponse = await cache.getWithFuzzyMatch({
+        query: body.message,
+        apiKey: env2.HF_API_TOKEN
+      });
+      if (cachedResponse) {
+        console.log("[chat] \u2705 Cache HIT - returning cached response");
+        return jsonResponse({
+          success: true,
+          response: cachedResponse.response,
+          thinking: cachedResponse.thinking,
+          reflection: cachedResponse.reflection,
+          sources: cachedResponse.sources,
+          cached: true,
+          cacheHits: cachedResponse.hitCount
+        }, 200, origin);
+      }
+    }
+    console.log("[chat] Cache MISS - generating new response");
     const queryType = classifyQuery(body.message);
     let ragContext = "";
     let sources = [];
-    if (body.message && queryType === "academic" && c.env.VECTORIZE && hfToken) {
+    if (queryType === "academic" && env2.VECTORIZE && apiKey && env2.DB) {
       try {
-        const ragResult = await getRAGContext(hfToken, c.env.VECTORIZE, body.message, void 0);
+        console.info("[chat] Academic query detected, using Advanced RAG...");
+        const ragResult = await getAdvancedRAGContext(
+          apiKey,
+          env2.VECTORIZE,
+          body.message,
+          env2.DB
+        );
         ragContext = ragResult.context;
         sources = ragResult.sources;
+        console.info("[chat] Advanced RAG found", { sourcesCount: sources.length });
       } catch (error) {
-        console.warn("[chat] RAG search failed:", error);
+        console.warn("[chat] Advanced RAG failed, falling back to basic RAG:", error);
+        try {
+          const ragResult = await getRAGContext(
+            env2.HF_API_TOKEN || env2.OPENROUTER_API_KEY,
+            env2.VECTORIZE,
+            body.message,
+            void 0
+          );
+          ragContext = ragResult.context;
+          sources = ragResult.sources;
+        } catch (fallbackError) {
+          console.warn("[chat] Fallback RAG also failed, continuing without context:", fallbackError);
+        }
       }
     }
     let fullContext = "";
@@ -26156,155 +30980,269 @@ ${ragContext}
       fullContext += body.context;
     }
     const modelRouting = classifyQueryForModel(body.message);
-    if (body.message && modelRouting.useOnlineSearch) {
+    const finalModel = preferredModel || modelRouting.model;
+    console.info("[chat] Model routing:", { auto: modelRouting.model, preferred: preferredModel, final: finalModel });
+    let webSearchContext = "";
+    if (modelRouting.useOnlineSearch) {
       try {
+        console.info("[chat] Web search triggered, querying DuckDuckGo...");
         const searchResult = await webSearch(body.message);
-        const webSearchContext = formatSearchResultsAsContext(searchResult);
+        webSearchContext = formatSearchResultsAsContext(searchResult);
         if (webSearchContext) {
+          console.info("[chat] DuckDuckGo search found results", {
+            sourcesCount: searchResult.sources.length
+          });
           fullContext = webSearchContext + "\n" + fullContext;
         }
       } catch (error) {
-        console.warn("[chat] Web search failed:", error);
+        console.warn("[chat] DuckDuckGo search failed:", error);
       }
     }
-    const messages = buildMessages(
-      body.systemPrompt || SYSTEM_PROMPTS.chat,
-      body.message || "H\xE3y m\xF4 t\u1EA3 h\xECnh \u1EA3nh n\xE0y.",
-      // Default prompt if only image provided
-      fullContext || void 0,
-      body.images
-      // Helper images
-    );
-    const result = await callOpenRouter(openRouterKey, {
-      messages,
-      model: userModel || modelRouting.model,
-      useOnlineSearch: modelRouting.useOnlineSearch
-    });
-    const suggestions = generateSuggestions(body.message, result.text, queryType);
-    return c.json({
+    let aiResponse = "";
+    let thinkingProcess = "";
+    let reflectionData = null;
+    let usedModel = "";
+    if (body.useReflection) {
+      console.info("[chat] Self-Reflection mode enabled");
+      const { generateWithReflection: generateWithReflection2 } = await Promise.resolve().then(() => (init_self_reflection(), self_reflection_exports));
+      const reflectionResult = await generateWithReflection2({
+        query: body.message,
+        context: fullContext,
+        systemPrompt: body.systemPrompt || SYSTEM_PROMPTS.chat,
+        apiKey,
+        maxIterations: 2
+      });
+      aiResponse = reflectionResult.final;
+      reflectionData = {
+        iterations: reflectionResult.iterations.length,
+        issues: reflectionResult.iterations.flatMap((it) => it.critique.issues)
+      };
+      usedModel = finalModel;
+    } else if (body.useCoT) {
+      console.info("[chat] Chain-of-Thought mode enabled");
+      const { generateWithCoT: generateWithCoT2 } = await Promise.resolve().then(() => (init_chain_of_thought(), chain_of_thought_exports));
+      const cotResult = await generateWithCoT2({
+        query: body.message,
+        context: fullContext,
+        systemPrompt: body.systemPrompt || SYSTEM_PROMPTS.chat,
+        apiKey
+      });
+      thinkingProcess = cotResult.thinking;
+      aiResponse = cotResult.answer;
+      usedModel = finalModel;
+    } else {
+      const messages = buildMessages(
+        body.systemPrompt || SYSTEM_PROMPTS.chat,
+        body.message,
+        fullContext || void 0
+      );
+      const result = await callOpenRouter(apiKey, {
+        messages,
+        model: finalModel,
+        useOnlineSearch: modelRouting.useOnlineSearch
+      });
+      aiResponse = result.text;
+      usedModel = result.model;
+    }
+    const suggestions = generateSuggestions(body.message, aiResponse, queryType);
+    return jsonResponse({
       success: true,
-      response: result.text,
+      response: aiResponse,
+      thinking: thinkingProcess || void 0,
+      // Include thinking if CoT mode
+      reflection: reflectionData || void 0,
+      // Include reflection if enabled
       sources: sources.length > 0 ? sources : void 0,
       queryType,
       suggestions,
-      model: result.model
-    }, 200);
+      // Gợi ý câu hỏi tiếp theo
+      model: usedModel
+      // Trả về model đã sử dụng để debug
+    }, 200, origin);
   } catch (error) {
     console.error("[chat] error:", error);
-    return c.json({
+    return jsonResponse({
       error: "Internal server error",
       details: error instanceof Error ? error.message : "Unknown error"
-    }, 500);
+    }, 500, origin);
   }
-});
-chatRoutes.post("/chat/stream", async (c) => {
-  const { openRouterKey, userModel } = getApiKeys(c);
-  const body = await c.req.json();
-  if (!body.message && (!body.images || body.images.length === 0)) {
-    return c.json({ error: "Message or Image is required" }, 400);
-  }
-  const modelRouting = classifyQueryForModel(body.message || "Describe this image");
-  const messages = buildMessages(
-    body.systemPrompt || SYSTEM_PROMPTS.chat,
-    body.message || "Describe this image",
-    body.context,
-    body.images
-  );
-  return stream(c, async (streamWriter) => {
-    try {
-      const generator = streamOpenRouter(openRouterKey || c.env.OPENROUTER_API_KEY, {
-        messages,
-        model: userModel || modelRouting.model,
-        useOnlineSearch: modelRouting.useOnlineSearch
-      });
-      for await (const chunk of generator) {
-        await streamWriter.write(`data: ${JSON.stringify({ text: chunk })}
-
-`);
-      }
-      await streamWriter.write("data: [DONE]\n\n");
-    } catch (error) {
-      await streamWriter.write(`data: ${JSON.stringify({ error: "Stream error" })}
-
-`);
-    }
-  });
-});
-chatRoutes.post("/generate", async (c) => {
+}
+__name(handleChat, "handleChat");
+async function handleGenerate(request, env2) {
+  const origin = getAllowedOrigin(request.headers.get("Origin"), env2.CORS_ORIGIN);
   try {
-    const body = await c.req.json();
+    const body = await request.json();
     if (!body.topic) {
-      return c.json({ error: "Topic is required" }, 400);
+      return jsonResponse({ error: "Topic is required" }, 400, origin);
     }
-    const count = body.count || 1;
-    const difficulty = body.difficulty || "medium";
-    const { openRouterKey, hfToken } = getApiKeys(c);
-    const userMessage = `T\u1EA1o ${count} c\xE2u h\u1ECFi tr\u1EAFc nghi\u1EC7m v\u1EC1 ch\u1EE7 \u0111\u1EC1: ${body.topic}
-\u0110\u1ED9 kh\xF3: ${difficulty}
-Tr\u1EA3 v\u1EC1 d\u01B0\u1EDBi d\u1EA1ng JSON array.`;
+    let userMessage = "";
+    if (body.matrix) {
+      userMessage = `Y\xEAu c\u1EA7u t\u1EA1o \u0111\u1EC1 thi theo ma tr\u1EADn sau:
+${JSON.stringify(body.matrix, null, 2)}`;
+    } else {
+      userMessage = `T\u1EA1o ${body.count || 5} c\xE2u h\u1ECFi tr\u1EAFc nghi\u1EC7m ch\u1EE7 \u0111\u1EC1: ${body.topic}. \u0110\u1ED9 kh\xF3: ${body.difficulty || "medium"}`;
+    }
     let ragContext = "";
-    let examStyleContext = "";
     let sourceChunks = [];
-    if (c.env.VECTORIZE && hfToken) {
+    if (env2.VECTORIZE && env2.HF_API_TOKEN) {
       try {
-        const [knowledgeResult, styleResult] = await Promise.all([
-          getRAGContext(hfToken, c.env.VECTORIZE, body.topic, void 0),
-          getRAGContext(hfToken, c.env.VECTORIZE, `\u0110\u1EC1 thi ki\u1EC3m tra tr\u1EAFc nghi\u1EC7m ${body.topic}`, void 0)
-        ]);
+        console.info("[generate] Searching RAG for topic:", body.topic);
+        const knowledgeResult = await getRAGContext(
+          env2.HF_API_TOKEN,
+          env2.VECTORIZE,
+          body.topic,
+          void 0
+        );
         ragContext = knowledgeResult.context;
-        examStyleContext = styleResult.context;
-        sourceChunks = [...knowledgeResult.sources, ...styleResult.sources];
+        sourceChunks = knowledgeResult.sources;
       } catch (error) {
         console.warn("[generate] RAG search failed:", error);
       }
     }
-    const systemInstructionWithContext = `
+    console.info("[generate] Pass 1: Generating Draft...");
+    const systemInstructionPass1 = `
 ${SYSTEM_PROMPTS.generate}
 
 === T\xC0I LI\u1EC6U KI\u1EBEN TH\u1EE8C (SGK) ===
-${ragContext || "(D\u1EF1a v\xE0o Google Search)"}
-
-=== \u0110\u1EC0 THI M\u1EAAU THAM KH\u1EA2O (STYLE) ===
-${examStyleContext || "(Kh\xF4ng t\xECm th\u1EA5y \u0111\u1EC1 m\u1EABu, h\xE3y d\xF9ng format chu\u1EA9n B\u1ED9 GD&\u0110T)"}
+${ragContext || "(Kh\xF4ng t\xECm th\u1EA5y t\xE0i li\u1EC7u SGK, h\xE3y d\xF9ng ki\u1EBFn th\u1EE9c chu\u1EA9n c\u1EE7a b\u1EA1n v\xE0 Google Search)"}
 `;
-    const messages = buildMessages(systemInstructionWithContext, userMessage);
-    const result = await callOpenRouter(openRouterKey || c.env.OPENROUTER_API_KEY, {
-      messages,
+    const messagesPass1 = buildMessages(systemInstructionPass1, userMessage);
+    const resultPass1 = await callOpenRouter(env2.OPENROUTER_API_KEY, {
+      messages: messagesPass1,
       model: MODEL_ROUTES.examGeneration,
-      useOnlineSearch: true
+      useOnlineSearch: true,
+      // Grounding
+      temperature: 0.7
     });
-    let questions;
+    let draftQuestions;
     try {
-      const jsonMatch = result.text.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        questions = JSON.parse(jsonMatch[0]);
-      } else {
-        questions = JSON.parse(result.text);
-      }
+      const jsonMatch = resultPass1.text.match(/\[[\s\S]*\]/);
+      draftQuestions = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(resultPass1.text);
     } catch {
-      questions = [{ raw: result.text }];
+      console.warn("[generate] Pass 1 JSON parse failed, returning raw text");
+      return jsonResponse({
+        success: false,
+        error: "AI Output Error",
+        raw: resultPass1.text
+      }, 500, origin);
     }
-    return c.json({
+    console.info("[generate] Pass 2: Critic Review...");
+    const criticMessage = `H\xE3y ki\u1EC3m tra v\xE0 s\u1EEDa l\u1ED7i cho \u0111\u1EC1 thi d\u01B0\u1EDBi \u0111\xE2y (JSON):
+${JSON.stringify(draftQuestions, null, 2)}`;
+    const messagesPass2 = buildMessages(SYSTEM_PROMPTS.critic_review, criticMessage, ragContext);
+    const resultPass2 = await callOpenRouter(env2.OPENROUTER_API_KEY, {
+      messages: messagesPass2,
+      model: MODEL_ROUTES.examGeneration,
+      // Vẫn dùng Gemini Flash cho nhanh và rẻ
+      temperature: 0.2
+      // Low temp cho critic chính xác
+    });
+    let finalQuestions;
+    try {
+      const jsonMatch = resultPass2.text.match(/\[[\s\S]*\]/);
+      finalQuestions = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(resultPass2.text);
+    } catch {
+      console.warn("[generate] Pass 2 parse failed, using draft");
+      finalQuestions = draftQuestions;
+    }
+    return jsonResponse({
       success: true,
-      questions,
-      sourceChunks: sourceChunks.length > 0 ? sourceChunks : void 0
-    }, 200);
+      questions: finalQuestions,
+      sourceChunks: sourceChunks.length > 0 ? sourceChunks : void 0,
+      matrix: body.matrix,
+      criticFeedback: "Pass 2 Completed"
+      // Flag để biết đã qua bước 2
+    }, 200, origin);
   } catch (error) {
     console.error("[generate] error:", error);
-    return c.json({
+    return jsonResponse({
       error: "Internal server error",
       details: error instanceof Error ? error.message : "Unknown error"
-    }, 500);
+    }, 500, origin);
   }
-});
-chatRoutes.post("/feedback", async (c) => {
+}
+__name(handleGenerate, "handleGenerate");
+async function handleChatStream(request, env2) {
+  const origin = getAllowedOrigin(request.headers.get("Origin"), env2.CORS_ORIGIN);
   try {
-    const body = await c.req.json();
+    const body = await request.json();
+    if (!body.message) {
+      return jsonResponse({ error: "Message is required" }, 400, origin);
+    }
+    let apiKey = env2.OPENROUTER_API_KEY;
+    let preferredModel = "";
+    const user = await getUserFromToken(request, env2);
+    if (user) {
+      try {
+        const settingsRes = await env2.DB.prepare("SELECT preferences FROM user_settings WHERE user_id = ?").bind(user.sub).first();
+        if (settingsRes) {
+          const settings = JSON.parse(settingsRes.preferences);
+          if (settings.apiKeys?.openRouter) apiKey = settings.apiKeys.openRouter;
+          if (settings.chatModel) preferredModel = settings.chatModel;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    if (!apiKey) return jsonResponse({ error: "Missing API Key" }, 400, origin);
+    const modelRouting = classifyQueryForModel(body.message);
+    const finalModel = preferredModel || modelRouting.model;
+    const messages = buildMessages(
+      body.systemPrompt || SYSTEM_PROMPTS.chat,
+      body.message,
+      body.context
+    );
+    const stream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        try {
+          const generator = streamOpenRouter(apiKey, {
+            messages,
+            model: finalModel,
+            useOnlineSearch: modelRouting.useOnlineSearch
+          });
+          for await (const chunk of generator) {
+            const data = `data: ${JSON.stringify({ text: chunk })}
+
+`;
+            controller.enqueue(encoder.encode(data));
+          }
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          controller.close();
+        } catch (error) {
+          const errorData = `data: ${JSON.stringify({ error: "Stream error" })}
+
+`;
+          controller.enqueue(encoder.encode(errorData));
+          controller.close();
+        }
+      }
+    });
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        ...corsHeaders(origin)
+      }
+    });
+  } catch (error) {
+    console.error("[stream] error:", error);
+    return jsonResponse({
+      error: "Internal server error"
+    }, 500, origin);
+  }
+}
+__name(handleChatStream, "handleChatStream");
+async function handleFeedback(request, env2) {
+  const origin = getAllowedOrigin(request.headers.get("Origin"), env2.CORS_ORIGIN);
+  try {
+    const body = await request.json();
     if (!body.messageId) {
-      return c.json({ error: "messageId is required" }, 400);
+      return jsonResponse({ error: "messageId is required" }, 400, origin);
     }
     try {
-      await c.env.DB.prepare(`
+      await env2.DB.prepare(`
                 INSERT INTO chat_feedback (id, message_id, helpful, reason, user_message, ai_response, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             `).bind(
@@ -26316,8 +31254,10 @@ chatRoutes.post("/feedback", async (c) => {
         body.aiResponse || null,
         Date.now()
       ).run();
-    } catch {
-      await c.env.DB.prepare(`
+      console.info("[feedback] saved", { messageId: body.messageId, helpful: body.helpful });
+    } catch (dbError) {
+      console.warn("[feedback] DB error, creating table...", dbError);
+      await env2.DB.prepare(`
                 CREATE TABLE IF NOT EXISTS chat_feedback (
                     id TEXT PRIMARY KEY,
                     message_id TEXT NOT NULL,
@@ -26328,7 +31268,7 @@ chatRoutes.post("/feedback", async (c) => {
                     created_at INTEGER NOT NULL
                 )
             `).run();
-      await c.env.DB.prepare(`
+      await env2.DB.prepare(`
                 INSERT INTO chat_feedback (id, message_id, helpful, reason, user_message, ai_response, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             `).bind(
@@ -26341,646 +31281,404 @@ chatRoutes.post("/feedback", async (c) => {
         Date.now()
       ).run();
     }
-    return c.json({
+    return jsonResponse({
       success: true,
       message: "C\u1EA3m \u01A1n ph\u1EA3n h\u1ED3i c\u1EE7a b\u1EA1n!"
-    }, 200);
+    }, 200, origin);
   } catch (error) {
     console.error("[feedback] error:", error);
-    return c.json({ error: "L\u1ED7i l\u01B0u ph\u1EA3n h\u1ED3i" }, 500);
-  }
-});
-var chat_default = chatRoutes;
-
-// src/routes/conversations.ts
-init_modules_watch_stub();
-
-// src/conversation-routes.ts
-init_modules_watch_stub();
-function jsonResponse(data, status, origin) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": origin || "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS, DELETE",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization"
-    }
-  });
-}
-__name(jsonResponse, "jsonResponse");
-async function getConversations(user, env2) {
-  try {
-    const result = await env2.DB.prepare(
-      "SELECT id, title, created_at, updated_at FROM conversations WHERE user_id = ? ORDER BY updated_at DESC"
-    ).bind(user.sub).all();
     return jsonResponse({
-      conversations: result.results || []
-    }, 200, env2.CORS_ORIGIN);
-  } catch (error) {
-    console.error("[convo] get error:", error);
-    return jsonResponse({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+      error: "L\u1ED7i l\u01B0u ph\u1EA3n h\u1ED3i"
+    }, 500, origin);
   }
 }
-__name(getConversations, "getConversations");
-async function getConversation(id, user, env2) {
-  try {
-    const convo = await env2.DB.prepare(
-      "SELECT id, title, created_at, updated_at FROM conversations WHERE id = ? AND user_id = ?"
-    ).bind(id, user.sub).first();
-    if (!convo) {
-      return jsonResponse({ error: "Conversation kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+__name(handleFeedback, "handleFeedback");
+var src_default = {
+  async fetch(request, env2) {
+    const url = new URL(request.url);
+    const path = url.pathname;
+    const allowedOrigin = getAllowedOrigin(request.headers.get("Origin"), env2.CORS_ORIGIN);
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        headers: corsHeaders(allowedOrigin)
+      });
     }
-    const messagesResult = await env2.DB.prepare(
-      "SELECT id, role, content, attachments, created_at FROM messages WHERE conversation_id = ? ORDER BY created_at ASC"
-    ).bind(id).all();
-    return jsonResponse({
-      conversation: convo,
-      messages: (messagesResult.results || []).map((m) => ({
-        ...m,
-        attachments: m.attachments ? JSON.parse(m.attachments) : null
-      }))
-    }, 200, env2.CORS_ORIGIN);
-  } catch (error) {
-    console.error("[convo] get one error:", error);
-    return jsonResponse({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
-  }
-}
-__name(getConversation, "getConversation");
-async function createConversation(request, user, env2) {
-  try {
-    const body = await request.json();
-    const id = generateId();
-    const now = Date.now();
-    await env2.DB.prepare(
-      "INSERT INTO conversations (id, user_id, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?)"
-    ).bind(id, user.sub, body.title || "Cu\u1ED9c tr\xF2 chuy\u1EC7n m\u1EDBi", now, now).run();
-    return jsonResponse({
-      id,
-      title: body.title || "Cu\u1ED9c tr\xF2 chuy\u1EC7n m\u1EDBi",
-      created_at: now,
-      updated_at: now
-    }, 201, env2.CORS_ORIGIN);
-  } catch (error) {
-    console.error("[convo] create error:", error);
-    return jsonResponse({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
-  }
-}
-__name(createConversation, "createConversation");
-async function deleteConversation(id, user, env2) {
-  try {
-    const convo = await env2.DB.prepare(
-      "SELECT id FROM conversations WHERE id = ? AND user_id = ?"
-    ).bind(id, user.sub).first();
-    if (!convo) {
-      return jsonResponse({ error: "Conversation kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    if (path === "/" || path === "/health") {
+      return jsonResponse({
+        status: "ok",
+        service: "stem-vietnam-api",
+        provider: "openrouter + huggingface + r2",
+        timestamp: (/* @__PURE__ */ new Date()).toISOString()
+      }, 200, allowedOrigin);
     }
-    await env2.DB.prepare("DELETE FROM conversations WHERE id = ?").bind(id).run();
-    return jsonResponse({ success: true }, 200, env2.CORS_ORIGIN);
-  } catch (error) {
-    console.error("[convo] delete error:", error);
-    return jsonResponse({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
-  }
-}
-__name(deleteConversation, "deleteConversation");
-async function addMessage(conversationId, user, message, env2) {
-  try {
-    const convo = await env2.DB.prepare(
-      "SELECT id, title FROM conversations WHERE id = ? AND user_id = ?"
-    ).bind(conversationId, user.sub).first();
-    if (!convo) {
-      return jsonResponse({ error: "Conversation kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    if (path.startsWith("/api/storage/")) {
+      return handleStorageRequest(request, env2);
     }
-    const id = generateId();
-    const now = Date.now();
-    await env2.DB.prepare(
-      "INSERT INTO messages (id, conversation_id, role, content, attachments, created_at) VALUES (?, ?, ?, ?, ?, ?)"
-    ).bind(
-      id,
-      conversationId,
-      message.role,
-      message.content,
-      message.attachments ? JSON.stringify(message.attachments) : null,
-      now
-    ).run();
-    let newTitle = convo.title;
-    if (message.role === "user" && convo.title === "Cu\u1ED9c tr\xF2 chuy\u1EC7n m\u1EDBi") {
-      newTitle = message.content.slice(0, 50) + (message.content.length > 50 ? "..." : "");
+    if (path.startsWith("/api/gamification")) {
+      const newPath = path.replace("/api/gamification", "") || "/";
+      const newRequest = new Request(new URL(newPath, request.url), request);
+      return app.fetch(newRequest, env2);
     }
-    await env2.DB.prepare(
-      "UPDATE conversations SET updated_at = ?, title = ? WHERE id = ?"
-    ).bind(now, newTitle, conversationId).run();
-    return jsonResponse({
-      id,
-      role: message.role,
-      content: message.content,
-      created_at: now
-    }, 201, env2.CORS_ORIGIN);
-  } catch (error) {
-    console.error("[convo] add message error:", error);
-    return jsonResponse({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
-  }
-}
-__name(addMessage, "addMessage");
-async function addMessageFromRequest(conversationId, request, user, env2) {
-  try {
-    const body = await request.json();
-    if (!body.role || !body.content) {
-      return jsonResponse({ error: "role v\xE0 content l\xE0 b\u1EAFt bu\u1ED9c" }, 400, env2.CORS_ORIGIN);
+    if (path.startsWith("/api/teachers")) {
+      const newPath = path.replace("/api/teachers", "") || "/";
+      const newRequest = new Request(new URL(newPath, request.url), request);
+      return app2.fetch(newRequest, env2);
     }
-    return addMessage(conversationId, user, body, env2);
-  } catch (error) {
-    console.error("[convo] addMessageFromRequest error:", error);
-    return jsonResponse({ error: "Invalid JSON" }, 400, env2.CORS_ORIGIN);
-  }
-}
-__name(addMessageFromRequest, "addMessageFromRequest");
-
-// src/routes/conversations.ts
-var conversationsRoutes = new Hono2();
-conversationsRoutes.get("/", async (c) => {
-  const user = c.get("user");
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
-  const response = await getConversations(user, c.env);
-  return response;
-});
-conversationsRoutes.get("/:id", async (c) => {
-  const user = c.get("user");
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
-  const id = c.req.param("id");
-  const response = await getConversation(id, user, c.env);
-  return response;
-});
-conversationsRoutes.post("/", async (c) => {
-  const user = c.get("user");
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
-  const response = await createConversation(c.req.raw, user, c.env);
-  return response;
-});
-conversationsRoutes.delete("/:id", async (c) => {
-  const user = c.get("user");
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
-  const id = c.req.param("id");
-  const response = await deleteConversation(id, user, c.env);
-  return response;
-});
-conversationsRoutes.post("/:id/messages", async (c) => {
-  const user = c.get("user");
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
-  const id = c.req.param("id");
-  const response = await addMessageFromRequest(id, c.req.raw, user, c.env);
-  return response;
-});
-var conversations_default = conversationsRoutes;
-
-// src/routes/exams.ts
-init_modules_watch_stub();
-
-// src/exam-routes.ts
-init_modules_watch_stub();
-function jsonResponse2(data, status, origin) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": origin || "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS, DELETE",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization"
+    if (path.startsWith("/api/schools")) {
+      const newPath = path.replace("/api/schools", "") || "/";
+      const newRequest = new Request(new URL(newPath, request.url), request);
+      return app3.fetch(newRequest, env2);
     }
-  });
-}
-__name(jsonResponse2, "jsonResponse");
-async function getExams(user, env2) {
-  try {
-    const result = await env2.DB.prepare(
-      "SELECT id, topic, config, created_at FROM exams WHERE user_id = ? ORDER BY created_at DESC"
-    ).bind(user.sub).all();
-    const exams = (result.results || []).map((row) => ({
-      ...row,
-      config: row.config ? JSON.parse(row.config) : null
-    }));
-    return jsonResponse2({ exams }, 200, env2.CORS_ORIGIN);
-  } catch (error) {
-    console.error("[exam] get list error:", error);
-    return jsonResponse2({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
-  }
-}
-__name(getExams, "getExams");
-async function getExam(id, user, env2) {
-  try {
-    const exam = await env2.DB.prepare(
-      "SELECT * FROM exams WHERE id = ? AND user_id = ?"
-    ).bind(id, user.sub).first();
-    if (!exam) {
-      return jsonResponse2({ error: "\u0110\u1EC1 thi kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    if (path.startsWith("/api/research")) {
+      const newPath = path.replace("/api/research", "") || "/";
+      const newRequest = new Request(new URL(newPath, request.url), request);
+      return app4.fetch(newRequest, env2);
     }
-    return jsonResponse2({
-      exam: {
-        ...exam,
-        config: exam.config ? JSON.parse(exam.config) : null,
-        content: exam.content
+    if (request.method === "POST") {
+      switch (path) {
+        case "/api/chat":
+          return handleChat(request, env2);
+        case "/api/chat/stream":
+          return handleChatStream(request, env2);
+        case "/api/generate":
+          return handleGenerate(request, env2);
+        // Feedback route
+        case "/api/feedback":
+          return handleFeedback(request, env2);
+        // Auth routes
+        case "/api/auth/register":
+          return handleRegister(request, env2);
+        case "/api/auth/login":
+          return handleLogin(request, env2);
+        // Settings routes
+        case "/api/settings/models/refresh":
+          return handleRefreshModels(request, env2);
+        // Conversation routes
+        case "/api/conversations": {
+          const user = await getUserFromToken(request, env2);
+          if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+          return createConversation(request, user, env2);
+        }
+        // Exam routes
+        case "/api/exams": {
+          const user = await getUserFromToken(request, env2);
+          if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+          return createExam(request, user, env2);
+        }
       }
-    }, 200, env2.CORS_ORIGIN);
-  } catch (error) {
-    console.error("[exam] get detail error:", error);
-    return jsonResponse2({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
-  }
-}
-__name(getExam, "getExam");
-async function createExam(request, user, env2) {
-  try {
-    const body = await request.json();
-    if (!body.topic || !body.content) {
-      return jsonResponse2({ error: "Thi\u1EBFu th\xF4ng tin b\u1EAFt bu\u1ED9c" }, 400, env2.CORS_ORIGIN);
-    }
-    const id = generateId();
-    const now = Date.now();
-    await env2.DB.prepare(
-      "INSERT INTO exams (id, user_id, topic, config, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
-    ).bind(
-      id,
-      user.sub,
-      body.topic,
-      JSON.stringify(body.config || {}),
-      body.content,
-      now,
-      now
-    ).run();
-    return jsonResponse2({
-      success: true,
-      exam: {
-        id,
-        topic: body.topic,
-        created_at: now
+      const msgMatch = path.match(/^\/api\/conversations\/([^/]+)\/messages$/);
+      if (msgMatch) {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return addMessageFromRequest(msgMatch[1], request, user, env2);
       }
-    }, 201, env2.CORS_ORIGIN);
-  } catch (error) {
-    console.error("[exam] create error:", error);
-    return jsonResponse2({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
-  }
-}
-__name(createExam, "createExam");
-async function deleteExam(id, user, env2) {
-  try {
-    const res = await env2.DB.prepare(
-      "DELETE FROM exams WHERE id = ? AND user_id = ?"
-    ).bind(id, user.sub).run();
-    if (res.meta?.changes === 0) {
-      return jsonResponse2({ error: "Kh\xF4ng t\xECm th\u1EA5y \u0111\u1EC1 thi ho\u1EB7c kh\xF4ng c\xF3 quy\u1EC1n x\xF3a" }, 404, env2.CORS_ORIGIN);
-    }
-    return jsonResponse2({ success: true }, 200, env2.CORS_ORIGIN);
-  } catch (error) {
-    console.error("[exam] delete error:", error);
-    return jsonResponse2({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
-  }
-}
-__name(deleteExam, "deleteExam");
-
-// src/routes/exams.ts
-var examsRoutes = new Hono2();
-examsRoutes.get("/", async (c) => {
-  const user = c.get("user");
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
-  const response = await getExams(user, c.env);
-  return response;
-});
-examsRoutes.get("/:id", async (c) => {
-  const user = c.get("user");
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
-  const id = c.req.param("id");
-  const response = await getExam(id, user, c.env);
-  return response;
-});
-examsRoutes.post("/", async (c) => {
-  const user = c.get("user");
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
-  const response = await createExam(c.req.raw, user, c.env);
-  return response;
-});
-examsRoutes.delete("/:id", async (c) => {
-  const user = c.get("user");
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
-  const id = c.req.param("id");
-  const response = await deleteExam(id, user, c.env);
-  return response;
-});
-var exams_default = examsRoutes;
-
-// src/routes/admin.ts
-init_modules_watch_stub();
-
-// src/admin-routes.ts
-init_modules_watch_stub();
-function jsonResponse3(data, status, origin) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": origin || "*",
-      "Access-Control-Allow-Methods": "GET, POST, DELETE, PUT",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Admin-Key"
-    }
-  });
-}
-__name(jsonResponse3, "jsonResponse");
-async function getUsers(env2) {
-  try {
-    const result = await env2.DB.prepare(
-      "SELECT id, email, name, avatar_url, created_at, updated_at FROM users ORDER BY created_at DESC"
-    ).all();
-    return jsonResponse3({
-      users: result.results || []
-    }, 200, env2.CORS_ORIGIN);
-  } catch (error) {
-    console.error("[admin] get users error:", error);
-    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
-  }
-}
-__name(getUsers, "getUsers");
-async function getUser(id, env2) {
-  try {
-    const user = await env2.DB.prepare(
-      "SELECT id, email, name, avatar_url, created_at, updated_at FROM users WHERE id = ?"
-    ).bind(id).first();
-    if (!user) {
-      return jsonResponse3({ error: "User kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
-    }
-    const convoCount = await env2.DB.prepare(
-      "SELECT COUNT(*) as count FROM conversations WHERE user_id = ?"
-    ).bind(id).first();
-    const msgCount = await env2.DB.prepare(
-      `SELECT COUNT(*) as count FROM messages m 
-             JOIN conversations c ON m.conversation_id = c.id 
-             WHERE c.user_id = ?`
-    ).bind(id).first();
-    return jsonResponse3({
-      user,
-      stats: {
-        conversations: convoCount?.count || 0,
-        messages: msgCount?.count || 0
+      if (path === "/api/exam-online/templates") {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return createTemplate(request, user, env2);
       }
-    }, 200, env2.CORS_ORIGIN);
-  } catch (error) {
-    console.error("[admin] get user error:", error);
-    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
-  }
-}
-__name(getUser, "getUser");
-async function deleteUser(id, env2) {
-  try {
-    const user = await env2.DB.prepare("SELECT id FROM users WHERE id = ?").bind(id).first();
-    if (!user) {
-      return jsonResponse3({ error: "User kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
-    }
-    await env2.DB.prepare("DELETE FROM users WHERE id = ?").bind(id).run();
-    return jsonResponse3({ success: true, message: "\u0110\xE3 x\xF3a user" }, 200, env2.CORS_ORIGIN);
-  } catch (error) {
-    console.error("[admin] delete user error:", error);
-    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
-  }
-}
-__name(deleteUser, "deleteUser");
-async function updateUser(id, request, env2) {
-  try {
-    const body = await request.json();
-    const user = await env2.DB.prepare("SELECT id FROM users WHERE id = ?").bind(id).first();
-    if (!user) {
-      return jsonResponse3({ error: "User kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
-    }
-    const updates = [];
-    const values = [];
-    if (body.name) {
-      updates.push("name = ?");
-      values.push(body.name);
-    }
-    if (body.email) {
-      updates.push("email = ?");
-      values.push(body.email.toLowerCase());
-    }
-    if (updates.length === 0) {
-      return jsonResponse3({ error: "Kh\xF4ng c\xF3 g\xEC \u0111\u1EC3 c\u1EADp nh\u1EADt" }, 400, env2.CORS_ORIGIN);
-    }
-    updates.push("updated_at = ?");
-    values.push(Date.now());
-    values.push(id);
-    await env2.DB.prepare(
-      `UPDATE users SET ${updates.join(", ")} WHERE id = ?`
-    ).bind(...values).run();
-    return jsonResponse3({ success: true, message: "\u0110\xE3 c\u1EADp nh\u1EADt user" }, 200, env2.CORS_ORIGIN);
-  } catch (error) {
-    console.error("[admin] update user error:", error);
-    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
-  }
-}
-__name(updateUser, "updateUser");
-async function getStats(env2) {
-  try {
-    const users = await env2.DB.prepare("SELECT COUNT(*) as count FROM users").first();
-    const convos = await env2.DB.prepare("SELECT COUNT(*) as count FROM conversations").first();
-    const msgs = await env2.DB.prepare("SELECT COUNT(*) as count FROM messages").first();
-    return jsonResponse3({
-      stats: {
-        total_users: users?.count || 0,
-        total_conversations: convos?.count || 0,
-        total_messages: msgs?.count || 0
+      if (path === "/api/exam-online/generate") {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return generateTemplateWithAI(request, user, env2);
       }
-    }, 200, env2.CORS_ORIGIN);
-  } catch (error) {
-    console.error("[admin] get stats error:", error);
-    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
-  }
-}
-__name(getStats, "getStats");
-async function getAdminConversations(env2, page = 1, limit = 20) {
-  try {
-    const offset = (page - 1) * limit;
-    const result = await env2.DB.prepare(`
-            SELECT c.id, c.user_id, c.title, c.created_at, c.updated_at,
-                   u.name as user_name, u.email as user_email
-            FROM conversations c
-            LEFT JOIN users u ON c.user_id = u.id
-            ORDER BY c.updated_at DESC
-            LIMIT ? OFFSET ?
-        `).bind(limit, offset).all();
-    const countResult = await env2.DB.prepare(
-      "SELECT COUNT(*) as total FROM conversations"
-    ).first();
-    return jsonResponse3({
-      conversations: result.results || [],
-      pagination: {
-        page,
-        limit,
-        total: countResult?.total || 0,
-        totalPages: Math.ceil((countResult?.total || 0) / limit)
+      if (path === "/api/exam-online/attempts") {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return startAttempt(request, user, env2);
       }
-    }, 200, env2.CORS_ORIGIN);
-  } catch (error) {
-    console.error("[admin] get conversations error:", error);
-    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
-  }
-}
-__name(getAdminConversations, "getAdminConversations");
-async function getAdminConversation(id, env2) {
-  try {
-    const convo = await env2.DB.prepare(`
-            SELECT c.id, c.user_id, c.title, c.created_at, c.updated_at,
-                   u.name as user_name, u.email as user_email
-            FROM conversations c
-            LEFT JOIN users u ON c.user_id = u.id
-            WHERE c.id = ?
-        `).bind(id).first();
-    if (!convo) {
-      return jsonResponse3({ error: "Conversation kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+      const submitMatch = path.match(/^\/api\/exam-online\/attempts\/([^/]+)\/submit$/);
+      if (submitMatch) {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return submitAttempt(submitMatch[1], request, user, env2);
+      }
+      if (path === "/api/ingest") {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return ingestFromR2(request, user, env2);
+      }
+      if (path === "/api/classes") {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return createClass(request, user, env2);
+      }
+      if (path === "/api/classes/join") {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return joinClass(request, user, env2);
+      }
+      const assignMatch = path.match(/^\/api\/classes\/([^/]+)\/assignments$/);
+      if (assignMatch) {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return createAssignment(request, assignMatch[1], user, env2);
+      }
     }
-    const messagesResult = await env2.DB.prepare(
-      "SELECT id, role, content, attachments, created_at FROM messages WHERE conversation_id = ? ORDER BY created_at ASC"
-    ).bind(id).all();
-    return jsonResponse3({
-      conversation: convo,
-      messages: (messagesResult.results || []).map((m) => ({
-        ...m,
-        attachments: m.attachments ? JSON.parse(m.attachments) : null
-      }))
-    }, 200, env2.CORS_ORIGIN);
-  } catch (error) {
-    console.error("[admin] get conversation error:", error);
-    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
-  }
-}
-__name(getAdminConversation, "getAdminConversation");
-async function deleteAdminConversation(id, env2) {
-  try {
-    const convo = await env2.DB.prepare("SELECT id FROM conversations WHERE id = ?").bind(id).first();
-    if (!convo) {
-      return jsonResponse3({ error: "Conversation kh\xF4ng t\u1ED3n t\u1EA1i" }, 404, env2.CORS_ORIGIN);
+    if (request.method === "GET") {
+      if (path === "/api/auth/me") {
+        return handleMe(request, env2);
+      }
+      if (path === "/api/settings") {
+        return handleGetSettings(request, env2);
+      }
+      if (path === "/api/settings/models") {
+        return handleGetModels(request, env2);
+      }
+      if (path === "/api/conversations") {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return getConversations(user, env2);
+      }
+      if (path === "/api/exams") {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return getExams(user, env2);
+      }
+      const convoMatch = path.match(/^\/api\/conversations\/([^/]+)$/);
+      if (convoMatch) {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return getConversation(convoMatch[1], user, env2);
+      }
+      const examMatch = path.match(/^\/api\/exams\/([^/]+)$/);
+      if (examMatch) {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return getExam(examMatch[1], user, env2);
+      }
+      if (path === "/api/exam-online/templates") {
+        return getTemplates(request, env2);
+      }
+      const statsMatch = path.match(/^\/api\/exam-online\/templates\/([^/]+)\/stats$/);
+      if (statsMatch) {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return getTemplateStats(statsMatch[1], user, env2);
+      }
+      const templateMatch = path.match(/^\/api\/exam-online\/templates\/([^/]+)$/);
+      if (templateMatch) {
+        return getTemplate(templateMatch[1], env2);
+      }
+      if (path === "/api/exam-online/attempts") {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return getAttempts(request, user, env2);
+      }
+      const attemptMatch = path.match(/^\/api\/exam-online\/attempts\/([^/]+)$/);
+      if (attemptMatch) {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return getAttempt(attemptMatch[1], user, env2);
+      }
+      if (path === "/api/teacher/dashboard") {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return getTeacherDashboard(user, env2);
+      }
+      if (path === "/api/student/dashboard") {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return getStudentDashboard(user, env2);
+      }
+      if (path === "/api/classes") {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return getClasses(user, env2);
+      }
+      const classMatch = path.match(/^\/api\/classes\/([^/]+)$/);
+      if (classMatch) {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return getClassDetails(classMatch[1], user, env2);
+      }
     }
-    await env2.DB.prepare("DELETE FROM conversations WHERE id = ?").bind(id).run();
-    return jsonResponse3({ success: true, message: "\u0110\xE3 x\xF3a conversation" }, 200, env2.CORS_ORIGIN);
-  } catch (error) {
-    console.error("[admin] delete conversation error:", error);
-    return jsonResponse3({ error: "L\u1ED7i server" }, 500, env2.CORS_ORIGIN);
+    if (request.method === "DELETE") {
+      const convoMatch = path.match(/^\/api\/conversations\/([^/]+)$/);
+      if (convoMatch) {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return deleteConversation(convoMatch[1], user, env2);
+      }
+      const examMatch = path.match(/^\/api\/exams\/([^/]+)$/);
+      if (examMatch) {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return deleteExam(examMatch[1], user, env2);
+      }
+      const adminUserMatch = path.match(/^\/api\/admin\/users\/([^/]+)$/);
+      if (adminUserMatch) {
+        return deleteUser(adminUserMatch[1], env2);
+      }
+      const deleteClassMatch = path.match(/^\/api\/classes\/([^/]+)$/);
+      if (deleteClassMatch) {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return deleteClass(deleteClassMatch[1], user, env2);
+      }
+    }
+    if (request.method === "PUT") {
+      if (path === "/api/settings") {
+        return handleUpdateSettings(request, env2);
+      }
+      const adminUserMatch = path.match(/^\/api\/admin\/users\/([^/]+)$/);
+      if (adminUserMatch) {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return updateUserDetails(adminUserMatch[1], request, env2);
+      }
+      const attemptUpdateMatch = path.match(/^\/api\/exam-online\/attempts\/([^/]+)$/);
+      if (attemptUpdateMatch) {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return updateAttempt(attemptUpdateMatch[1], request, user, env2);
+      }
+    }
+    if (request.method === "DELETE") {
+      const templateDeleteMatch = path.match(/^\/api\/exam-online\/templates\/([^/]+)$/);
+      if (templateDeleteMatch) {
+        const user = await getUserFromToken(request, env2);
+        if (!user) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+        return deleteTemplate(templateDeleteMatch[1], user, env2);
+      }
+    }
+    async function checkAdminAuth(req, env3) {
+      const adminKey = req.headers.get("X-Admin-Key");
+      if (adminKey === "stem-admin-8888") return true;
+      const user = await getUserFromToken(req, env3);
+      return !!(user && user.role === "admin");
+    }
+    __name(checkAdminAuth, "checkAdminAuth");
+    if (request.method === "POST") {
+      if (path.startsWith("/api/admin/")) {
+        const isAuth = await checkAdminAuth(request, env2);
+        if (!isAuth) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+      }
+      if (path === "/api/admin/users") {
+        return createUser(request, env2);
+      }
+      if (path === "/api/admin/users/bulk") {
+        return bulkCreateUsers(request, env2);
+      }
+    }
+    if (request.method === "GET") {
+      if (path.startsWith("/api/admin/")) {
+        const isAuth = await checkAdminAuth(request, env2);
+        if (!isAuth) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+      }
+      if (path === "/api/admin/users") {
+        return getUsers(env2);
+      }
+      if (path === "/api/admin/stats") {
+        return getStats(env2);
+      }
+      const adminUserMatch = path.match(/^\/api\/admin\/users\/([^/]+)$/);
+      if (adminUserMatch) {
+        return getUser(adminUserMatch[1], env2);
+      }
+      if (path === "/api/admin/conversations") {
+        const pageParam = url.searchParams.get("page");
+        const limitParam = url.searchParams.get("limit");
+        const page = pageParam ? parseInt(pageParam, 10) : 1;
+        const limit = limitParam ? parseInt(limitParam, 10) : 20;
+        return getAdminConversations(env2, page, limit);
+      }
+      const adminConvoMatch = path.match(/^\/api\/admin\/conversations\/([^/]+)$/);
+      if (adminConvoMatch) {
+        return getAdminConversation(adminConvoMatch[1], env2);
+      }
+    }
+    if (request.method === "DELETE") {
+      if (path.startsWith("/api/admin/")) {
+        const isAuth = await checkAdminAuth(request, env2);
+        if (!isAuth) return jsonResponse({ error: "Unauthorized" }, 401, allowedOrigin);
+      }
+      const adminUserDelMatch = path.match(/^\/api\/admin\/users\/([^/]+)$/);
+      if (adminUserDelMatch) {
+        return deleteUser(adminUserDelMatch[1], env2);
+      }
+      const adminConvoMatch = path.match(/^\/api\/admin\/conversations\/([^/]+)$/);
+      if (adminConvoMatch) {
+        return deleteAdminConversation(adminConvoMatch[1], env2);
+      }
+    }
+    if (request.method === "POST" && path === "/api/admin/rag/search") {
+      if (!env2.HF_API_TOKEN) {
+        return jsonResponse({ error: "HF_API_TOKEN not configured" }, 400, allowedOrigin);
+      }
+      const body = await request.json();
+      if (!body.query) {
+        return jsonResponse({ error: "query is required" }, 400, allowedOrigin);
+      }
+      try {
+        const { context, sources } = await getRAGContext(
+          env2.HF_API_TOKEN,
+          env2.VECTORIZE,
+          body.query,
+          body.filters
+        );
+        return jsonResponse({ success: true, context, sources }, 200, allowedOrigin);
+      } catch (error) {
+        return jsonResponse({
+          error: "Search failed",
+          details: error instanceof Error ? error.message : "Unknown error"
+        }, 500, allowedOrigin);
+      }
+    }
+    if (request.method === "POST" && path === "/api/admin/rag/upload") {
+      if (!env2.HF_API_TOKEN) {
+        return jsonResponse({ error: "HF_API_TOKEN not configured" }, 400, allowedOrigin);
+      }
+      try {
+        const formData = await request.formData();
+        const file = formData.get("file");
+        const metadataStr = formData.get("metadata");
+        if (!file) {
+          return jsonResponse({ error: "No file provided" }, 400, allowedOrigin);
+        }
+        if (!isFileTypeSupported(file.name)) {
+          return jsonResponse({
+            error: `Unsupported file type. Supported: ${getSupportedExtensions().join(", ")}`
+          }, 400, allowedOrigin);
+        }
+        if (!isFileSizeValid(file.size)) {
+          return jsonResponse({
+            error: `File too large. Max size: ${MAX_FILE_SIZE / 1024 / 1024}MB`
+          }, 400, allowedOrigin);
+        }
+        let metadata;
+        if (metadataStr) {
+          metadata = JSON.parse(metadataStr);
+        } else {
+          const parsed = parseMetadataFromFilename(`upload-${Date.now()}`, file.name);
+          if (!parsed) {
+            return jsonResponse({ error: "Could not parse metadata. Please provide metadata." }, 400, allowedOrigin);
+          }
+          metadata = parsed;
+        }
+        const fileBuffer = await file.arrayBuffer();
+        const result = await processLocalFile(
+          env2.HF_API_TOKEN,
+          env2.VECTORIZE,
+          fileBuffer,
+          file.name,
+          metadata
+        );
+        return jsonResponse({
+          success: true,
+          result
+        }, 200, allowedOrigin);
+      } catch (error) {
+        console.error("[rag-upload] error:", error);
+        return jsonResponse({
+          error: "Upload failed",
+          details: error instanceof Error ? error.message : "Unknown error"
+        }, 500, allowedOrigin);
+      }
+    }
+    return jsonResponse({ error: "Not found" }, 404, allowedOrigin);
   }
-}
-__name(deleteAdminConversation, "deleteAdminConversation");
-
-// src/routes/admin.ts
-var adminRoutes = new Hono2();
-adminRoutes.get("/users", async (c) => {
-  const response = await getUsers(c.env);
-  return response;
-});
-adminRoutes.get("/users/:id", async (c) => {
-  const id = c.req.param("id");
-  const response = await getUser(id, c.env);
-  return response;
-});
-adminRoutes.put("/users/:id", async (c) => {
-  const id = c.req.param("id");
-  const response = await updateUser(id, c.req.raw, c.env);
-  return response;
-});
-adminRoutes.delete("/users/:id", async (c) => {
-  const id = c.req.param("id");
-  const response = await deleteUser(id, c.env);
-  return response;
-});
-adminRoutes.get("/stats", async (c) => {
-  const response = await getStats(c.env);
-  return response;
-});
-adminRoutes.get("/conversations", async (c) => {
-  const page = parseInt(c.req.query("page") || "1", 10);
-  const limit = parseInt(c.req.query("limit") || "20", 10);
-  const response = await getAdminConversations(c.env, page, limit);
-  return response;
-});
-adminRoutes.get("/conversations/:id", async (c) => {
-  const id = c.req.param("id");
-  const response = await getAdminConversation(id, c.env);
-  return response;
-});
-adminRoutes.delete("/conversations/:id", async (c) => {
-  const id = c.req.param("id");
-  const response = await deleteAdminConversation(id, c.env);
-  return response;
-});
-adminRoutes.post("/rag/search", async (c) => {
-  if (!c.env.HF_API_TOKEN) {
-    return c.json({ error: "HF_API_TOKEN not configured" }, 400);
-  }
-  const body = await c.req.json();
-  if (!body.query) {
-    return c.json({ error: "query is required" }, 400);
-  }
-  try {
-    const results = await searchVectors(
-      c.env.VECTORIZE,
-      c.env.HF_API_TOKEN,
-      body.query,
-      body.filters
-    );
-    const context = buildContextFromResults(results);
-    return c.json({
-      success: true,
-      results,
-      context
-    }, 200);
-  } catch (error) {
-    console.error("[admin] RAG search error:", error);
-    return c.json({
-      error: "RAG search failed",
-      details: error instanceof Error ? error.message : String(error)
-    }, 500);
-  }
-});
-var admin_default = adminRoutes;
-
-// src/routes/index.ts
-var app = new Hono2();
-app.use("*", async (c, next) => {
-  const corsMiddleware = createCorsMiddleware(c.env.CORS_ORIGIN);
-  return corsMiddleware(c, async () => {
-    const authMw = authMiddleware(c.env.JWT_SECRET);
-    await authMw(c, next);
-  });
-});
-app.get("/", (c) => {
-  return c.json({
-    status: "ok",
-    service: "stem-vietnam-api",
-    provider: "openrouter + huggingface",
-    framework: "hono",
-    timestamp: (/* @__PURE__ */ new Date()).toISOString()
-  });
-});
-app.get("/health", (c) => {
-  return c.json({
-    status: "ok",
-    service: "stem-vietnam-api",
-    provider: "openrouter + huggingface",
-    framework: "hono",
-    timestamp: (/* @__PURE__ */ new Date()).toISOString()
-  });
-});
-app.route("/api/auth", auth_default);
-app.route("/api", chat_default);
-app.route("/api/conversations", conversations_default);
-app.route("/api/exams", exams_default);
-app.route("/api/admin", admin_default);
-app.notFound((c) => {
-  return c.json({ error: "Not Found" }, 404);
-});
-app.onError((err, c) => {
-  console.error("[app] Unhandled error:", err);
-  return c.json({
-    error: "Internal Server Error",
-    details: err.message
-  }, 500);
-});
-var routes_default = app;
-
-// src/index.ts
-var src_default = routes_default;
+};
 
 // node_modules/wrangler/templates/middleware/middleware-ensure-req-body-drained.ts
 init_modules_watch_stub();
@@ -27025,7 +31723,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env2, _ctx, middlewareCtx
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-ynt6hp/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-l3AqzM/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -27058,7 +31756,7 @@ function __facade_invoke__(request, env2, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-ynt6hp/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-l3AqzM/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

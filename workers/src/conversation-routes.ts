@@ -1,6 +1,7 @@
 // Chú thích: Conversation routes - CRUD for chat history with D1
 import { generateId } from './auth';
 import { JWTPayload } from './auth';
+import { getAllowedOrigin, jsonResponse as jsonResponseUtil, corsHeaders } from './utils';
 
 // Chú thích: D1 types
 interface D1Database {
@@ -42,17 +43,11 @@ export interface ConvoEnv {
     CORS_ORIGIN: string;
 }
 
-// Chú thích: JSON response helper
+// Chú thích: JSON response helper - wrapper to use utils function with origin parsing
 function jsonResponse(data: unknown, status: number, origin: string): Response {
-    return new Response(JSON.stringify(data), {
-        status,
-        headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': origin || '*',
-            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, DELETE',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        },
-    });
+    // Parse origin để chỉ trả về 1 origin match, không phải toàn bộ list
+    const parsedOrigin = getAllowedOrigin(origin, origin);
+    return jsonResponseUtil(data, status, parsedOrigin);
 }
 
 // Chú thích: Get all conversations for user

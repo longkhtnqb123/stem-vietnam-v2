@@ -27,13 +27,14 @@ interface ExamRow {
     created_at: number;
 }
 
-// Helper JSON response
-function jsonResponse(data: unknown, status: number, origin: string): Response {
+// Helper JSON response - parse CORS_ORIGIN list để trả về 1 origin
+function jsonResponse(data: unknown, status: number, corsOriginList: string): Response {
+    const origin = corsOriginList?.split(/[;,| ]+/)[0]?.trim() || '*';
     return new Response(JSON.stringify(data), {
         status,
         headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': origin || '*',
+            'Access-Control-Allow-Origin': origin,
             'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, DELETE',
             'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         },

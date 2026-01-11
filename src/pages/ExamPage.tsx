@@ -1,5 +1,5 @@
-// Chú thích: Trang Thi Online - Entry point chính
-// Bao gồm: chọn đề, làm bài, kết quả, lịch sử
+// Chú thích: Trang Thi Online - Làm bài thi chính thức
+// Có tính điểm, giới hạn thời gian, lưu lịch sử
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -31,23 +31,25 @@ import { useAuthStore } from '../lib/auth';
 
 // ==================== Components ====================
 
-// Card đề thi
+// Card đề thi - gọn hơn
 function ExamCard({
     template,
     onStart,
+    isLoading,
 }: {
     template: ExamTemplate;
     onStart: () => void;
+    isLoading?: boolean;
 }) {
+    const emoji = template.exam_type === 'thpt' ? '🎓' :
+        template.exam_type === 'final' ? '📋' :
+            template.exam_type === 'midterm' ? '📝' : '⏱️';
+
     return (
-        <div className="glass-panel p-4 hover:shadow-lg transition-shadow cursor-pointer group">
+        <div className="glass-panel p-4 hover:shadow-lg transition-all cursor-pointer group hover:scale-[1.02]">
             <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
-                    <span className="text-2xl">
-                        {template.exam_type === 'thpt' ? '🎓' :
-                            template.exam_type === 'final' ? '📋' :
-                                template.exam_type === 'midterm' ? '📝' : '⏱️'}
-                    </span>
+                    <span className="text-2xl">{emoji}</span>
                     <div>
                         <h3 className="font-semibold text-slate-900 dark:text-white line-clamp-1">
                             {template.title}
@@ -81,9 +83,14 @@ function ExamCard({
                 </span>
                 <button
                     onClick={onStart}
-                    className="btn-primary text-sm py-2 px-4 flex items-center gap-2 group-hover:scale-105 transition-transform"
+                    disabled={isLoading}
+                    className="btn-primary text-sm py-2 px-4 flex items-center gap-2 group-hover:scale-105 transition-transform disabled:opacity-50"
                 >
-                    <Play size={16} />
+                    {isLoading ? (
+                        <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                        <Play size={16} />
+                    )}
                     Làm bài
                 </button>
             </div>
@@ -91,7 +98,7 @@ function ExamCard({
     );
 }
 
-// Card lịch sử
+// Card lịch sử làm bài
 function AttemptCard({
     attempt,
     onClick,
@@ -123,7 +130,7 @@ function AttemptCard({
                     </h4>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                         {attempt.status === 'submitted'
-                            ? `${attempt.correct_count}/${attempt.total_questions} câu đúng • ${Math.floor((attempt.time_spent_seconds || 0) / 60)} phút`
+                            ? `${attempt.correct_count}/${attempt.total_questions} câu đúng`
                             : 'Đang làm...'
                         }
                     </p>
@@ -137,82 +144,55 @@ function AttemptCard({
     );
 }
 
-// Filter bar
-function FilterBar({
+// Quick Filter Pills
+function QuickFilter({
     grade,
     setGrade,
-    branch,
-    setBranch,
     examType,
     setExamType,
 }: {
     grade: string;
     setGrade: (v: string) => void;
-    branch: string;
-    setBranch: (v: string) => void;
     examType: string;
     setExamType: (v: string) => void;
 }) {
     return (
-        <div className="flex flex-wrap gap-3 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6">
             {/* Lớp */}
-            <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-600 dark:text-slate-400">Lớp:</span>
-                <div className="flex gap-1">
-                    {['', '10', '11', '12'].map((g) => (
-                        <button
-                            key={g}
-                            onClick={() => setGrade(g)}
-                            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${grade === g
-                                ? 'bg-primary-600 text-white'
-                                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                                }`}
-                        >
-                            {g || 'Tất cả'}
-                        </button>
-                    ))}
-                </div>
+            <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                {['', '10', '11', '12'].map((g) => (
+                    <button
+                        key={g}
+                        onClick={() => setGrade(g)}
+                        className={`px-3 py-1.5 text-sm rounded-md transition-colors ${grade === g
+                            ? 'bg-white dark:bg-slate-700 text-primary-600 shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                            }`}
+                    >
+                        {g || 'Tất cả'}
+                    </button>
+                ))}
             </div>
 
-            {/* Nhánh */}
-            {(grade === '11' || grade === '12') && (
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-slate-600 dark:text-slate-400">Nhánh:</span>
-                    <div className="flex gap-1">
-                        {[
-                            { value: '', label: 'Tất cả' },
-                            { value: 'cong_nghiep', label: '🏭 CN' },
-                            { value: 'nong_nghiep', label: '🌾 NN' },
-                        ].map((b) => (
-                            <button
-                                key={b.value}
-                                onClick={() => setBranch(b.value)}
-                                className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${branch === b.value
-                                    ? 'bg-primary-600 text-white'
-                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                                    }`}
-                            >
-                                {b.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
-
             {/* Loại đề */}
-            <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-600 dark:text-slate-400">Loại:</span>
-                <select
-                    value={examType}
-                    onChange={(e) => setExamType(e.target.value)}
-                    className="input-field py-1.5 text-sm w-36"
-                >
-                    <option value="">Tất cả</option>
-                    <option value="15min">15 phút</option>
-                    <option value="midterm">Giữa kì</option>
-                    <option value="final">Cuối kì</option>
-                    <option value="thpt">THPT QG</option>
-                </select>
+            <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                {[
+                    { value: '', label: 'Tất cả' },
+                    { value: '15min', label: '15 phút' },
+                    { value: 'midterm', label: 'Giữa kì' },
+                    { value: 'final', label: 'Cuối kì' },
+                ].map((t) => (
+                    <button
+                        key={t.value}
+                        onClick={() => setExamType(t.value)}
+                        className={`px-3 py-1.5 text-sm rounded-md transition-colors ${examType === t.value
+                            ? 'bg-white dark:bg-slate-700 text-primary-600 shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                            }`}
+                    >
+                        {t.label}
+                    </button>
+                ))}
             </div>
         </div>
     );
@@ -220,7 +200,7 @@ function FilterBar({
 
 // ==================== Main Page ====================
 
-export default function ExamOnlinePage() {
+export default function ExamPage() {
     const navigate = useNavigate();
     const { token } = useAuthStore();
     const isAuthenticated = Boolean(token);
@@ -233,7 +213,6 @@ export default function ExamOnlinePage() {
 
     // Filters
     const [grade, setGrade] = useState('');
-    const [branch, setBranch] = useState('');
     const [examType, setExamType] = useState('');
 
     // AI Generate Modal
@@ -245,20 +224,17 @@ export default function ExamOnlinePage() {
         difficulty: 'medium',
     });
 
-    // AI Preview Mode
+    // AI Preview
     const [previewData, setPreviewData] = useState<AIGenerateResponse | null>(null);
     const [savingTemplate, setSavingTemplate] = useState(false);
 
-    // Load templates
+    // Load data
     useEffect(() => {
         loadTemplates();
-    }, [grade, branch, examType]);
+    }, [grade, examType]);
 
-    // Load attempts (nếu đã đăng nhập)
     useEffect(() => {
-        if (isAuthenticated) {
-            loadAttempts();
-        }
+        if (isAuthenticated) loadAttempts();
     }, [isAuthenticated]);
 
     async function loadTemplates() {
@@ -266,7 +242,6 @@ export default function ExamOnlinePage() {
             setLoading(true);
             const data = await getExamTemplates({
                 grade: grade || undefined,
-                branch: branch || undefined,
                 type: examType || undefined,
                 limit: 20,
             });
@@ -289,19 +264,14 @@ export default function ExamOnlinePage() {
 
     async function handleStartExam(templateId: string) {
         if (!isAuthenticated) {
-            navigate('/login?redirect=/exam-online');
+            navigate('/login?redirect=/exam');
             return;
         }
-
         try {
             setStartingExam(templateId);
             const data = await startExamAttempt(templateId);
-            // Navigate to exam taking page
-            navigate(`/exam-online/attempt/${data.attempt.id}`, {
-                state: {
-                    attempt: data.attempt,
-                    questions: data.questions,
-                },
+            navigate(`/exam/attempt/${data.attempt.id}`, {
+                state: { attempt: data.attempt, questions: data.questions },
             });
         } catch (error) {
             console.error('Failed to start exam:', error);
@@ -311,14 +281,9 @@ export default function ExamOnlinePage() {
         }
     }
 
-    function handleViewAttempt(attemptId: string) {
-        navigate(`/exam-online/attempt/${attemptId}`);
-    }
-
-    // Tạo đề bằng AI - Preview mode (không save trước)
     async function handleGenerateAI() {
         if (!isAuthenticated) {
-            navigate('/login?redirect=/exam-online');
+            navigate('/login?redirect=/exam');
             return;
         }
         if (!aiParams.grade || !aiParams.exam_type || !aiParams.difficulty) {
@@ -327,9 +292,7 @@ export default function ExamOnlinePage() {
         }
         try {
             setGenerating(true);
-            // Generate nhưng KHÔNG save (save: false)
             const result = await generateExamWithAI({ ...aiParams, save: false } as AIGenerateParams);
-            // Hiển thị preview
             setPreviewData(result);
             setShowAIModal(false);
         } catch (error: any) {
@@ -339,8 +302,7 @@ export default function ExamOnlinePage() {
         }
     }
 
-    // Lưu đề sau khi preview
-    async function handleSavePreviewTemplate() {
+    async function handleSaveTemplate() {
         if (!previewData) return;
         try {
             setSavingTemplate(true);
@@ -363,20 +325,19 @@ export default function ExamOnlinePage() {
         }
     }
 
-    // Tạm thời: Nếu chưa có đề, hiển thị thông báo
     const hasNoTemplates = !loading && templates.length === 0;
 
     return (
         <div className="max-w-6xl mx-auto p-4">
             {/* Header */}
-            <div className="mb-8 flex items-start justify-between">
+            <div className="mb-6 flex items-start justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
                         <Trophy className="text-primary-500" />
-                        Thi Trắc Nghiệm Online
+                        Thi Online
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 mt-1">
-                        Làm bài thi trắc nghiệm môn Công nghệ THPT • Tự động chấm điểm
+                        Làm bài thi trắc nghiệm • Tự động chấm điểm • Lưu kết quả
                     </p>
                 </div>
                 {isAuthenticated && (
@@ -385,17 +346,15 @@ export default function ExamOnlinePage() {
                         className="btn-primary flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                     >
                         <Sparkles size={18} />
-                        Tạo đề bằng AI
+                        Tạo đề AI
                     </button>
                 )}
             </div>
 
-            {/* Filters */}
-            <FilterBar
+            {/* Quick Filters */}
+            <QuickFilter
                 grade={grade}
                 setGrade={setGrade}
-                branch={branch}
-                setBranch={setBranch}
                 examType={examType}
                 setExamType={setExamType}
             />
@@ -416,10 +375,10 @@ export default function ExamOnlinePage() {
                         <div className="glass-panel p-8 text-center">
                             <BookOpen size={48} className="mx-auto text-slate-300 dark:text-slate-600 mb-4" />
                             <h3 className="font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                Chưa có đề thi nào
+                                Chưa có đề thi
                             </h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                                Chưa có đề thi nào. Hãy tạo đề mới bằng AI!
+                                Tạo đề mới bằng AI để bắt đầu!
                             </p>
                             <button
                                 onClick={() => setShowAIModal(true)}
@@ -436,13 +395,14 @@ export default function ExamOnlinePage() {
                                     key={template.id}
                                     template={template}
                                     onStart={() => handleStartExam(template.id)}
+                                    isLoading={startingExam === template.id}
                                 />
                             ))}
                         </div>
                     )}
                 </div>
 
-                {/* Lịch sử làm bài */}
+                {/* Sidebar: Lịch sử */}
                 <div>
                     <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                         <History size={20} className="text-primary-500" />
@@ -452,8 +412,8 @@ export default function ExamOnlinePage() {
                     {!isAuthenticated ? (
                         <div className="glass-panel p-6 text-center">
                             <History size={32} className="mx-auto text-slate-300 dark:text-slate-600 mb-3" />
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-                                Đăng nhập để xem lịch sử làm bài
+                            <p className="text-sm text-slate-500 mb-3">
+                                Đăng nhập để xem lịch sử
                             </p>
                             <button
                                 onClick={() => navigate('/login')}
@@ -465,7 +425,7 @@ export default function ExamOnlinePage() {
                     ) : attempts.length === 0 ? (
                         <div className="glass-panel p-6 text-center">
                             <History size={32} className="mx-auto text-slate-300 dark:text-slate-600 mb-3" />
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                            <p className="text-sm text-slate-500">
                                 Bạn chưa làm bài thi nào
                             </p>
                         </div>
@@ -475,33 +435,13 @@ export default function ExamOnlinePage() {
                                 <AttemptCard
                                     key={attempt.id}
                                     attempt={attempt}
-                                    onClick={() => handleViewAttempt(attempt.id)}
+                                    onClick={() => navigate(`/exam/attempt/${attempt.id}`)}
                                 />
                             ))}
-                            {attempts.length >= 5 && (
-                                <button
-                                    onClick={() => navigate('/exam-online/history')}
-                                    className="w-full text-sm text-primary-600 dark:text-primary-400 py-2 hover:underline"
-                                >
-                                    Xem tất cả lịch sử →
-                                </button>
-                            )}
                         </div>
                     )}
                 </div>
             </div>
-
-            {/* Loading overlay khi bắt đầu làm bài */}
-            {startingExam && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 text-center shadow-2xl">
-                        <Loader2 className="animate-spin text-primary-500 mx-auto mb-4" size={48} />
-                        <p className="text-lg font-medium text-slate-900 dark:text-white">
-                            Đang tải đề thi...
-                        </p>
-                    </div>
-                </div>
-            )}
 
             {/* AI Generate Modal */}
             {showAIModal && (
@@ -539,35 +479,6 @@ export default function ExamOnlinePage() {
                                 </div>
                             </div>
 
-                            {/* Nhánh (lớp 11, 12) */}
-                            {(aiParams.grade === '11' || aiParams.grade === '12') && (
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                        Nhánh
-                                    </label>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => setAiParams(p => ({ ...p, branch: 'cong_nghiep' }))}
-                                            className={`flex-1 py-2 rounded-lg font-medium transition-colors ${aiParams.branch === 'cong_nghiep'
-                                                ? 'bg-primary-600 text-white'
-                                                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                                                }`}
-                                        >
-                                            🏭 Công nghiệp
-                                        </button>
-                                        <button
-                                            onClick={() => setAiParams(p => ({ ...p, branch: 'nong_nghiep' }))}
-                                            className={`flex-1 py-2 rounded-lg font-medium transition-colors ${aiParams.branch === 'nong_nghiep'
-                                                ? 'bg-primary-600 text-white'
-                                                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                                                }`}
-                                        >
-                                            🌾 Nông nghiệp
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
                             {/* Loại đề */}
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -593,7 +504,7 @@ export default function ExamOnlinePage() {
                                 <div className="flex gap-2">
                                     {([
                                         { value: 'easy', label: '🟢 Dễ' },
-                                        { value: 'medium', label: '🟡 TB' },
+                                        { value: 'medium', label: '🟡 Trung bình' },
                                         { value: 'hard', label: '🔴 Khó' },
                                     ] as const).map(d => (
                                         <button
@@ -610,10 +521,10 @@ export default function ExamOnlinePage() {
                                 </div>
                             </div>
 
-                            {/* Chủ đề tùy chọn */}
+                            {/* Chủ đề */}
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                    Chủ đề cụ thể (tùy chọn)
+                                    Chủ đề (tùy chọn)
                                 </label>
                                 <input
                                     type="text"
@@ -650,19 +561,14 @@ export default function ExamOnlinePage() {
                                 )}
                             </button>
                         </div>
-
-                        <p className="text-xs text-slate-400 text-center mt-4">
-                            AI sử dụng RAG từ SGK để tạo đề chuẩn chương trình
-                        </p>
                     </div>
                 </div>
             )}
 
-            {/* Preview AI Generated Exam Modal */}
+            {/* Preview Modal */}
             {previewData && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-                        {/* Header */}
                         <div className="sticky top-0 bg-white dark:bg-slate-800 p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                             <div>
                                 <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -678,18 +584,15 @@ export default function ExamOnlinePage() {
                             </button>
                         </div>
 
-                        {/* Questions Preview */}
-                        <div className="p-6 space-y-6">
+                        <div className="p-6 space-y-4">
                             {previewData.questions.map((q, idx) => (
                                 <div key={q.id} className="border border-slate-200 dark:border-slate-700 rounded-xl p-4">
                                     <div className="flex items-start gap-3">
-                                        <span className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center text-sm font-bold shrink-0">
+                                        <span className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-600 flex items-center justify-center text-sm font-bold shrink-0">
                                             {idx + 1}
                                         </span>
                                         <div className="flex-1">
-                                            <p className="text-slate-900 dark:text-white font-medium mb-3">
-                                                {q.content}
-                                            </p>
+                                            <p className="text-slate-900 dark:text-white font-medium mb-3">{q.content}</p>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                                 {q.options.map((opt, optIdx) => {
                                                     const letter = ['A', 'B', 'C', 'D'][optIdx];
@@ -698,7 +601,7 @@ export default function ExamOnlinePage() {
                                                         <div
                                                             key={optIdx}
                                                             className={`px-3 py-2 rounded-lg text-sm ${isCorrect
-                                                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700'
+                                                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300'
                                                                 : 'bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300'
                                                                 }`}
                                                         >
@@ -708,46 +611,25 @@ export default function ExamOnlinePage() {
                                                     );
                                                 })}
                                             </div>
-                                            {q.explanation && (
-                                                <p className="mt-3 text-xs text-slate-500 dark:text-slate-400 italic">
-                                                    💡 {q.explanation}
-                                                </p>
-                                            )}
-                                            <span className="inline-block mt-2 text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500">
-                                                {q.level === 'remember' ? 'Nhận biết' : q.level === 'understand' ? 'Thông hiểu' : q.level === 'apply' ? 'Vận dụng' : 'Phân tích'}
-                                            </span>
                                         </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
 
-                        {/* Footer Actions */}
                         <div className="sticky bottom-0 bg-white dark:bg-slate-800 p-6 border-t border-slate-200 dark:border-slate-700 flex gap-3">
                             <button
-                                onClick={() => {
-                                    setPreviewData(null);
-                                    setShowAIModal(true);
-                                }}
-                                className="flex-1 py-3 px-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                                onClick={() => { setPreviewData(null); setShowAIModal(true); }}
+                                className="flex-1 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50"
                             >
                                 🔄 Tạo lại
                             </button>
                             <button
-                                onClick={handleSavePreviewTemplate}
+                                onClick={handleSaveTemplate}
                                 disabled={savingTemplate}
-                                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium hover:from-green-700 hover:to-emerald-700 transition-colors flex items-center justify-center gap-2"
+                                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium flex items-center justify-center gap-2"
                             >
-                                {savingTemplate ? (
-                                    <>
-                                        <Loader2 className="animate-spin" size={18} />
-                                        Đang lưu...
-                                    </>
-                                ) : (
-                                    <>
-                                        ✅ Lưu đề thi
-                                    </>
-                                )}
+                                {savingTemplate ? <Loader2 className="animate-spin" size={18} /> : '✅'} Lưu đề thi
                             </button>
                         </div>
                     </div>

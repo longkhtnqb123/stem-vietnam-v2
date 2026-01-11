@@ -240,20 +240,19 @@ export default function ChatPage() {
     }, [activeId, token]);
 
     // Chú thích: Import Settings Store (Moved to top)
-    const { provider, apiKey, selectedModel } = useSettingsStore();
+    const { provider, apiKey, selectedModel, useBackendProxy } = useSettingsStore();
     // import { sendClientSideChat ... } removed from here
 
-    // Chú thích: Send message logic updated for Client-side
+    // Chú thích: Send message logic updated for Client-side or Backend Proxy
     const handleSend = async (message: string, files: FileAttachment[], hiddenContext?: string) => {
         if (!message.trim() && files.length === 0) return;
 
-        // Check if settings are configured
-        if (!apiKey || !selectedModel || provider === 'default') {
-            // Fallback hoặc báo lỗi. 
-            // Tạm thời nếu chưa config, báo user vào settings
-            // Nhưng để trải nghiệm tốt, có thể fallback về backend cũ hoặc báo lỗi
-            // User yêu cầu "chạy qua frontend sau khi đã lưu api", nên expect đã có api.
-            // Nếu chưa có, alert nhẹ.
+        // Chú thích: Check settings - cho phép backend proxy mode không cần API key
+        const isBackendMode = useBackendProxy;
+
+        if (!isBackendMode && (!apiKey || provider === 'default')) {
+            // Nếu không dùng backend proxy và chưa config API key, báo lỗi
+            console.warn('[chat] No API key configured and backend proxy disabled');
         }
 
         // Chú thích: Nếu chưa có conversation, tạo mới
@@ -380,32 +379,60 @@ export default function ChatPage() {
             });
 
 
-            // 5. Call Client-side Service
-            // Check config again
-            const currentProvider = provider === 'default' ? 'openrouter' : provider; // Fallback? Default is OpenRouter?
-            // User said "tất cả chạy qua frontend... đã lưu api". 
-            // If default, maybe use some hardcoded demo key? Or fail?
-            // Assuming user configured properly.
+            // 5. Gọi API - chọn backend proxy hoặc client-side
+            let responseText: string;
 
-            if (!apiKey) {
-                throw new Error('Vui lòng nhập API Key trong phần Cài đặt để chat.');
-            }
+            if (isBackendMode) {
+                // Chú thích: Dùng backend proxy miễn phí - không cần API key
+                setThinkingStep('Đang gọi AI qua server...');
+                const API_BASE = (import.meta.env.VITE_API_URL || 'https://stem-vietnam-api.stu725114073.workers.dev').replace(/\/$/, '');
 
-            const response = await sendClientSideChat(
-                currentProvider,
-                apiKey,
-                selectedModel || 'google/gemini-2.0-flash-exp:free', // Fallback model
-                apiMessages
-            );
+                const backendResponse = await fetch(`${API_BASE}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        conversationId: currentId,
+                        images: imagesBase64.length > 0 ? imagesBase64 : undefined,
+                        context: contextToUse,
+                    }),
+                });
 
-            if (!response.success || !response.response) {
-                throw new Error(response.error || 'Failed to get response');
+                if (!backendResponse.ok) {
+                    const errText = await backendResponse.text();
+                    throw new Error(`Backend error: ${backendResponse.status} - ${errText}`);
+                }
+
+                const data = await backendResponse.json();
+                responseText = data.response || data.text || 'Không có phản hồi';
+            } else {
+                // Chú thích: Dùng API key riêng - gọi trực tiếp từ frontend
+                const currentProvider = provider === 'default' ? 'openrouter' : provider;
+
+                if (!apiKey) {
+                    throw new Error('Vui lòng nhập API Key trong phần Cài đặt, hoặc bật "Chế độ Backend miễn phí" trong Giao diện.');
+                }
+
+                const response = await sendClientSideChat(
+                    currentProvider,
+                    apiKey,
+                    selectedModel || 'google/gemini-2.0-flash-exp:free',
+                    apiMessages
+                );
+
+                if (!response.success || !response.response) {
+                    throw new Error(response.error || 'Failed to get response');
+                }
+                responseText = response.response;
             }
 
             const assistantMessage: ChatMessage = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: response.response,
+                content: responseText,
                 timestamp: Date.now(),
             };
 
@@ -413,7 +440,7 @@ export default function ChatPage() {
             if (token && currentId) {
                 addMessage(currentId, {
                     role: 'assistant',
-                    content: response.response,
+                    content: responseText,
                 }, token).catch(e => console.error('Failed to sync AI msg', e));
             }
 

@@ -28,6 +28,7 @@ export interface UserSettings {
     chatModel: string;
     examModel: string;
     ragEnabled: boolean;
+    useBackendProxy: boolean; // true = dùng backend miễn phí, false = dùng API key riêng
     theme: 'light' | 'dark' | 'auto';
     language: 'vi' | 'en';
     customPrompts?: {

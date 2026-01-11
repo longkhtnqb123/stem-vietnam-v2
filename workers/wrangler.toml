@@ -6,7 +6,7 @@ compatibility_date = "2024-12-30"
 # Chú thích: Token budget cho mỗi request
 MAX_TOKEN_BUDGET = "50000"
 # Chú thích: CORS origins (separated by semicolon for multiple origins)
-CORS_ORIGIN = "http://localhost:5173;https://hoccongnghe.pages.dev;http://127.0.0.1:5500"
+CORS_ORIGIN = "http://localhost:5173;http://localhost:5174;https://hoccongnghe.pages.dev;http://127.0.0.1:5500"
 
 # Chú thích: Môi trường development
 [env.dev]

@@ -23,6 +23,9 @@ interface SettingsState {
     availableModels: ModelInfo[];
     isLoadingModels: boolean;
 
+    // ===== API Mode =====
+    useBackendProxy: boolean;      // true = dùng backend miễn phí, false = dùng API key riêng
+
     // ===== AI Options (Phase 1) =====
     ragEnabled: boolean;           // Tìm kiếm trong tài liệu SGK
     webSearchEnabled: boolean;     // Tìm kiếm web thông tin mới nhất
@@ -47,6 +50,9 @@ interface SettingsState {
     setSelectedModel: (model: string) => void;
     setAvailableModels: (models: ModelInfo[]) => void;
     setIsLoadingModels: (loading: boolean) => void;
+
+    // Actions - API Mode
+    setUseBackendProxy: (useProxy: boolean) => void;
 
     // Actions - AI Options
     setRagEnabled: (enabled: boolean) => void;
@@ -81,6 +87,9 @@ const defaultSettings = {
     selectedModel: 'google/gemini-2.0-flash-exp:free',
     availableModels: [] as ModelInfo[],
     isLoadingModels: false,
+
+    // API Mode - mặc định dùng backend miễn phí
+    useBackendProxy: true,
 
     // AI Options - defaults thông minh
     ragEnabled: true,
@@ -143,6 +152,7 @@ function loadFromStorage(): Partial<SettingsState> {
                 provider,
                 apiKey,
                 // Chú thích: Đảm bảo các fields mới có default values
+                useBackendProxy: parsed.useBackendProxy ?? true,
                 webSearchEnabled: parsed.webSearchEnabled ?? true,
                 costSaverMode: parsed.costSaverMode ?? false,
                 thinkingLevel: parsed.thinkingLevel ?? 'low',
@@ -168,6 +178,8 @@ function saveToStorage(state: SettingsState) {
             openRouterKey: state.openRouterKey,
             hfToken: state.hfToken,
             selectedModel: state.selectedModel,
+            // API Mode
+            useBackendProxy: state.useBackendProxy,
             // AI Options
             ragEnabled: state.ragEnabled,
             webSearchEnabled: state.webSearchEnabled,
@@ -231,6 +243,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
     setIsLoadingModels: (loading: boolean) => {
         set({ isLoadingModels: loading });
+    },
+
+    // ===== API Mode Actions =====
+    setUseBackendProxy: (useProxy: boolean) => {
+        set({ useBackendProxy: useProxy });
+        get().saveSettings();
     },
 
     // ===== AI Options Actions =====

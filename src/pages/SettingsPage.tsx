@@ -140,6 +140,36 @@ export default function SettingsPage() {
                                 </select>
                             </div>
 
+                            {/* API Mode - Chọn Backend miễn phí hoặc API riêng */}
+                            <div className="p-4 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200 dark:border-emerald-800">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="font-medium text-slate-900 dark:text-white flex items-center gap-2">
+                                            🚀 Chế độ API
+                                        </p>
+                                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                                            {settings.useBackendProxy
+                                                ? '✨ Đang dùng AI miễn phí qua server (không cần API key)'
+                                                : '🔑 Đang dùng API key riêng của bạn'}
+                                        </p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={settings.useBackendProxy}
+                                            onChange={(e) => updateSettings({ ...settings, useBackendProxy: e.target.checked })}
+                                            className="sr-only peer"
+                                        />
+                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 dark:peer-focus:ring-emerald-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-emerald-500"></div>
+                                    </label>
+                                </div>
+                                <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                                    {settings.useBackendProxy
+                                        ? 'Bật: Sử dụng các model AI miễn phí tốt nhất (Gemini 2.0, DeepSeek R1, MiMo) qua server'
+                                        : 'Tắt: Cần cấu hình API key trong tab "API Keys" để sử dụng'}
+                                </div>
+                            </div>
+
                             {/* RAG */}
                             <div className="flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-slate-800">
                                 <div>

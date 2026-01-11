@@ -10,15 +10,13 @@ import { lazy, Suspense } from 'react';
 
 const LandingPage = lazy(() => import('./components/landing/LandingPage'));
 const ChatPage = lazy(() => import('./components/chat/ChatPage'));
-const QuestionFormPage = lazy(() => import('./components/forms/QuestionFormPage'));
-const ExamFormPage = lazy(() => import('./components/forms/ExamFormPage'));
-const SemesterExamFormPage = lazy(() => import('./components/forms/SemesterExamFormPage'));
 const LibraryPage = lazy(() => import('./components/library/LibraryPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
-// Chú thích: Thi Online pages
-const ExamOnlinePage = lazy(() => import('./pages/ExamOnlinePage'));
+// Chú thích: Exam pages mới (gọn lại)
+const ExamPage = lazy(() => import('./pages/ExamPage'));
+const PracticePage = lazy(() => import('./pages/PracticePage'));
 const ExamTakingPage = lazy(() => import('./pages/ExamTakingPage'));
 const HelpPage = lazy(() => import('./pages/HelpPage'));
 const TeacherDashboard = lazy(() => import('./pages/TeacherDashboard'));
@@ -132,30 +130,6 @@ function App() {
             </AuthGuard>
           } />
 
-          <Route path="questions" element={
-            <AuthGuard>
-              <Suspense fallback={<PageLoader />}>
-                <QuestionFormPage />
-              </Suspense>
-            </AuthGuard>
-          } />
-
-          <Route path="exam/thpt" element={
-            <AuthGuard>
-              <Suspense fallback={<PageLoader />}>
-                <ExamFormPage />
-              </Suspense>
-            </AuthGuard>
-          } />
-
-          <Route path="exam/semester" element={
-            <AuthGuard>
-              <Suspense fallback={<PageLoader />}>
-                <SemesterExamFormPage />
-              </Suspense>
-            </AuthGuard>
-          } />
-
           <Route path="library" element={
             <AuthGuard>
               <Suspense fallback={<PageLoader />}>
@@ -173,13 +147,22 @@ function App() {
           } />
 
           {/* Thi Online */}
-          <Route path="exam-online" element={
+          <Route path="exam" element={
             <Suspense fallback={<PageLoader />}>
-              <ExamOnlinePage />
+              <ExamPage />
             </Suspense>
           } />
 
-          <Route path="exam-online/attempt/:attemptId" element={
+          {/* Ôn Tập */}
+          <Route path="practice" element={
+            <AuthGuard>
+              <Suspense fallback={<PageLoader />}>
+                <PracticePage />
+              </Suspense>
+            </AuthGuard>
+          } />
+
+          <Route path="exam/attempt/:attemptId" element={
             <AuthGuard>
               <Suspense fallback={<PageLoader />}>
                 <ExamTakingPage />

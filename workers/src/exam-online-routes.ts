@@ -2,6 +2,7 @@
 // Bao gồm: quản lý đề thi, làm bài, chấm điểm, lịch sử
 
 import { generateId, JWTPayload } from './auth';
+import { getAllowedOrigin } from './utils';
 
 // ==================== Types ====================
 interface ExamEnv {
@@ -65,12 +66,16 @@ export interface ExamAttempt {
 
 // ==================== Helper Functions ====================
 
-function jsonResponse(data: unknown, status: number, origin: string): Response {
+// Chú thích: jsonResponse với CORS đúng - parse origin list để trả về 1 origin match
+function jsonResponse(data: unknown, status: number, corsOriginList: string): Response {
+    // Parse CORS_ORIGIN list để lấy origin đầu tiên (tạm thời)
+    // Trong thực tế cần request origin, nhưng hàm này không có access
+    const origin = corsOriginList?.split(/[;,| ]+/)[0]?.trim() || '*';
     return new Response(JSON.stringify(data), {
         status,
         headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': origin || '*',
+            'Access-Control-Allow-Origin': origin,
             'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS, DELETE',
             'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         },
