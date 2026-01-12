@@ -624,36 +624,92 @@ export default function ExamPage() {
                         </div>
 
                         <div className="p-6 space-y-4">
-                            {previewData.questions.map((q, idx) => (
-                                <div key={q.id} className="border border-slate-200 dark:border-slate-700 rounded-xl p-4">
-                                    <div className="flex items-start gap-3">
-                                        <span className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-600 flex items-center justify-center text-sm font-bold shrink-0">
-                                            {idx + 1}
-                                        </span>
-                                        <div className="flex-1">
-                                            <p className="text-slate-900 dark:text-white font-medium mb-3">{q.content}</p>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                                {q.options.map((opt, optIdx) => {
-                                                    const letter = ['A', 'B', 'C', 'D'][optIdx];
-                                                    const isCorrect = q.answer === letter;
-                                                    return (
-                                                        <div
-                                                            key={optIdx}
-                                                            className={`px-3 py-2 rounded-lg text-sm ${isCorrect
-                                                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300'
-                                                                : 'bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300'
-                                                                }`}
-                                                        >
-                                                            <span className="font-medium">{letter}.</span> {opt}
-                                                            {isCorrect && <span className="ml-2">✓</span>}
-                                                        </div>
-                                                    );
-                                                })}
+                            {previewData.questions.map((q, idx) => {
+                                // Chú thích: Phân biệt loại câu hỏi MCQ và True/False
+                                const isTrueFalse = q.type === 'true_false';
+
+                                return (
+                                    <div key={q.id} className="border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+                                        <div className="flex items-start gap-3">
+                                            {/* Số thứ tự + Badge loại câu */}
+                                            <div className="flex flex-col items-center gap-1">
+                                                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${isTrueFalse
+                                                        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600'
+                                                        : 'bg-primary-100 dark:bg-primary-900/30 text-primary-600'
+                                                    }`}>
+                                                    {idx + 1}
+                                                </span>
+                                                {isTrueFalse && (
+                                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-200 dark:bg-amber-800 text-amber-700 dark:text-amber-300 font-medium">
+                                                        Đ/S
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <div className="flex-1">
+                                                {/* Nội dung câu hỏi */}
+                                                <p className="text-slate-900 dark:text-white font-medium mb-3">{q.content}</p>
+
+                                                {/* Chú thích: Render khác nhau cho MCQ và True/False */}
+                                                {isTrueFalse && q.statements ? (
+                                                    // === TRUE/FALSE QUESTION ===
+                                                    <div className="space-y-2">
+                                                        {q.statements.map((stmt, stmtIdx) => {
+                                                            const isCorrect = Array.isArray(q.answer)
+                                                                ? q.answer[stmtIdx]
+                                                                : false;
+                                                            return (
+                                                                <div
+                                                                    key={stmtIdx}
+                                                                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${isCorrect
+                                                                            ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                                                                            : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                                                                        }`}
+                                                                >
+                                                                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isCorrect
+                                                                            ? 'bg-green-500 text-white'
+                                                                            : 'bg-red-500 text-white'
+                                                                        }`}>
+                                                                        {isCorrect ? 'Đ' : 'S'}
+                                                                    </span>
+                                                                    <span className="text-slate-700 dark:text-slate-300">{stmt}</span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                ) : (
+                                                    // === MULTIPLE CHOICE QUESTION ===
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                        {q.options?.map((opt, optIdx) => {
+                                                            const letter = ['A', 'B', 'C', 'D'][optIdx];
+                                                            const isCorrect = q.answer === letter || q.answer === optIdx;
+                                                            return (
+                                                                <div
+                                                                    key={optIdx}
+                                                                    className={`px-3 py-2 rounded-lg text-sm ${isCorrect
+                                                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300'
+                                                                        : 'bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300'
+                                                                        }`}
+                                                                >
+                                                                    <span className="font-medium">{letter}.</span> {opt}
+                                                                    {isCorrect && <span className="ml-2">✓</span>}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+
+                                                {/* Hiển thị explanation nếu có */}
+                                                {q.explanation && (
+                                                    <div className="mt-3 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-lg p-2">
+                                                        💡 {q.explanation}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         <div className="sticky bottom-0 bg-white dark:bg-slate-800 p-6 border-t border-slate-200 dark:border-slate-700 flex gap-3">

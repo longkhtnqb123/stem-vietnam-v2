@@ -8,13 +8,17 @@ import { useAuthStore } from './auth';
 export interface ExamQuestion {
     id: string;
     content: string;
-    options: string[];
-    answer?: string;        // Chỉ có sau khi nộp bài
-    explanation?: string;   // Chỉ có sau khi nộp bài
+    // Chú thích: Hỗ trợ cả MCQ và True/False (THPT 2025)
+    type?: 'multiple_choice' | 'true_false';
+    options?: string[];           // Cho MCQ (4 lựa chọn A/B/C/D)
+    statements?: string[];        // Cho True/False (4 ý nhận định)
+    answer?: string | number | boolean[];  // String/number cho MCQ, boolean[] cho T/F
+    explanation?: string;         // Giải thích (hiện sau khi nộp bài)
     level: 'remember' | 'understand' | 'apply' | 'analyze';
     chapter?: string;
-    userAnswer?: string;    // Trả lời của user
-    isCorrect?: boolean;    // Đúng/sai
+    source?: string;              // Nguồn SGK
+    userAnswer?: string | boolean[];  // Trả lời của user
+    isCorrect?: boolean;          // Đúng/sai
 }
 
 export interface ExamTemplate {

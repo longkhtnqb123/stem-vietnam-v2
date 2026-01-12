@@ -74,7 +74,7 @@ function QuestionNav({
     );
 }
 
-// Question display
+// Question display - Hỗ trợ cả MCQ và True/False
 function QuestionDisplay({
     question,
     index,
@@ -88,21 +88,36 @@ function QuestionDisplay({
     question: ExamQuestion;
     index: number;
     total: number;
-    selectedAnswer: string;
-    onSelectAnswer: (answer: string) => void;
+    selectedAnswer: string | boolean[] | undefined;
+    onSelectAnswer: (answer: string | boolean[]) => void;
     isFlagged: boolean;
     onToggleFlag: () => void;
     showResult?: boolean;
 }) {
-    const options = ['A', 'B', 'C', 'D'];
+    const optionLetters = ['A', 'B', 'C', 'D'];
+    const isTrueFalse = question.type === 'true_false';
+
+    // Chú thích: Handler cho True/False toggle
+    const handleTrueFalseToggle = (stmtIdx: number, value: boolean) => {
+        const current = Array.isArray(selectedAnswer) ? [...selectedAnswer] : [false, false, false, false];
+        current[stmtIdx] = value;
+        onSelectAnswer(current);
+    };
 
     return (
         <div className="glass-panel p-6">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                    Câu {index + 1}/{total}
-                </span>
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                        Câu {index + 1}/{total}
+                    </span>
+                    {isTrueFalse && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-200 dark:bg-amber-800 text-amber-700 dark:text-amber-300 font-medium">
+                            Đ/S
+                        </span>
+                    )}
+                </div>
                 <button
                     onClick={onToggleFlag}
                     className={`flex items-center gap-1 text-sm px-3 py-1.5 rounded-lg transition-colors ${isFlagged
@@ -122,62 +137,118 @@ function QuestionDisplay({
                 </p>
             </div>
 
-            {/* Options */}
-            <div className="space-y-3">
-                {options.map((opt, idx) => {
-                    const isSelected = selectedAnswer === opt;
-                    const optionText = question.options[idx];
+            {/* Options - MCQ hoặc True/False */}
+            {isTrueFalse && question.statements ? (
+                // === TRUE/FALSE QUESTION ===
+                <div className="space-y-3">
+                    {question.statements.map((stmt, stmtIdx) => {
+                        const userValue = Array.isArray(selectedAnswer) ? selectedAnswer[stmtIdx] : undefined;
+                        const correctValue = showResult && Array.isArray(question.answer) ? question.answer[stmtIdx] : undefined;
+                        const isCorrect = showResult && userValue === correctValue;
+                        const isWrong = showResult && userValue !== undefined && userValue !== correctValue;
 
-                    // Khi hiển thị kết quả
-                    let resultStyle = '';
-                    if (showResult) {
-                        const isCorrect = question.answer === opt;
-                        const userWrong = isSelected && !isCorrect;
-                        if (isCorrect) {
-                            resultStyle = 'border-green-500 bg-green-50 dark:bg-green-900/20';
-                        } else if (userWrong) {
-                            resultStyle = 'border-red-500 bg-red-50 dark:bg-red-900/20';
-                        }
-                    }
-
-                    return (
-                        <button
-                            key={opt}
-                            onClick={() => !showResult && onSelectAnswer(opt)}
-                            disabled={showResult}
-                            className={`
-                                w-full p-4 rounded-xl border-2 text-left transition-all
-                                ${resultStyle || (isSelected
-                                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                                    : 'border-slate-200 dark:border-slate-700 hover:border-primary-300'
-                                )}
-                                ${showResult ? 'cursor-default' : 'cursor-pointer'}
-                            `}
-                        >
-                            <div className="flex items-start gap-3">
-                                <span className={`
-                                    w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm
-                                    ${isSelected
-                                        ? 'bg-primary-600 text-white'
-                                        : 'bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300'
-                                    }
-                                `}>
-                                    {opt}
-                                </span>
-                                <span className="flex-1 text-slate-700 dark:text-slate-200 pt-1">
-                                    {optionText}
-                                </span>
-                                {showResult && question.answer === opt && (
-                                    <CheckCircle2 className="text-green-500" size={20} />
-                                )}
-                                {showResult && isSelected && question.answer !== opt && (
-                                    <XCircle className="text-red-500" size={20} />
+                        return (
+                            <div
+                                key={stmtIdx}
+                                className={`p-4 rounded-xl border-2 transition-all ${showResult
+                                    ? isCorrect
+                                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                                        : isWrong
+                                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                                            : 'border-slate-200 dark:border-slate-700'
+                                    : 'border-slate-200 dark:border-slate-700'
+                                    }`}
+                            >
+                                <p className="text-slate-700 dark:text-slate-200 mb-3">{stmt}</p>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => !showResult && handleTrueFalseToggle(stmtIdx, true)}
+                                        disabled={showResult}
+                                        className={`flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${userValue === true
+                                            ? 'bg-green-600 text-white'
+                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                                            } ${showResult ? 'cursor-default' : 'hover:bg-green-100'}`}
+                                    >
+                                        Đúng
+                                    </button>
+                                    <button
+                                        onClick={() => !showResult && handleTrueFalseToggle(stmtIdx, false)}
+                                        disabled={showResult}
+                                        className={`flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${userValue === false
+                                            ? 'bg-red-600 text-white'
+                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                                            } ${showResult ? 'cursor-default' : 'hover:bg-red-100'}`}
+                                    >
+                                        Sai
+                                    </button>
+                                </div>
+                                {showResult && (
+                                    <div className={`mt-2 text-xs ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                                        {isCorrect ? '✓ Đúng' : `✗ Đáp án đúng: ${correctValue ? 'Đúng' : 'Sai'}`}
+                                    </div>
                                 )}
                             </div>
-                        </button>
-                    );
-                })}
-            </div>
+                        );
+                    })}
+                </div>
+            ) : (
+                // === MULTIPLE CHOICE QUESTION ===
+                <div className="space-y-3">
+                    {optionLetters.map((opt, idx) => {
+                        const isSelected = selectedAnswer === opt;
+                        const optionText = question.options?.[idx] || '';
+
+                        // Khi hiển thị kết quả
+                        let resultStyle = '';
+                        if (showResult) {
+                            const isCorrectAnswer = question.answer === opt || question.answer === idx;
+                            const userWrong = isSelected && !isCorrectAnswer;
+                            if (isCorrectAnswer) {
+                                resultStyle = 'border-green-500 bg-green-50 dark:bg-green-900/20';
+                            } else if (userWrong) {
+                                resultStyle = 'border-red-500 bg-red-50 dark:bg-red-900/20';
+                            }
+                        }
+
+                        return (
+                            <button
+                                key={opt}
+                                onClick={() => !showResult && onSelectAnswer(opt)}
+                                disabled={showResult}
+                                className={`
+                                    w-full p-4 rounded-xl border-2 text-left transition-all
+                                    ${resultStyle || (isSelected
+                                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                                        : 'border-slate-200 dark:border-slate-700 hover:border-primary-300'
+                                    )}
+                                    ${showResult ? 'cursor-default' : 'cursor-pointer'}
+                                `}
+                            >
+                                <div className="flex items-start gap-3">
+                                    <span className={`
+                                        w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm
+                                        ${isSelected
+                                            ? 'bg-primary-600 text-white'
+                                            : 'bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300'
+                                        }
+                                    `}>
+                                        {opt}
+                                    </span>
+                                    <span className="flex-1 text-slate-700 dark:text-slate-200 pt-1">
+                                        {optionText}
+                                    </span>
+                                    {showResult && (question.answer === opt || question.answer === idx) && (
+                                        <CheckCircle2 className="text-green-500" size={20} />
+                                    )}
+                                    {showResult && isSelected && question.answer !== opt && question.answer !== idx && (
+                                        <XCircle className="text-red-500" size={20} />
+                                    )}
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
 
             {/* Giải thích (sau khi nộp) */}
             {showResult && question.explanation && (
@@ -353,14 +424,16 @@ export default function ExamTakingPage() {
         onSave: handleAutoSave,
     });
 
-    // Handlers
-    function handleSelectAnswer(answer: string) {
+    // Handlers - Hỗ trợ cả MCQ (string) và True/False (boolean[])
+    function handleSelectAnswer(answer: string | boolean[]) {
         if (result) return; // Đã nộp rồi
 
         const q = questions[currentIndex];
+        // Chú thích: Serialize boolean[] thành JSON string để lưu vào answers object
+        const answerValue = Array.isArray(answer) ? JSON.stringify(answer) : answer;
         setAnswers(prev => ({
             ...prev,
-            [q.id]: answer,
+            [q.id]: answerValue,
         }));
     }
 
@@ -490,7 +563,15 @@ export default function ExamTakingPage() {
                                 question={currentQuestion}
                                 index={currentIndex}
                                 total={questions.length}
-                                selectedAnswer={answers[currentQuestion.id] || currentQuestion.userAnswer || ''}
+                                selectedAnswer={(() => {
+                                    const storedAnswer = answers[currentQuestion.id] || currentQuestion.userAnswer;
+                                    if (!storedAnswer) return currentQuestion.type === 'true_false' ? [] : '';
+                                    // Chú thích: Parse JSON nếu là True/False answer
+                                    if (currentQuestion.type === 'true_false' && typeof storedAnswer === 'string') {
+                                        try { return JSON.parse(storedAnswer); } catch { return []; }
+                                    }
+                                    return storedAnswer;
+                                })()}
                                 onSelectAnswer={handleSelectAnswer}
                                 isFlagged={flagged.has(currentQuestion.id)}
                                 onToggleFlag={handleToggleFlag}
