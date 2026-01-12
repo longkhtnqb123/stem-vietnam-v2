@@ -8,16 +8,35 @@ import ApiManagement from '../components/settings/ApiManagement';
 type TabType = 'models' | 'api-keys' | 'preferences' | 'usage' | 'security';
 
 export default function SettingsPage() {
-    const [activeTab, setActiveTab] = useState<TabType>('models');
+    // Developer Mode State (Session based)
+    const [devModeCount, setDevModeCount] = useState(0);
+    const isDevMode = devModeCount >= 7;
+
+    const [activeTab, setActiveTab] = useState<TabType>('preferences'); // Default to preferences for non-devs
     const { settings, isLoading, updateSettings } = useSettings();
 
-    const tabs = [
-        { id: 'models' as TabType, label: 'AI Models', icon: Cpu },
-        { id: 'api-keys' as TabType, label: 'API Keys', icon: Key },
-        { id: 'preferences' as TabType, label: 'Giao diện', icon: Palette },
-        { id: 'usage' as TabType, label: 'Thống kê', icon: BarChart3 },
-        { id: 'security' as TabType, label: 'Bảo mật', icon: Shield },
+    const handleDevModeClick = () => {
+        if (isDevMode) return;
+
+        const newCount = devModeCount + 1;
+        setDevModeCount(newCount);
+
+        if (newCount === 7) {
+            // Unlock!
+            // Optional: Add a toast here if we had a toast system
+            console.log('Developer Mode Unlocked!');
+        }
+    };
+
+    const allTabs = [
+        { id: 'models' as TabType, label: 'AI Models', icon: Cpu, requiresDev: true },
+        { id: 'api-keys' as TabType, label: 'API Keys', icon: Key, requiresDev: true },
+        { id: 'preferences' as TabType, label: 'Giao diện', icon: Palette, requiresDev: false },
+        { id: 'usage' as TabType, label: 'Thống kê', icon: BarChart3, requiresDev: false },
+        { id: 'security' as TabType, label: 'Bảo mật', icon: Shield, requiresDev: false },
     ];
+
+    const tabs = allTabs.filter(tab => !tab.requiresDev || isDevMode);
 
     if (isLoading) {
         return (
@@ -31,10 +50,14 @@ export default function SettingsPage() {
         <div className="max-w-6xl mx-auto p-6">
             {/* Header */}
             <div className="mb-8">
-                <div className="flex items-center gap-3 mb-2">
-                    <Settings className="text-primary-500" size={32} />
+                <div
+                    className="flex items-center gap-3 mb-2 cursor-pointer select-none"
+                    onClick={handleDevModeClick}
+                    title={isDevMode ? "Developer Mode Enabled" : "Settings"}
+                >
+                    <Settings className={`text-primary-500 transition-colors ${isDevMode ? 'text-amber-500' : ''}`} size={32} />
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                        Cài đặt
+                        Cài đặt {isDevMode && <span className="text-sm font-normal text-amber-500 ml-2">(Dev Mode)</span>}
                     </h1>
                 </div>
                 <p className="text-slate-600 dark:text-slate-400">
