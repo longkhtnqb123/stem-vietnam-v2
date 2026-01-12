@@ -2,7 +2,7 @@
 // Bao gồm: quản lý đề thi, làm bài, chấm điểm, lịch sử
 
 import { generateId, JWTPayload } from './auth';
-import { getAllowedOrigin } from './utils';
+import { SYSTEM_PROMPTS } from './prompts';
 
 // ==================== Types ====================
 interface ExamEnv {
@@ -1121,73 +1121,7 @@ interface AIGenerateRequest {
 }
 
 // Prompt để AI generate đề theo format mới - Cập nhật theo chương trình Công nghệ THPT
-const AI_EXAM_PROMPT = `Bạn là Chuyên gia Khảo thí Việt Nam. Tạo đề thi trắc nghiệm môn Công nghệ THPT.
-
-## NỘI DUNG CHƯƠNG TRÌNH CÔNG NGHỆ THPT:
-
-### ĐỊNH HƯỚNG CÔNG NGHIỆP:
-**Lớp 10 - Thiết kế và Công nghệ:**
-- Giới thiệu chung về công nghệ, đổi mới công nghệ và cách mạng công nghiệp 4.0
-- Vẽ kỹ thuật: Tiêu chuẩn trình bày bản vẽ, hình chiếu vuông góc, hình chiếu trục đo
-- Quy trình thiết kế kỹ thuật: Phát hiện nhu cầu, lập hồ sơ kỹ thuật, chế tạo mẫu
-
-**Lớp 11 - Công nghệ Cơ khí:**
-- Cơ khí chế tạo: Phương pháp gia công (tiện, phay, bào, hàn)
-- Vật liệu cơ khí và tính chất
-- Cơ cấu truyền và biến đổi chuyển động
-- Động cơ đốt trong: Cấu tạo, nguyên lý, ứng dụng
-
-**Lớp 12 - Công nghệ Điện - Điện tử:**
-- Kỹ thuật điện: Mạch xoay chiều, hệ thống điện quốc gia, an toàn điện
-- Kỹ thuật điện tử: Linh kiện điện tử, mạch điều khiển, vi điều khiển
-- Công nghệ tự động hóa và Robot
-
-### ĐỊNH HƯỚNG NÔNG NGHIỆP:
-**Lớp 10 - Công nghệ Trồng trọt:**
-- Giới thiệu trồng trọt và nhóm cây trồng chính
-- Đất trồng và phân bón (cải tạo đất, phân bón thông minh)
-- Công nghệ giống cây trồng: Chọn lọc, nhân giống, nuôi cấy mô
-- Kỹ thuật trồng trọt, chăm sóc, phòng trừ sâu bệnh
-- Thu hoạch, chế biến, bảo quản nông sản
-
-**Lớp 11 - Công nghệ Chăn nuôi:**
-- Giống vật nuôi phổ biến, thụ tinh nhân tạo
-- Dinh dưỡng và thức ăn chăn nuôi
-- Công nghệ chuồng trại và vệ sinh thú y
-- Phòng trị bệnh và bảo vệ môi trường
-
-**Lớp 12 - Lâm nghiệp & Thủy sản:**
-- Lâm nghiệp: Trồng và chăm sóc rừng, khai thác bền vững
-- Thủy sản: Môi trường nuôi, giống tôm/cá, nuôi trồng công nghệ cao
-- Quản lý nguồn lợi và bảo vệ môi trường nước
-
-## YÊU CẦU OUTPUT:
-Trả về JSON array CHÍNH XÁC format sau (KHÔNG có text ngoài JSON):
-
-[
-  {
-    "id": "q1",
-    "content": "Nội dung câu hỏi đầy đủ, rõ ràng",
-    "options": ["Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D"],
-    "answer": "A",
-    "explanation": "Giải thích chi tiết tại sao đáp án này đúng",
-    "level": "remember"
-  }
-]
-
-## QUY TẮC:
-1. "id": Từ "q1" đến "q40" theo thứ tự
-2. "answer": CHỈ là "A", "B", "C", hoặc "D" (chữ in hoa)
-3. "level": Phải là 1 trong: "remember" (25%), "understand" (35%), "apply" (30%), "analyze" (10%)
-4. Mỗi câu hỏi phải có đúng 4 đáp án trong "options"
-5. "explanation" phải giải thích CHI TIẾT tại sao đáp án đúng
-6. Nội dung câu hỏi PHẢI PHÙ HỢP với lớp và định hướng được yêu cầu
-
-## PHÂN BỔ THEO LOẠI ĐỀ:
-- 15min: 15 câu (4 remember, 5 understand, 4 apply, 2 analyze)
-- midterm: 30 câu (8 remember, 10 understand, 9 apply, 3 analyze)
-- final: 40 câu (10 remember, 14 understand, 12 apply, 4 analyze)
-- thpt: 40 câu (10 remember, 14 understand, 12 apply, 4 analyze)`;
+// Prompt đã được chuyển sang SYSTEM_PROMPTS.generate trong prompts.ts
 
 export async function generateTemplateWithAI(
     request: Request,
@@ -1283,7 +1217,7 @@ Trả về JSON array đúng format.`;
         // 3. Gọi AI (OpenRouter)
         const { callOpenRouter, buildMessages, MODEL_ROUTES } = await import('./openrouter');
 
-        const messages = buildMessages(AI_EXAM_PROMPT, userPrompt);
+        const messages = buildMessages(SYSTEM_PROMPTS.generate, userPrompt);
         const aiResult = await callOpenRouter(env.OPENROUTER_API_KEY, {
             messages,
             model: MODEL_ROUTES.examGeneration,

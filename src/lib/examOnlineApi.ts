@@ -211,8 +211,10 @@ export async function generateExamWithAI(params: AIGenerateParams): Promise<AIGe
     });
 
     if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.error || 'Không thể tạo đề thi bằng AI');
+        const errorResult = await response.json().catch(() => ({}));
+        const msg = errorResult.error || 'Không thể tạo đề thi bằng AI';
+        const details = errorResult.details ? ` (${errorResult.details})` : '';
+        throw new Error(msg + details);
     }
 
     return response.json();

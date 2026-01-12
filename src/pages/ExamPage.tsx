@@ -296,7 +296,8 @@ export default function ExamPage() {
             setPreviewData(result);
             setShowAIModal(false);
         } catch (error: any) {
-            alert(error.message || 'Lỗi tạo đề thi');
+            console.error('AI Gen Error:', error);
+            alert(`Lỗi tạo đề thi: ${error.message || JSON.stringify(error)}`);
         } finally {
             setGenerating(false);
         }
@@ -467,7 +468,7 @@ export default function ExamPage() {
                                     {(['10', '11', '12'] as const).map(g => (
                                         <button
                                             key={g}
-                                            onClick={() => setAiParams(p => ({ ...p, grade: g }))}
+                                            onClick={() => setAiParams(p => ({ ...p, grade: g, branch: undefined }))}
                                             className={`flex-1 py-2 rounded-lg font-medium transition-colors ${aiParams.grade === g
                                                 ? 'bg-primary-600 text-white'
                                                 : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
@@ -478,6 +479,44 @@ export default function ExamPage() {
                                     ))}
                                 </div>
                             </div>
+
+                            {/* Định hướng (GDPT 2018) */}
+                            {aiParams.grade && (
+                                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                        Định hướng (GDPT 2018)
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            onClick={() => setAiParams(p => ({ ...p, branch: 'cong_nghiep' }))}
+                                            className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 ${aiParams.branch === 'cong_nghiep'
+                                                ? 'bg-blue-600 text-white shadow-md'
+                                                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                                }`}
+                                        >
+                                            {aiParams.grade === '10' ? '🏭 Công nghiệp' :
+                                                aiParams.grade === '11' ? '⚙️ Cơ khí' :
+                                                    '⚡ Điện - Điện tử'}
+                                        </button>
+                                        <button
+                                            onClick={() => setAiParams(p => ({ ...p, branch: 'nong_nghiep' }))}
+                                            className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 ${aiParams.branch === 'nong_nghiep'
+                                                ? 'bg-green-600 text-white shadow-md'
+                                                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                                }`}
+                                        >
+                                            {aiParams.grade === '10' ? '🌱 Nông nghiệp' :
+                                                aiParams.grade === '11' ? '🐷 Chăn nuôi' :
+                                                    '🌲 Lâm - Thủy sản'}
+                                        </button>
+                                    </div>
+                                    <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                                        {aiParams.grade === '10' && 'Chọn định hướng để AI tạo đề phù hợp với sách CN hoặc NN.'}
+                                        {aiParams.grade === '11' && 'Lớp 11 chuyên sâu về Cơ khí động lực hoặc Công nghệ chăn nuôi.'}
+                                        {aiParams.grade === '12' && 'Lớp 12 với định hướng Điện-Điện tử hoặc Lâm nghiệp-Thủy sản.'}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Loại đề */}
                             <div>

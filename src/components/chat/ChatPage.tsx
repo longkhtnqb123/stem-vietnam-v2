@@ -6,7 +6,6 @@ import ChatSidebar from './ChatSidebar';
 import { addMessage } from '../../lib/conversationApi';
 import ChatInput from './ChatInput';
 import MessageBubble from './MessageBubble';
-// import { sendChatMessage } from '../../lib/api'; // Comment out unused or remove
 import * as conversationApi from '../../lib/conversationApi';
 import type { ChatMessage } from '../../types';
 import type { Conversation, FileAttachment } from '../../types/chat';

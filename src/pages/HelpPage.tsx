@@ -64,7 +64,7 @@ const STUDENT_GUIDES: GuideSection[] = [
         description: 'Làm bài thi trực tuyến với đồng hồ đếm ngược, tự động lưu, và xem kết quả chi tiết.',
         steps: [
             'Vào menu "Thi Online" ở thanh bên',
-            'Chọn đề thi phù hợp (lớp, loại đề)',
+            'Chọn đề thi phù hợp (lớp, phân ban)',
             'Nhấn "Bắt đầu làm bài"',
             'Chọn đáp án cho từng câu hỏi',
             'Nhấn "Nộp bài" khi hoàn thành',
@@ -111,7 +111,8 @@ const TEACHER_GUIDES: GuideSection[] = [
         steps: [
             'Vào menu "Thi Online"',
             'Nhấn nút "Tạo đề bằng AI" (màu tím)',
-            'Chọn lớp, định hướng, loại đề, độ khó',
+            'Chọn lớp và định hướng (Công nghiệp/Nông nghiệp)',
+            'Chọn loại đề, độ khó, chủ đề',
             'Nhập chủ đề cụ thể (nếu muốn)',
             'Nhấn "Tạo đề" và chờ AI xử lý',
             'Xem trước đề → Chỉnh sửa nếu cần → Lưu',

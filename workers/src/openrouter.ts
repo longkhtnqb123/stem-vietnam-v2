@@ -11,8 +11,8 @@ export const MODELS = {
     // Có thể append vào bất kỳ model nào
     ONLINE_SUFFIX: ':online',
 
-    // File Search, URL Context, Multimodal - Gemini 2.0 Flash/Pro
-    GEMINI_FLASH: 'google/gemini-2.0-pro-exp-02-05:free',
+    // File Search, URL Context, Multimodal - Gemini 2.0 Flash Lite (More stable)
+    GEMINI_FLASH: 'google/gemini-2.0-flash-lite-preview-02-05:free',
 
     // Code Execution - Xiaomi MiMo (ngang Claude 4.5 Sonnet)
     MIMO_CODE: 'xiaomi/mimo-v2-flash:free',

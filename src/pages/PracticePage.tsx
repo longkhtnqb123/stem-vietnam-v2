@@ -220,6 +220,8 @@ function QuestionCard({
 function TopicSelector({
     grade,
     setGrade,
+    branch,
+    setBranch,
     topic,
     setTopic,
     onStart,
@@ -227,6 +229,8 @@ function TopicSelector({
 }: {
     grade: string;
     setGrade: (v: string) => void;
+    branch?: string;
+    setBranch: (v: string) => void;
     topic: string;
     setTopic: (v: string) => void;
     onStart: () => void;
@@ -269,6 +273,33 @@ function TopicSelector({
                             </button>
                         ))}
                     </div>
+
+                    {/* Định hướng (GDPT 2018) */}
+                    <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Định hướng (GDPT 2018)
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                onClick={() => setBranch('cong_nghiep')}
+                                className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 ${branch === 'cong_nghiep'
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                    }`}
+                            >
+                                {grade === '10' ? '🏭 Công nghiệp' : grade === '11' ? '⚙️ Cơ khí' : '⚡ Điện - Điện tử'}
+                            </button>
+                            <button
+                                onClick={() => setBranch('nong_nghiep')}
+                                className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 ${branch === 'nong_nghiep'
+                                    ? 'bg-green-600 text-white shadow-md'
+                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                    }`}
+                            >
+                                {grade === '10' ? '🌱 Nông nghiệp' : grade === '11' ? '🐷 Chăn nuôi' : '🌲 Lâm - Thủy sản'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Chủ đề */}
@@ -279,12 +310,15 @@ function TopicSelector({
                     <select
                         value={topic}
                         onChange={(e) => setTopic(e.target.value)}
-                        className="input-field w-full"
+                        className="input-field w-full h-[42px]" // Match height with buttons
                     >
                         {topics.map(t => (
                             <option key={t.value} value={t.value}>{t.label}</option>
                         ))}
                     </select>
+                    <p className="text-xs text-slate-500 mt-2">
+                        *AI sẽ ưu tiên câu hỏi theo định hướng đã chọn.
+                    </p>
                 </div>
             </div>
 
@@ -322,6 +356,7 @@ export default function PracticePage() {
 
     // Config
     const [grade, setGrade] = useState('10');
+    const [branch, setBranch] = useState('cong_nghiep'); // Default branch
     const [topic, setTopic] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
 
@@ -365,6 +400,7 @@ export default function PracticePage() {
                 grade: grade as '10' | '11' | '12',
                 exam_type: '15min', // 15 câu nhưng ta chỉ lấy 10
                 difficulty: 'medium',
+                branch: branch as 'cong_nghiep' | 'nong_nghiep',
                 topic: topic || undefined,
                 save: false,
             };
@@ -499,6 +535,8 @@ export default function PracticePage() {
                     <TopicSelector
                         grade={grade}
                         setGrade={setGrade}
+                        branch={branch}
+                        setBranch={setBranch}
                         topic={topic}
                         setTopic={setTopic}
                         onStart={startPractice}

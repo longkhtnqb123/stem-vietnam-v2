@@ -1,7 +1,7 @@
 // Chú thích: Conversation routes - CRUD for chat history with D1
 import { generateId } from './auth';
 import { JWTPayload } from './auth';
-import { getAllowedOrigin, jsonResponse as jsonResponseUtil, corsHeaders } from './utils';
+import { getAllowedOrigin, jsonResponse as jsonResponseUtil } from './utils';
 
 // Chú thích: D1 types
 interface D1Database {
