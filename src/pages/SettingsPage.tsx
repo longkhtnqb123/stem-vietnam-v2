@@ -91,36 +91,50 @@ export default function SettingsPage() {
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
                                     Giao diện
                                 </label>
-                                <div className="grid grid-cols-3 gap-3">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                     <button
                                         onClick={() => updateSettings({ ...settings, theme: 'light' })}
-                                        className={`p-4 rounded-lg border-2 transition-all ${settings.theme === 'light'
-                                            ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                                        className={`p-4 rounded-xl border-2 transition-all ${settings.theme === 'light'
+                                            ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 ring-2 ring-primary-500/30'
                                             : 'border-slate-200 dark:border-slate-600 hover:border-primary-300'
                                             }`}
                                     >
-                                        <span className="text-2xl mb-2 block">☀️</span>
-                                        <p className="font-medium text-slate-900 dark:text-white">Sáng</p>
+                                        <span className="text-3xl mb-2 block">☀️</span>
+                                        <p className="font-semibold text-slate-900 dark:text-white">Sáng</p>
+                                        <p className="text-xs text-slate-500 mt-1">Tối ưu mắt</p>
                                     </button>
                                     <button
                                         onClick={() => updateSettings({ ...settings, theme: 'dark' })}
-                                        className={`p-4 rounded-lg border-2 transition-all ${settings.theme === 'dark'
-                                            ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                                        className={`p-4 rounded-xl border-2 transition-all ${settings.theme === 'dark'
+                                            ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 ring-2 ring-primary-500/30'
                                             : 'border-slate-200 dark:border-slate-600 hover:border-primary-300'
                                             }`}
                                     >
-                                        <span className="text-2xl mb-2 block">🌙</span>
-                                        <p className="font-medium text-slate-900 dark:text-white">Tối</p>
+                                        <span className="text-3xl mb-2 block">🌙</span>
+                                        <p className="font-semibold text-slate-900 dark:text-white">Tối</p>
+                                        <p className="text-xs text-slate-500 mt-1">AMOLED Black</p>
+                                    </button>
+                                    <button
+                                        onClick={() => updateSettings({ ...settings, theme: 'sepia' })}
+                                        className={`p-4 rounded-xl border-2 transition-all ${settings.theme === 'sepia'
+                                            ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 ring-2 ring-amber-500/30'
+                                            : 'border-slate-200 dark:border-slate-600 hover:border-amber-300'
+                                            }`}
+                                    >
+                                        <span className="text-3xl mb-2 block">📜</span>
+                                        <p className="font-semibold text-slate-900 dark:text-white">Sepia</p>
+                                        <p className="text-xs text-slate-500 mt-1">Đỡ mỏi mắt</p>
                                     </button>
                                     <button
                                         onClick={() => updateSettings({ ...settings, theme: 'auto' })}
-                                        className={`p-4 rounded-lg border-2 transition-all ${settings.theme === 'auto'
-                                            ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                                        className={`p-4 rounded-xl border-2 transition-all ${settings.theme === 'auto'
+                                            ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 ring-2 ring-primary-500/30'
                                             : 'border-slate-200 dark:border-slate-600 hover:border-primary-300'
                                             }`}
                                     >
-                                        <span className="text-2xl mb-2 block">💻</span>
-                                        <p className="font-medium text-slate-900 dark:text-white">Hệ thống</p>
+                                        <span className="text-3xl mb-2 block">💻</span>
+                                        <p className="font-semibold text-slate-900 dark:text-white">Tự động</p>
+                                        <p className="text-xs text-slate-500 mt-1">Theo hệ thống</p>
                                     </button>
                                 </div>
                             </div>

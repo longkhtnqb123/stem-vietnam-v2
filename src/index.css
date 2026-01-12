@@ -27,21 +27,69 @@
 }
 
 /* Chú thích: Base styles cho toàn bộ app */
+/* ============================================ */
+/* THEME SYSTEM - Tối ưu cho mắt               */
+/* ============================================ */
+
+/* Light Theme - Tối ưu: Giảm độ sáng, tăng độ tương phản */
 :root {
-  --background: 255 255 255;
-  --foreground: 15 23 42;
+  --background: 250 251 252;
+  --foreground: 30 41 59;
+  --card-bg: 255 255 255;
+  --card-border: 226 232 240;
+  --muted: 241 245 249;
+  --accent-bg: 236 253 245;
 }
 
+/* Dark Theme - True Dark (AMOLED friendly) */
 .dark {
-  --background: 15 23 42;
-  --foreground: 248 250 252;
+  --background: 3 7 18;
+  --foreground: 241 245 249;
+  --card-bg: 15 23 42;
+  --card-border: 51 65 85;
+  --muted: 30 41 59;
+  --accent-bg: 6 78 59;
 }
 
+/* Sepia Theme - Chống mỏi mắt (Warm colors) */
+.sepia {
+  --background: 253 246 227;
+  --foreground: 68 64 60;
+  --card-bg: 255 251 235;
+  --card-border: 217 195 152;
+  --muted: 245 233 205;
+  --accent-bg: 254 243 199;
+}
+
+/* Theme-aware body styles */
 body {
-  @apply bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100;
+  background-color: rgb(var(--background));
+  color: rgb(var(--foreground));
   @apply antialiased;
   font-family: 'Inter', 'Nunito', system-ui, sans-serif;
 }
+
+/* Sepia-specific overrides */
+.sepia body,
+body.sepia {
+  background-color: #fdf6e3;
+  color: #44403c;
+}
+
+.sepia .glass-card,
+.sepia .glass-panel,
+.sepia .bento-card {
+  background-color: #fffbeb;
+  border-color: #d9c398;
+}
+
+.sepia .text-slate-900 { color: #44403c !important; }
+.sepia .text-slate-600 { color: #78716c !important; }
+.sepia .text-slate-400 { color: #a8a29e !important; }
+.sepia .bg-slate-50 { background-color: #fef3c7 !important; }
+.sepia .bg-slate-100 { background-color: #fde68a !important; }
+.sepia .bg-white { background-color: #fffbeb !important; }
+.sepia .border-slate-200 { border-color: #d9c398 !important; }
 
 /* ============================================ */
 /* CARD STYLES - Updated for Emerald theme     */

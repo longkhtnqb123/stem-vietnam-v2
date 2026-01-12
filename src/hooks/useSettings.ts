@@ -44,6 +44,25 @@ export function useSettings() {
             setError(null);
             const updated = await updateUserSettings(token, updates);
             setSettings(updated);
+
+            // Chú thích: Apply theme immediately when changed
+            if (updates.theme) {
+                localStorage.setItem('theme', updates.theme);
+                // Remove all theme classes first
+                document.documentElement.classList.remove('dark', 'sepia');
+
+                if (updates.theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                } else if (updates.theme === 'sepia') {
+                    document.documentElement.classList.add('sepia');
+                } else if (updates.theme === 'auto') {
+                    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                        document.documentElement.classList.add('dark');
+                    }
+                }
+                // 'light' = no class needed
+            }
+
             return updated;
         } catch (err: any) {
             console.error('[useSettings] update error:', err);

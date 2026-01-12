@@ -59,14 +59,37 @@ function App() {
   const { notification, clearNotification } = useAppStore();
   const { showTour, completeTour } = useTourGuide();
 
-  // Chú thích: Apply dark mode class on mount từ localStorage
+  // Chú thích: Apply theme class on mount từ localStorage
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    const applyTheme = (theme: string) => {
+      // Remove all theme classes first
+      document.documentElement.classList.remove('dark', 'sepia');
+
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else if (theme === 'sepia') {
+        document.documentElement.classList.add('sepia');
+      } else if (theme === 'auto') {
+        // Follow system preference
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          document.documentElement.classList.add('dark');
+        }
+      }
+      // 'light' = no class needed
+    };
+
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    applyTheme(savedTheme);
+
+    // Listen for system theme changes when in auto mode
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      if (localStorage.getItem('theme') === 'auto') {
+        applyTheme('auto');
+      }
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
   return (
