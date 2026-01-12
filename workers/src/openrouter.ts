@@ -26,14 +26,14 @@ export const MODELS = {
 
 // Chú thích: Model mặc định cho từng loại tác vụ
 export const MODEL_ROUTES = {
-    // Chat thông thường - Gemini Flash (nhanh, đa năng)
-    chat: MODELS.GEMINI_FLASH,
+    // Chat thông thường - MiMo (nhanh, thông minh, ngang Claude 4.5)
+    chat: MODELS.MIMO_CODE,
 
     // Chat cần web search - thêm :online suffix
     chatWithSearch: MODELS.GEMINI_FLASH + MODELS.ONLINE_SUFFIX,
 
-    // Tạo đề thi - Gemini Flash (cần đọc file/context)
-    examGeneration: MODELS.GEMINI_FLASH,
+    // Tạo đề thi - DeepSeek R1 (suy luận tốt nhất, tạo câu hỏi chất lượng)
+    examGeneration: MODELS.DEEPSEEK_REASON,
 
     // Giải bài tập code - MiMo
     codeExecution: MODELS.MIMO_CODE,

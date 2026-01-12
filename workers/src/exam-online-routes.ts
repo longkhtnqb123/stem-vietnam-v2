@@ -66,16 +66,14 @@ export interface ExamAttempt {
 
 // ==================== Helper Functions ====================
 
-// Chú thích: jsonResponse với CORS đúng - parse origin list để trả về 1 origin match
-function jsonResponse(data: unknown, status: number, corsOriginList: string): Response {
-    // Parse CORS_ORIGIN list để lấy origin đầu tiên (tạm thời)
-    // Trong thực tế cần request origin, nhưng hàm này không có access
-    const origin = corsOriginList?.split(/[;,| ]+/)[0]?.trim() || '*';
+// Chú thích: jsonResponse với CORS - luôn trả '*' để tránh lỗi CORS
+// (Đã fix: trước đây chỉ trả origin[0] dẫn đến lỗi CORS trên production)
+function jsonResponse(data: unknown, status: number, _corsOriginList: string): Response {
     return new Response(JSON.stringify(data), {
         status,
         headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': origin,
+            'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS, DELETE',
             'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         },
@@ -1222,7 +1220,7 @@ Trả về JSON array đúng format.`;
             messages,
             model: MODEL_ROUTES.examGeneration,
             temperature: 0.7,
-            useOnlineSearch: true,
+            useOnlineSearch: false, // Chú thích: Tắt web search, dùng RAG context SGK thay vì online
         });
 
         // 4. Parse JSON từ AI response

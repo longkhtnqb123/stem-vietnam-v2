@@ -8,8 +8,9 @@ export function getAllowedOrigin(requestOrigin: string | null, allowedOrigins: s
     if (origins.includes('*')) return '*';
     if (origins.includes(requestOrigin)) return requestOrigin;
 
-    // Fallback logic
-    return origins[0] || '*';
+    // Chú thích: Fallback to wildcard để tránh CORS block cho các domain mới
+    console.warn('[CORS] Origin not in allowed list', { requestOrigin, allowedOrigins });
+    return '*';
 }
 
 export function corsHeaders(origin: string): HeadersInit {

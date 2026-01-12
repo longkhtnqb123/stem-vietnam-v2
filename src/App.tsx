@@ -152,6 +152,12 @@ function App() {
               <ExamPage />
             </Suspense>
           } />
+          {/* Chú thích: Redirect /exam-online → /exam (backward compatibility) */}
+          <Route path="exam-online" element={
+            <Suspense fallback={<PageLoader />}>
+              <ExamPage />
+            </Suspense>
+          } />
 
           {/* Ôn Tập */}
           <Route path="practice" element={
