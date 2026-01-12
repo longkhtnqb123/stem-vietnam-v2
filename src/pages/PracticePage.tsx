@@ -123,7 +123,7 @@ function QuestionCard({
 
             {/* Options */}
             <div className="space-y-2">
-                {question.options.map((opt, idx) => {
+                {(question.options || []).map((opt, idx) => {
                     const letter = letters[idx];
                     const isSelected = selectedAnswer === letter;
                     const isCorrectAnswer = letter === question.answer;
