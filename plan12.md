@@ -1,132 +1,106 @@
-# Kế hoạch xây dựng ma trận đề môn **Công nghệ** theo chương trình GDPT 2018 (2024 - 2026)
+# Kế hoạch xây dựng ma trận đề môn Công nghệ theo bộ **Kết nối tri thức và cuộc sống (KNTT)**
 
-## Giới thiệu
+## 1\. Giới thiệu chung
 
-Môn **Công nghệ** trong Chương trình giáo dục phổ thông 2018 (GDPT 2018) được chia theo ba lớp 10‑11‑12 và xây dựng theo định hướng giáo dục STEM: học sinh vừa lĩnh hội lý thuyết, vừa thực hành và vận dụng vào sản xuất. Từ năm học 2024 - 2025, Bộ GD‑ĐT hướng dẫn các cơ sở giáo dục tổ chức đánh giá thường xuyên qua **bài kiểm tra 15 phút**, **kiểm tra giữa kì (1 tiết)**, **kiểm tra cuối kì**, đồng thời xây dựng **ma trận** và **bản đặc tả** để đảm bảo đề thi vừa sức và kiểm tra đủ các mức độ nhận thức. Năm 2025 môn Công nghệ chính thức trở thành môn lựa chọn trong kỳ thi tốt nghiệp THPT (thi vào tháng 6 hằng năm) với thời gian làm bài **50 phút**, 24 câu trắc nghiệm ở phần I và 4 câu đúng/sai ở phần II theo thông báo của Bộ GD‑ĐT[\[1\]](https://thuvienphapluat.vn/chinh-sach-phap-luat-moi/vn/ho-tro-phap-luat/chinh-sach-moi/73559/de-minh-hoa-thi-tot-nghiep-thpt-2025-mon-cong-nghe-co-dap-an#:~:text=).
+Bộ sách **Kết nối tri thức và cuộc sống** là bộ SGK được Bộ GD‑ĐT triển khai trong Chương trình GDPT 2018. So với các bộ sách khác, KNTT có sự tích hợp giữa kiến thức công nghệ và đời sống, hướng tới các mô hình học tập trải nghiệm. Do đó cấu trúc đề kiểm tra, đề thi thường gồm ba phần: **trắc nghiệm nhiều lựa chọn**, **trắc nghiệm đúng/sai** và **tự luận**, với phân bố điểm và số câu theo mức độ nhận thức (nhận biết - thông hiểu - vận dụng - vận dụng cao). Nguồn tin từ _Download.vn_ cho thấy đề giữa kì lớp 12 theo hướng lâm nghiệp - thủy sản sử dụng phân bố 40 % nhận biết, 30 % thông hiểu và 30 % vận dụng với ba phần thi: 16 câu trắc nghiệm nhiều lựa chọn (4 điểm), 3 câu đúng / sai (3 điểm) và 2 câu tự luận (3 điểm)[\[1\]](https://download.vn/ma-tran-de-thi-cong-nghe-12-lam-nghiep-thuy-san-ket-noi-tri-thuc-89975#:~:text=Ma%20tr%E1%BA%ADn%20%C4%91%E1%BB%81%20ki%E1%BB%83m%20tra,k%C3%AC%201%20C%C3%B4ng%20ngh%E1%BB%87%2012). Đề học kì 2 lớp 12 lại phân bố 30 % nhận biết, 40 % thông hiểu và 30 % vận dụng[\[2\]](https://download.vn/bo-de-thi-hoc-ki-2-mon-cong-nghe-12-ket-noi-tri-thuc-82315#:~:text=1,th%E1%BB%A7y%20s%E1%BA%A3n%20%E1%BB%9F%20Vi%E1%BB%87t%20Nam).
 
-Tài liệu này tổng hợp ma trận mẫu, cấu trúc đề thi và hướng dẫn thiết kế đề cho từng lớp 10‑11‑12 dựa trên các nguồn công khai năm 2024 - 2025 - 2026 như website VietJack, thuviendocthuan và một số tài liệu tập huấn. Nội dung được trình bày bằng tiếng Việt nhằm hỗ trợ đồng nghiệp hoặc hệ thống AI tự động soạn đề.
+### 1.1. Quy tắc chung khi thiết kế ma trận đề
 
-## Khái niệm _ma trận đề_ và _bản đặc tả_
+- **Bám sát Chuẩn Kiến thức, Kĩ năng và định hướng KNTT**. Mỗi bài học gắn với một vấn đề thực tiễn; câu hỏi kiểm tra cần phản ánh nội dung trọng tâm và hướng ứng dụng.
+- **Xác định mục tiêu đo lường**: số câu ở các mức độ nhận biết, thông hiểu, vận dụng và vận dụng cao. Các đề kiểm tra ngắn (15 phút) thường ưu tiên nhận biết và thông hiểu; đề giữa kì/học kì có thể đưa thêm câu vận dụng và vận dụng cao.
+- **Kết hợp nhiều loại câu hỏi**: trắc nghiệm lựa chọn (MCQ) giúp bao quát kiến thức, đúng / sai để đánh giá hiểu biết sâu, và tự luận để kiểm tra khả năng giải thích, thiết kế hoặc giải quyết vấn đề.
+- **Phân bố điểm**: đề giữa kì và cuối kì thường có tổng 10 điểm. Tài liệu tham khảo cho lớp 12 Lâm nghiệp - Thủy sản gợi ý 4 điểm MCQ, 3 điểm đúng / sai và 3 điểm tự luận[\[1\]](https://download.vn/ma-tran-de-thi-cong-nghe-12-lam-nghiep-thuy-san-ket-noi-tri-thuc-89975#:~:text=Ma%20tr%E1%BA%ADn%20%C4%91%E1%BB%81%20ki%E1%BB%83m%20tra,k%C3%AC%201%20C%C3%B4ng%20ngh%E1%BB%87%2012).
 
-- **Ma trận đề (bảng hai chiều)** là bảng phân chia kiến thức theo _nội dung_ (hàng) và _mức độ nhận thức_ (cột). Các mức độ được chia thành **Nhận biết** (nắm được khái niệm cơ bản), **Thông hiểu** (biết giải thích, so sánh), **Vận dụng** (áp dụng vào tình huống thực tiễn) và **Vận dụng cao** (giải quyết vấn đề phức tạp). Một tài liệu tập huấn về xây dựng ma trận đề nhấn mạnh rằng giáo viên cần hiểu rõ các khái niệm ma trận và cấu trúc bảng đặc tả[\[2\]](https://www.scribd.com/document/793435695/4-Tai-Li%E1%BB%87u-T%E1%BA%ADp-Hu%E1%BA%A5n-Xay-D%E1%BB%B1ng-Ma-Tr%E1%BA%ADn-%C4%90%E1%BA%B7c-T%E1%BA%A3-%C4%90%E1%BB%81-Ki%E1%BB%83m-Tra-Mon-Cong-Ngh%E1%BB%87-THCS#:~:text=1).
-- **Bản đặc tả** (hay bảng mô tả câu hỏi) liệt kê chi tiết từng câu: nội dung, mức độ, dạng câu hỏi (trắc nghiệm/tự luận), số điểm hoặc thời gian làm. Bản đặc tả giúp giám khảo và thí sinh hiểu rõ cấu trúc đề, đồng thời là cơ sở soạn câu hỏi chuẩn hoá.
+## 2\. Ma trận đề theo khối lớp và nội dung
 
-## Lớp 10 - Công nghệ (GDPT 2018)
+### 2.1. Lớp 10 - Chuyên đề **Thiết kế và Công nghệ**
 
-### Nội dung trọng tâm của lớp 10
+Bộ sách KNTT lớp 10 giới thiệu quy trình thiết kế kỹ thuật, các yếu tố ảnh hưởng và nguyên tắc thiết kế. Ma trận đề học kì 2 trên trang _Download.vn_ mô tả tỉ lệ 20 % nhận biết, 40 % thông hiểu, 20 % vận dụng và 20 % vận dụng cao[\[3\]](https://download.vn/ma-tran-de-thi-hoc-ki-2-lop-10-ket-noi-tri-thuc-75465#:~:text=,V%E1%BA%ADn%20d%E1%BB%A5ng%20cao). Phần trắc nghiệm có 24 câu (6 điểm), phần tự luận 4 điểm[\[3\]](https://download.vn/ma-tran-de-thi-hoc-ki-2-lop-10-ket-noi-tri-thuc-75465#:~:text=,V%E1%BA%ADn%20d%E1%BB%A5ng%20cao). Bảng dưới trình bày gợi ý phân bố câu hỏi theo từng chuyên đề (số câu/điểm chỉ mang tính tham khảo để giáo viên điều chỉnh phù hợp).
 
-Theo sách **Thiết kế và Công nghệ 10 - Kết nối tri thức** và các bộ sách khác, học kì I của lớp 10 giới thiệu các khái niệm cơ bản: cách mạng công nghiệp, ngành nghề kĩ thuật, cách đọc bản vẽ kỹ thuật, hình chiếu vuông góc, hình cắt - mặt cắt… Ma trận đề thi học kì 1 năm 2025 trên VietJack cho thấy các chủ đề này phân bố theo 4 mức độ nhận thức với tổng 26 câu và 10 điểm[\[3\]](https://vietjack.com/de-kiem-tra-lop-10/de-thi-hoc-ki-1-cong-nghe-lop-10-ket-noi-tkcn.jsp#:~:text=C%C3%A2u%202). Học kì II chuyển sang lĩnh vực nông - lâm - ngư nghiệp (cây trồng, vật nuôi, thủy sản) và công nghệ sản xuất nông nghiệp, vì vậy đề cương cần cập nhật để phù hợp.
+| Chuyên đề | Nhận biết | Thông hiểu | Vận dụng | Vận dụng cao |
+| --- | --- | --- | --- | --- |
+| **Khái quát về thiết kế kỹ thuật** | 4 câu trắc nghiệm (1 điểm) | 0   | 0   | 0   |
+| **Quy trình thiết kế kỹ thuật** | 4 câu trắc nghiệm (1 điểm) | 8 câu trắc nghiệm (2 điểm) | 0   | 0   |
+| **Những yếu tố ảnh hưởng đến thiết kế** | 0   | 4 câu trắc nghiệm (1 điểm) | 2 câu tự luận (2 điểm) | 0   |
+| **Nguyên tắc thiết kế kỹ thuật** | 0   | 0   | 2 câu tự luận (2 điểm) | 2 câu tự luận (2 điểm) |
+| **Tổng** | 8 câu (2 điểm) | 12 câu (3 điểm) | 4 câu (4 điểm) | 2 câu (1 điểm) |
 
-### Ma trận mẫu cho từng loại kiểm tra
+_Ghi chú_: Phân bố trên lấy cảm hứng từ ví dụ ma trận học kì 2 lớp 10 KNTT trên _Download.vn_[\[4\]](https://download.vn/ma-tran-de-thi-hoc-ki-2-lop-10-ket-noi-tri-thuc-75465#:~:text=Kh%C3%A1i%20qu%C3%A1t%20v%E1%BB%81%20thi%E1%BA%BFt%20k%E1%BA%BF,k%C4%A9%20thu%E1%BA%ADt); giáo viên có thể giảm số câu hoặc điều chỉnh điểm để phù hợp với đề kiểm tra 15 phút (4-6 câu) hoặc giữa kì (20-25 câu). Ví dụ đề 15 phút chỉ cần 60 % nhận biết, 40 % thông hiểu, tập trung vào khái niệm và quy trình thiết kế.
 
-| Loại kiểm tra | Thời lượng & số câu | Phân bố mức độ nhận thức\* | Gợi ý ma trận mẫu |
+### 2.2. Lớp 11 - Chuyên đề **Cơ khí và Công nghệ Nông nghiệp**
+
+Các tài liệu công khai cho lớp 11 KNTT ít sẵn có; tuy nhiên giáo trình gồm hai phần chính: cơ khí (vật liệu cơ khí, chế tạo phôi, kỹ thuật tiện & hàn) và nông nghiệp (cây trồng, chăn nuôi, công nghệ bảo quản). Khi xây dựng ma trận đề, giáo viên có thể tham khảo cấu trúc chung của đề giữa kì 1 lớp 12 (lâm nghiệp - thủy sản) với tỉ lệ 40 % nhận biết, 30 % thông hiểu và 30 % vận dụng[\[1\]](https://download.vn/ma-tran-de-thi-cong-nghe-12-lam-nghiep-thuy-san-ket-noi-tri-thuc-89975#:~:text=Ma%20tr%E1%BA%ADn%20%C4%91%E1%BB%81%20ki%E1%BB%83m%20tra,k%C3%AC%201%20C%C3%B4ng%20ngh%E1%BB%87%2012). Bảng gợi ý dưới đây phân bố câu hỏi cho hai học phần (cơ khí và nông nghiệp) trong đề cuối kì (10 điểm) và giữa kì (6-8 điểm).
+
+| Nội dung | Nhận biết | Thông hiểu | Vận dụng |
 | --- | --- | --- | --- |
-| **Bài kiểm tra 15 phút** | 10 - 15 phút; khoảng 3 - 5 câu trắc nghiệm/tự luận ngắn. | Nhận biết ≈ 30 %, Thông hiểu ≈ 40 %, Vận dụng ≈ 30 %; ít hoặc không có vận dụng cao. | Tham khảo đề kiểm tra 15 phút môn Công nghệ lớp 8: ma trận gồm 2 câu ở mức Nhận biết (3 điểm), 2 câu Thông hiểu (4,5 điểm) và 1 câu Vận dụng (2,5 điểm)[\[4\]](https://lop6.net/bai-kiem-tra-15-phut-cong-nghe-8-ky-i-6934/#:~:text=Ph%E1%BA%A7n%20A,N%E1%BB%99i%20dung). Với lớp 10 có thể sử dụng cấu trúc tương tự nhưng nội dung là khái niệm công nghệ, bản vẽ kỹ thuật, hình chiếu… |
-| **Kiểm tra giữa kì (1 tiết)** | 45 phút; thường 20 - 25 câu trắc nghiệm và 2 - 3 câu tự luận; tổng 10 điểm. | Nhận biết ≈ 30 - 40 %, Thông hiểu ≈ 30 %, Vận dụng ≈ 20 %, Vận dụng cao ≈ 10 %. | Ma trận cần bao quát các chủ đề học kì. Phần trắc nghiệm kiểm tra khái niệm và hiểu biết (phân biệt bản vẽ lắp, bản vẽ chi tiết, v.v.), phần tự luận yêu cầu giải thích quy trình kỹ thuật hoặc vẽ hình chiếu đơn giản. |
-| **Kiểm tra cuối kì** | 60 phút; khoảng 40 câu trắc nghiệm hoặc kết hợp vài câu tự luận; tổng 10 điểm. | Theo ma trận VietJack: Nhận biết 8 câu (2 điểm, 20 %), Thông hiểu 16 câu (4 điểm, 40 %), Vận dụng 1 câu (2 điểm, 20 %), Vận dụng cao 1 câu (2 điểm, 20 %)[\[3\]](https://vietjack.com/de-kiem-tra-lop-10/de-thi-hoc-ki-1-cong-nghe-lop-10-ket-noi-tkcn.jsp#:~:text=C%C3%A2u%202). | Tổ chức đề với phần lớn là câu trắc nghiệm, 2 câu tự luận về vẽ hình cắt hoặc phân tích tác động của cách mạng công nghiệp. |
+| **Vật liệu cơ khí & công nghệ chế tạo phôi** | 3 câu trắc nghiệm (0,75 điểm) | 2 câu trắc nghiệm (0,5 điểm) | 1 câu đúng / sai hoặc tự luận (0,75 điểm) |
+| **Nguyên lý cắt, gia công trên máy tiện, hàn** | 4 câu trắc nghiệm (1 điểm) | 3 câu trắc nghiệm (0,75 điểm) | 1 câu đúng / sai hoặc tự luận (0,75 điểm) |
+| **Trồng trọt (cây lương thực, cây ăn quả)** | 2 câu trắc nghiệm (0,5 điểm) | 2 câu trắc nghiệm (0,5 điểm) | 1 câu tự luận ngắn (1 điểm) |
+| **Chăn nuôi & bảo quản nông sản** | 2 câu trắc nghiệm (0,5 điểm) | 2 câu trắc nghiệm (0,5 điểm) | 1 câu tự luận ngắn (1 điểm) |
+| **Tổng** | 11 câu (~2,75 điểm) | 9 câu (~2,25 điểm) | 4 câu (~2,5 điểm) |
 
-\*Tỉ lệ có thể điều chỉnh tuỳ vào chương trình từng sách giáo khoa và yêu cầu của Sở GD‑ĐT.
+_Ghi chú_: - Đề 15 phút có thể chọn 5-6 câu trắc nghiệm về vật liệu cơ khí hoặc cây trồng, phân bố 70 % nhận biết và 30 % thông hiểu. - Đề giữa kì/học kì nên có 2-3 câu đúng / sai yêu cầu thí sinh giải thích hoặc sửa chữa câu sai; phần tự luận có thể là đề bài thực hành ngắn (ví dụ: mô tả quy trình gieo trồng hoặc các bước hàn cơ bản).
 
-### Hướng dẫn soạn đề
+### 2.3. Lớp 12 - **Điện - điện tử** & **Lâm nghiệp - thủy sản** (tùy lựa chọn)
 
-- **Xác định chủ đề**: căn cứ vào chương trình SGK của từng bộ sách (Kết nối tri thức, Chân trời sáng tạo, Cánh diều) để liệt kê các bài học trong học kì.
-- **Lập ma trận**: tạo bảng hai chiều liệt kê chủ đề và mức độ nhận thức, xác định số câu và điểm cho từng ô. Tham khảo ma trận VietJack để cân đối tỉ lệ[\[3\]](https://vietjack.com/de-kiem-tra-lop-10/de-thi-hoc-ki-1-cong-nghe-lop-10-ket-noi-tkcn.jsp#:~:text=C%C3%A2u%202).
-- **Viết bản đặc tả**: mô tả cho từng câu: nội dung, dạng câu hỏi (MCQ/đúng-sai/tự luận), số điểm. Đảm bảo mỗi chủ đề có ít nhất một câu ở mức Thông hiểu hoặc Vận dụng.
-- **Soạn câu hỏi**: đa dạng hình thức: trắc nghiệm bốn lựa chọn, câu đúng-sai, câu ghép cột và câu tự luận ngắn. Câu vận dụng nên gắn với thực tiễn như vẽ bản vẽ đơn giản hoặc phân tích tác dụng của công nghệ.
-- **Đáp án và thang điểm**: xây dựng thang điểm chi tiết cho câu tự luận; trắc nghiệm sử dụng thang 0,25-0,5 điểm/câu tuỳ số lượng.
+#### 2.3.1. Lớp 12 chuyên đề **Điện - điện tử**
 
-## Lớp 11 - Công nghệ (GDPT 2018)
+Phần điện - điện tử trang bị kiến thức về linh kiện điện tử, máy thu thanh, thu hình, hệ thống viễn thông và điện dân dụng. Tài liệu tham khảo (ví dụ như bài viết trên _KenhGiaovien_) cho biết đề thi gồm ba phần: trắc nghiệm nhiều lựa chọn, trắc nghiệm đúng / sai và tự luận[\[5\]](https://kenhgiaovien.com/tai-lieu/de-thi-cong-nghe-12-dien-dien-tu-ket-noi-tri-thuc-co-ma-tran#:~:text=%C4%90%E1%BB%81%20thi%20c%C3%B4ng%20ngh%E1%BB%87%2012,tri%20th%E1%BB%A9c%20c%C3%B3%20ma%20tr%E1%BA%ADn); tuy không cung cấp ma trận chi tiết, giáo viên có thể kế thừa tỉ lệ 40 % nhận biết, 30 % thông hiểu, 30 % vận dụng cho giữa kì và 30 % nhận biết, 40 % thông hiểu, 30 % vận dụng cho học kì[\[1\]](https://download.vn/ma-tran-de-thi-cong-nghe-12-lam-nghiep-thuy-san-ket-noi-tri-thuc-89975#:~:text=Ma%20tr%E1%BA%ADn%20%C4%91%E1%BB%81%20ki%E1%BB%83m%20tra,k%C3%AC%201%20C%C3%B4ng%20ngh%E1%BB%87%2012)[\[2\]](https://download.vn/bo-de-thi-hoc-ki-2-mon-cong-nghe-12-ket-noi-tri-thuc-82315#:~:text=1,th%E1%BB%A7y%20s%E1%BA%A3n%20%E1%BB%9F%20Vi%E1%BB%87t%20Nam). Đề nghị phân bố chủ đề như sau:
 
-### Nội dung trọng tâm của lớp 11
-
-Lớp 11 chuyển sang mảng **Cơ khí và động cơ**. Đề thi học kì 2 năm 2025 trên VietJack liệt kê các chủ đề: vật liệu cơ khí, công nghệ chế tạo phôi, nguyên lý cắt, gia công trên máy tiện, tự động hóa trong chế tạo cơ khí, động cơ đốt trong và một số hệ thống truyền động[\[5\]](https://vietjack.com/de-thi/de-thi-cong-nghe-lop-11-hoc-ki-2-co-ma-tran-dtvj2022.jsp#:~:text=36%20). Các chủ đề này mang tính kỹ thuật, đòi hỏi học sinh hiểu cấu tạo và nguyên lý vận hành.
-
-### Ma trận mẫu và phân bố mức độ
-
-| Loại kiểm tra | Thời lượng & số câu | Phân bố mức độ nhận thức (tham khảo) | Gợi ý |
+| Nội dung | Nhận biết | Thông hiểu | Vận dụng |
 | --- | --- | --- | --- |
-| **15 phút** | 3-5 câu trắc nghiệm/ngắn; đánh giá kiến thức về vật liệu cơ khí, phôi và nguyên lý cắt. | Nhận biết ≈ 40 %, Thông hiểu ≈ 40 %, Vận dụng ≈ 20 %. | Ví dụ: 2 câu hỏi về khái niệm vật liệu cơ khí, 2 câu hỏi giải thích nguyên lý cắt, 1 câu yêu cầu áp dụng tính toán đơn giản hoặc nhận biết dụng cụ cắt. |
-| **Giữa kì (1 tiết)** | 45 phút; 25 - 30 câu trắc nghiệm và 1 - 2 câu tự luận ngắn. | Nhận biết ≈ 30 %, Thông hiểu ≈ 30 %, Vận dụng ≈ 30 %, Vận dụng cao ≈ 10 %. | Phần trắc nghiệm kiểm tra tên gọi, cấu tạo các bộ phận; phần tự luận yêu cầu vẽ sơ đồ cắt hoặc giải thích quy trình chế tạo phôi. |
-| **Cuối kì** | 60 phút; 40 câu; tổng 10 điểm. | Theo ma trận VietJack: 16 câu Nhận biết (4 điểm, 40 %), 12 câu Thông hiểu (3 điểm, 30 %), 8 câu Vận dụng (2 điểm, 20 %) và 4 câu Vận dụng cao (1 điểm, 10 %)[\[5\]](https://vietjack.com/de-thi/de-thi-cong-nghe-lop-11-hoc-ki-2-co-ma-tran-dtvj2022.jsp#:~:text=36%20). | Phần vận dụng cao có thể là bài tập tính toán công suất động cơ hoặc phân tích nguyên lý tự động hoá. |
+| **Máy tăng âm, máy thu thanh & máy thu hình** | 4 câu trắc nghiệm (1 điểm) | 2 câu trắc nghiệm (0,5 điểm) | 1 câu đúng / sai hoặc tự luận (1 điểm) |
+| **Hệ thống thông tin & viễn thông** | 3 câu trắc nghiệm (0,75 điểm) | 3 câu trắc nghiệm (0,75 điểm) | 1 câu tự luận (0,5 điểm) |
+| **Hệ thống điện quốc gia & mạch xoay chiều ba pha** | 2 câu trắc nghiệm (0,5 điểm) | 3 câu trắc nghiệm (0,75 điểm) | 1 câu tự luận (0,75 điểm) |
+| **Máy biến áp ba pha, động cơ không đồng bộ ba pha** | 2 câu trắc nghiệm (0,5 điểm) | 2 câu trắc nghiệm (0,5 điểm) | 1 câu đúng / sai (0,5 điểm) |
+| **Tổng** | 11 câu (~2,75 điểm) | 10 câu (~2,5 điểm) | 4 câu (~2,75 điểm) |
 
-### Hướng dẫn soạn đề
+Trong đề kiểm tra 15 phút, giáo viên chọn 5-6 câu trắc nghiệm về một mạch điện cụ thể hoặc nguyên lý hoạt động của máy thu để đánh giá nhận biết và thông hiểu.
 
-- **Đa dạng hóa nguồn câu hỏi**: khai thác SGK, bài tập tự học và các dự án thực hành để tạo ngân hàng câu hỏi.
-- **Liên hệ thực tiễn**: câu vận dụng nên gắn với thực tế sản xuất cơ khí (ví dụ: tại sao chọn vật liệu này cho chi tiết máy này?).
-- **Tăng số câu trắc nghiệm**: phần lớn điểm số (70 %) nên dành cho trắc nghiệm để đánh giá nhanh nhiều nội dung.
-- **Câu tự luận ngắn**: yêu cầu mô tả quá trình gia công hoặc ưu - nhược điểm của một phương pháp cắt.
+#### 2.3.2. Lớp 12 chuyên đề **Lâm nghiệp - Thủy sản**
 
-## Lớp 12 - Công nghệ (GDPT 2018)
+Đề giữa kì 1 của khối chuyên đề lâm nghiệp - thủy sản theo bài tham khảo trên _Download.vn_ có phân bố: 40 % nhận biết, 30 % thông hiểu và 30 % vận dụng[\[1\]](https://download.vn/ma-tran-de-thi-cong-nghe-12-lam-nghiep-thuy-san-ket-noi-tri-thuc-89975#:~:text=Ma%20tr%E1%BA%ADn%20%C4%91%E1%BB%81%20ki%E1%BB%83m%20tra,k%C3%AC%201%20C%C3%B4ng%20ngh%E1%BB%87%2012); đề học kì 2 phân bố: 30 % nhận biết, 40 % thông hiểu và 30 % vận dụng[\[2\]](https://download.vn/bo-de-thi-hoc-ki-2-mon-cong-nghe-12-ket-noi-tri-thuc-82315#:~:text=1,th%E1%BB%A7y%20s%E1%BA%A3n%20%E1%BB%9F%20Vi%E1%BB%87t%20Nam). Các phần thi gồm trắc nghiệm nhiều lựa chọn, đúng / sai và tự luận. Bảng dưới khái quát cấu trúc đề học kì 2:
 
-### Nội dung trọng tâm của lớp 12
-
-Lớp 12 hướng đến **Điện - Điện tử**. Đề thi học kì 2 năm 2025 trên VietJack cho biết các chủ đề: một số thiết bị điện tử dân dụng (máy tăng âm, máy thu thanh, máy thu hình), hệ thống thông tin và viễn thông, hệ thống điện quốc gia, mạch điện xoay chiều ba pha, máy điện xoay chiều ba pha & máy biến áp ba pha, động cơ không đồng bộ ba pha[\[6\]](https://vietjack.com/de-thi/de-thi-cong-nghe-lop-12-hoc-ki-2-co-ma-tran-dtvj2022.jsp#:~:text=Ma%20tr%E1%BA%ADn%20cu%E1%BB%91i%20k%C3%AC%202,C%C3%B4ng%20ngh%E1%BB%87%2012). Đây là những kiến thức cốt lõi cho kỹ thuật điện.
-
-### Ma trận mẫu và phân bố mức độ
-
-| Loại kiểm tra | Thời lượng & số câu | Phân bố mức độ nhận thức | Gợi ý |
+| Chủ đề (thủy sản) | Trắc nghiệm nhiều lựa chọn | Đúng / sai | Tự luận |
 | --- | --- | --- | --- |
-| **15 phút** | 3-5 câu; tập trung vào nhận biết linh kiện điện tử, bộ phận máy thu - máy thu hình. | Nhận biết ≈ 40 %, Thông hiểu ≈ 40 %, Vận dụng ≈ 20 %. | Ví dụ: 2 câu hỏi cấu tạo và công dụng của máy thu thanh, 2 câu về hệ thống điện quốc gia, 1 câu tính toán đơn giản về mạch điện ba pha. |
-| **Giữa kì (1 tiết)** | 45 phút; 25 - 30 câu trắc nghiệm, 1 - 2 câu tự luận. | Nhận biết ≈ 30 %, Thông hiểu ≈ 30 %, Vận dụng ≈ 30 %, Vận dụng cao ≈ 10 %. | Câu tự luận yêu cầu vẽ sơ đồ mạch điện ba pha hoặc phân tích cấu tạo máy biến áp. |
-| **Cuối kì** | 60 phút; 40 câu; tổng 10 điểm. | Tương tự lớp 11: 16 câu Nhận biết (4 điểm, 40 %), 12 câu Thông hiểu (3 điểm, 30 %), 8 câu Vận dụng (2 điểm, 20 %), 4 câu Vận dụng cao (1 điểm, 10 %)[\[6\]](https://vietjack.com/de-thi/de-thi-cong-nghe-lop-12-hoc-ki-2-co-ma-tran-dtvj2022.jsp#:~:text=Ma%20tr%E1%BA%ADn%20cu%E1%BB%91i%20k%C3%AC%202,C%C3%B4ng%20ngh%E1%BB%87%2012). | Câu vận dụng cao có thể yêu cầu phân tích hoạt động của động cơ không đồng bộ ba pha hoặc đánh giá ưu nhược điểm của các phương thức truyền thông. |
+| **Giới thiệu chung về lâm nghiệp & thủy sản, môi trường nuôi** | 2 câu (0,5 điểm) | 1 câu (0,5 điểm) | 1 câu (0,5 điểm) |
+| **Công nghệ giống, nuôi và chăm sóc rừng/thủy sản** | 3 câu (0,75 điểm) | 1 câu (0,5 điểm) | 1 câu (0,75 điểm) |
+| **Vai trò phòng & trị bệnh, công nghệ sinh học** | 2 câu (0,5 điểm) | 1 câu (0,5 điểm) | 1 câu (0,5 điểm) |
+| **Bảo quản & chế biến sản phẩm, tiêu chuẩn VietGAP** | 2 câu (0,5 điểm) | 1 câu (0,5 điểm) | 1 câu (0,5 điểm) |
+| **Một số ứng dụng công nghệ cao** | 1 câu (0,25 điểm) | 0   | 1 câu (0,75 điểm) |
+| **Tổng** | ~10 câu (2,5 điểm) | 4 câu (2 điểm) | 5 câu (2,5 điểm) |
 
-### Hướng dẫn soạn đề
+Phân bố trên mô phỏng bảng ma trận đề học kì 2 do _Download.vn_ cung cấp[\[2\]](https://download.vn/bo-de-thi-hoc-ki-2-mon-cong-nghe-12-ket-noi-tri-thuc-82315#:~:text=1,th%E1%BB%A7y%20s%E1%BA%A3n%20%E1%BB%9F%20Vi%E1%BB%87t%20Nam). Giáo viên có thể điều chỉnh số câu cho đề giữa kì (giảm còn khoảng 16 câu lựa chọn, 3 câu đúng / sai và 2 câu tự luận như trong ví dụ[\[1\]](https://download.vn/ma-tran-de-thi-cong-nghe-12-lam-nghiep-thuy-san-ket-noi-tri-thuc-89975#:~:text=Ma%20tr%E1%BA%ADn%20%C4%91%E1%BB%81%20ki%E1%BB%83m%20tra,k%C3%AC%201%20C%C3%B4ng%20ngh%E1%BB%87%2012)).
 
-- **Kết hợp lý thuyết và tính toán**: lớp 12 có nhiều kiến thức định lượng, do đó cần thêm bài tập tính toán dòng điện, công suất ba pha.
-- **Sử dụng hình vẽ và sơ đồ**: câu hỏi trắc nghiệm có thể kèm sơ đồ mạch để học sinh xác định linh kiện.
-- **Lưu ý các thiết bị hiện đại**: cập nhật câu hỏi về công nghệ viễn thông mới (5G, IoT) nếu sách giáo khoa đề cập.
+## 3\. Hướng dẫn xây dựng đề thi THPT quốc gia môn Công nghệ theo chương trình KNTT
 
-## Kỳ thi tốt nghiệp THPT môn Công nghệ
+Bắt đầu từ kỳ thi tốt nghiệp THPT năm 2025, môn Công nghệ - gồm cả các định hướng như công nghiệp, nông nghiệp, lâm nghiệp, thủy sản - được đưa vào nhóm môn tự chọn. Theo văn bản của Bộ GD‑ĐT, đề thi tổ hợp sẽ có **50 phút** với **24 câu trắc nghiệm lựa chọn** ở phần I và **4 câu đúng / sai** ở phần II[\[6\]](https://thuvienphapluat.vn/chinh-sach-phap-luat-moi/vn/ho-tro-phap-luat/chinh-sach-moi/73559/de-minh-hoa-thi-tot-nghiep-thpt-2025-mon-cong-nghe-co-dap-an#:~:text=D%C6%B0%E1%BB%9Bi%20%C4%91%C3%A2y%20l%C3%A0%20%C4%91%E1%BB%81%20minh,v%C3%A0%20%C4%90%C3%A0o%20t%E1%BA%A1o%20c%C3%B4ng%20b%E1%BB%91)[\[7\]](https://thuvienphapluat.vn/chinh-sach-phap-luat-moi/vn/ho-tro-phap-luat/chinh-sach-moi/73559/de-minh-hoa-thi-tot-nghiep-thpt-2025-mon-cong-nghe-co-dap-an#:~:text=). Nội dung dựa trên chương trình Công nghệ 2018 (bao gồm KNTT). Khi xây dựng ngân hàng câu hỏi, giáo viên nên:
 
-Bắt đầu từ kỳ thi năm 2025, **môn Công nghệ** trở thành môn lựa chọn trong kỳ thi tốt nghiệp THPT. Theo thông tin chính thức trên ThuVienPhapLuat, cấu trúc bài thi như sau:
+- **Ôn tập toàn diện**: bao quát các kiến thức trọng tâm của từng chuyên đề (thiết kế kỹ thuật, cơ khí, nông - lâm - ngư nghiệp, điện - điện tử).
+- **Phân bố mức độ**: đề mẫu của Bộ chưa công bố ma trận cụ thể, nhưng có thể áp dụng tỉ lệ chung 30 % nhận biết, 40 % thông hiểu, 20 % vận dụng và 10 % vận dụng cao.
+- **Kết hợp câu hỏi thực tiễn**: đề thi trắc nghiệm nên sử dụng hình vẽ, bảng số liệu, mô tả tình huống để đánh giá khả năng áp dụng kiến thức vào giải quyết vấn đề thực tế.
+- **Chuẩn hóa đáp án**: mỗi câu hỏi trắc nghiệm cần có bốn phương án, một đáp án đúng; câu đúng / sai cần yêu cầu thí sinh giải thích lý do (điểm theo thang).
 
-- Thí sinh lựa chọn 2 môn tự chọn trong 4 nhóm (Khoa học tự nhiên, Khoa học xã hội, Công nghệ - Tin học). Công nghệ (gồm **Công nghệ công nghiệp** và **Công nghệ nông nghiệp**) là một trong các lựa chọn[\[7\]](https://thuvienphapluat.vn/chinh-sach-phap-luat-moi/vn/ho-tro-phap-luat/chinh-sach-moi/73559/de-minh-hoa-thi-tot-nghiep-thpt-2025-mon-cong-nghe-co-dap-an#:~:text=D%C6%B0%E1%BB%9Bi%20%C4%91%C3%A2y%20l%C3%A0%20%C4%91%E1%BB%81%20minh,v%C3%A0%20%C4%90%C3%A0o%20t%E1%BA%A1o%20c%C3%B4ng%20b%E1%BB%91).
-- Bài thi Công nghệ có **50 phút**. Ma trận bài thi minh hoạ gồm **Phần I** (24 câu trắc nghiệm) và **Phần II** (4 câu đúng/sai)[\[1\]](https://thuvienphapluat.vn/chinh-sach-phap-luat-moi/vn/ho-tro-phap-luat/chinh-sach-moi/73559/de-minh-hoa-thi-tot-nghiep-thpt-2025-mon-cong-nghe-co-dap-an#:~:text=); Bộ GD‑ĐT chưa công bố phần tự luận, nên hiện cấu trúc chỉ gồm hai phần.
-- Ma trận đề thi minh hoạ phân bố khoảng **40 % câu nhận biết**, **30 % thông hiểu**, **20 % vận dụng** và **10 % vận dụng cao**[\[1\]](https://thuvienphapluat.vn/chinh-sach-phap-luat-moi/vn/ho-tro-phap-luat/chinh-sach-moi/73559/de-minh-hoa-thi-tot-nghiep-thpt-2025-mon-cong-nghe-co-dap-an#:~:text=). Mỗi câu trắc nghiệm chiếm ~0,25 điểm; tổng điểm bài thi quy đổi về thang 10.
-- Nội dung thi bám sát chương trình Công nghệ lớp 10‑12 (GDPT 2018), bao gồm cả mô‑đun công nghiệp và nông nghiệp. Thí sinh cần nắm chắc các chủ đề đã nêu ở phần trước và rèn luyện kỹ năng đọc bản vẽ, tính toán cơ bản.
+## 4\. Kết luận
 
-### Hướng dẫn xây dựng ma trận đề thi THPT
+Bộ sách **Kết nối tri thức và cuộc sống** đòi hỏi giáo viên thiết kế đề kiểm tra đánh giá theo hướng phát triển năng lực và gắn với thực tiễn. Việc xây dựng ma trận đề cần dựa trên phân bố mức độ nhận thức và chủ đề trọng tâm của từng khối lớp, đồng thời sử dụng đa dạng loại câu hỏi. Các ví dụ ma trận trích dẫn trong tài liệu này từ trang _Download.vn_ cho thấy phân bố điểm và số câu chi tiết cho lớp 10 (thiết kế), lớp 11 (cơ khí, nông nghiệp), lớp 12 (điện-điện tử và lâm nghiệp-thủy sản)[\[3\]](https://download.vn/ma-tran-de-thi-hoc-ki-2-lop-10-ket-noi-tri-thuc-75465#:~:text=,V%E1%BA%ADn%20d%E1%BB%A5ng%20cao)[\[1\]](https://download.vn/ma-tran-de-thi-cong-nghe-12-lam-nghiep-thuy-san-ket-noi-tri-thuc-89975#:~:text=Ma%20tr%E1%BA%ADn%20%C4%91%E1%BB%81%20ki%E1%BB%83m%20tra,k%C3%AC%201%20C%C3%B4ng%20ngh%E1%BB%87%2012)[\[2\]](https://download.vn/bo-de-thi-hoc-ki-2-mon-cong-nghe-12-ket-noi-tri-thuc-82315#:~:text=1,th%E1%BB%A7y%20s%E1%BA%A3n%20%E1%BB%9F%20Vi%E1%BB%87t%20Nam). Dựa vào đó, giáo viên có thể điều chỉnh số câu và điểm cho phù hợp với từng bài kiểm tra 15 phút, giữa kì, cuối kì và kỳ thi THPT quốc gia.
 
-- **Xác định chương trình thi**: cả ba lớp 10‑11‑12 (công nghiệp và nông nghiệp). Danh sách chủ đề cần bám sát định hướng của Bộ GD‑ĐT.
-- **Lập ma trận**: phân bổ câu hỏi theo lĩnh vực (công nghiệp, nông nghiệp) và mức độ nhận thức; số câu tham khảo: 24 câu trắc nghiệm + 4 câu đúng/sai[\[1\]](https://thuvienphapluat.vn/chinh-sach-phap-luat-moi/vn/ho-tro-phap-luat/chinh-sach-moi/73559/de-minh-hoa-thi-tot-nghiep-thpt-2025-mon-cong-nghe-co-dap-an#:~:text=). Cần đảm bảo mỗi mảng kiến thức đều có câu hỏi ở mức thông hiểu và vận dụng.
-- **Soạn câu hỏi trắc nghiệm**: chú trọng câu hỏi ứng dụng thực tiễn; có thể kèm hình vẽ, bảng số liệu.
-- **Soạn câu hỏi đúng/sai**: chọn các nhận định liên quan đến nguyên lý kỹ thuật, quy tắc an toàn, chức năng thiết bị.
-- **Đánh giá và thử nghiệm**: soạn nhiều phiên bản đề; thử nghiệm với học sinh để đánh giá độ khó và điều chỉnh ma trận cho phù hợp.
+[\[1\]](https://download.vn/ma-tran-de-thi-cong-nghe-12-lam-nghiep-thuy-san-ket-noi-tri-thuc-89975#:~:text=Ma%20tr%E1%BA%ADn%20%C4%91%E1%BB%81%20ki%E1%BB%83m%20tra,k%C3%AC%201%20C%C3%B4ng%20ngh%E1%BB%87%2012) Ma trận đề kiểm tra Công nghệ 12 Lâm nghiệp Thủy sản KNTT (Cấu trúc mới)
 
-## Gợi ý quy trình sử dụng AI để soạn đề
+<https://download.vn/ma-tran-de-thi-cong-nghe-12-lam-nghiep-thuy-san-ket-noi-tri-thuc-89975>
 
-- **Nhập dữ liệu**: cung cấp cho AI danh sách bài học, mục tiêu, ngân hàng câu hỏi mẫu (có ma trận) và yêu cầu số câu/dạng câu.
-- **Sinh ma trận tự động**: AI tạo ma trận hai chiều dựa trên số câu và tỉ lệ mức độ nhận thức đã xác định cho loại kiểm tra (15 phút/giữa kì/cuối kì/thi THPT).
-- **Sinh câu hỏi**: AI truy xuất ngân hàng câu hỏi phù hợp với từng ô ma trận; nếu chưa có, AI gợi ý câu hỏi mới dựa trên mục tiêu. Câu hỏi nên được kiểm duyệt bởi giáo viên.
-- **Xuất bản đặc tả**: AI tổng hợp bảng đặc tả với nội dung, mức độ, dạng câu hỏi, đáp án và thang điểm.
-- **Tạo đề và đáp án**: xuất bản đề thi hoàn chỉnh (PDF hoặc Word); kèm theo ma trận và bảng đặc tả để giáo viên kiểm tra. Đề cần bám sát cấu trúc chính thức của Bộ GD‑ĐT khi áp dụng cho kỳ thi tốt nghiệp THPT.
+[\[2\]](https://download.vn/bo-de-thi-hoc-ki-2-mon-cong-nghe-12-ket-noi-tri-thuc-82315#:~:text=1,th%E1%BB%A7y%20s%E1%BA%A3n%20%E1%BB%9F%20Vi%E1%BB%87t%20Nam) Bộ đề thi cuối kì 2 Công nghệ 12 Kết nối tri thức 2025 (Cấu trúc mới)
 
-## Kết luận
+<https://download.vn/bo-de-thi-hoc-ki-2-mon-cong-nghe-12-ket-noi-tri-thuc-82315>
 
-Bài viết đã tổng hợp ma trận mẫu và hướng dẫn xây dựng đề môn Công nghệ theo chương trình GDPT 2018 cho các lớp 10‑11‑12 cũng như kỳ thi tốt nghiệp THPT. Các ma trận từ nguồn VietJack giúp minh họa tỉ lệ phân bố câu hỏi: lớp 10 có 20 % nhận biết, 40 % thông hiểu, 20 % vận dụng và 20 % vận dụng cao[\[3\]](https://vietjack.com/de-kiem-tra-lop-10/de-thi-hoc-ki-1-cong-nghe-lop-10-ket-noi-tkcn.jsp#:~:text=C%C3%A2u%202); lớp 11 và lớp 12 có 40 % nhận biết, 30 % thông hiểu, 20 % vận dụng và 10 % vận dụng cao[\[5\]](https://vietjack.com/de-thi/de-thi-cong-nghe-lop-11-hoc-ki-2-co-ma-tran-dtvj2022.jsp#:~:text=36%20)[\[6\]](https://vietjack.com/de-thi/de-thi-cong-nghe-lop-12-hoc-ki-2-co-ma-tran-dtvj2022.jsp#:~:text=Ma%20tr%E1%BA%ADn%20cu%E1%BB%91i%20k%C3%AC%202,C%C3%B4ng%20ngh%E1%BB%87%2012). Ma trận bài thi tốt nghiệp THPT dự kiến gồm 24 câu trắc nghiệm và 4 câu đúng/sai, với thời gian 50 phút[\[1\]](https://thuvienphapluat.vn/chinh-sach-phap-luat-moi/vn/ho-tro-phap-luat/chinh-sach-moi/73559/de-minh-hoa-thi-tot-nghiep-thpt-2025-mon-cong-nghe-co-dap-an#:~:text=).
+[\[3\]](https://download.vn/ma-tran-de-thi-hoc-ki-2-lop-10-ket-noi-tri-thuc-75465#:~:text=,V%E1%BA%ADn%20d%E1%BB%A5ng%20cao) [\[4\]](https://download.vn/ma-tran-de-thi-hoc-ki-2-lop-10-ket-noi-tri-thuc-75465#:~:text=Kh%C3%A1i%20qu%C3%A1t%20v%E1%BB%81%20thi%E1%BA%BFt%20k%E1%BA%BF,k%C4%A9%20thu%E1%BA%ADt) Ma trận đề thi học kì 2 lớp 10 Kết nối tri thức 2024 (Tất cả các môn)
 
-Hy vọng kế hoạch này giúp giáo viên hoặc hệ thống AI soạn đề Công nghệ một cách khoa học, đảm bảo đánh giá toàn diện kiến thức và kỹ năng của học sinh.
+<https://download.vn/ma-tran-de-thi-hoc-ki-2-lop-10-ket-noi-tri-thuc-75465>
 
-[\[1\]](https://thuvienphapluat.vn/chinh-sach-phap-luat-moi/vn/ho-tro-phap-luat/chinh-sach-moi/73559/de-minh-hoa-thi-tot-nghiep-thpt-2025-mon-cong-nghe-co-dap-an#:~:text=) [\[7\]](https://thuvienphapluat.vn/chinh-sach-phap-luat-moi/vn/ho-tro-phap-luat/chinh-sach-moi/73559/de-minh-hoa-thi-tot-nghiep-thpt-2025-mon-cong-nghe-co-dap-an#:~:text=D%C6%B0%E1%BB%9Bi%20%C4%91%C3%A2y%20l%C3%A0%20%C4%91%E1%BB%81%20minh,v%C3%A0%20%C4%90%C3%A0o%20t%E1%BA%A1o%20c%C3%B4ng%20b%E1%BB%91) Đề minh họa thi tốt nghiệp THPT 2025 môn Công nghệ (có đáp án)
+[\[5\]](https://kenhgiaovien.com/tai-lieu/de-thi-cong-nghe-12-dien-dien-tu-ket-noi-tri-thuc-co-ma-tran#:~:text=%C4%90%E1%BB%81%20thi%20c%C3%B4ng%20ngh%E1%BB%87%2012,tri%20th%E1%BB%A9c%20c%C3%B3%20ma%20tr%E1%BA%ADn) Đề thi công nghệ 12 Điện - điện tử kết nối tri thức có ma trận
+
+<https://kenhgiaovien.com/tai-lieu/de-thi-cong-nghe-12-dien-dien-tu-ket-noi-tri-thuc-co-ma-tran>
+
+[\[6\]](https://thuvienphapluat.vn/chinh-sach-phap-luat-moi/vn/ho-tro-phap-luat/chinh-sach-moi/73559/de-minh-hoa-thi-tot-nghiep-thpt-2025-mon-cong-nghe-co-dap-an#:~:text=D%C6%B0%E1%BB%9Bi%20%C4%91%C3%A2y%20l%C3%A0%20%C4%91%E1%BB%81%20minh,v%C3%A0%20%C4%90%C3%A0o%20t%E1%BA%A1o%20c%C3%B4ng%20b%E1%BB%91) [\[7\]](https://thuvienphapluat.vn/chinh-sach-phap-luat-moi/vn/ho-tro-phap-luat/chinh-sach-moi/73559/de-minh-hoa-thi-tot-nghiep-thpt-2025-mon-cong-nghe-co-dap-an#:~:text=) Đề minh họa thi tốt nghiệp THPT 2025 môn Công nghệ (có đáp án)
 
 <https://thuvienphapluat.vn/chinh-sach-phap-luat-moi/vn/ho-tro-phap-luat/chinh-sach-moi/73559/de-minh-hoa-thi-tot-nghiep-thpt-2025-mon-cong-nghe-co-dap-an>
-
-[\[2\]](https://www.scribd.com/document/793435695/4-Tai-Li%E1%BB%87u-T%E1%BA%ADp-Hu%E1%BA%A5n-Xay-D%E1%BB%B1ng-Ma-Tr%E1%BA%ADn-%C4%90%E1%BA%B7c-T%E1%BA%A3-%C4%90%E1%BB%81-Ki%E1%BB%83m-Tra-Mon-Cong-Ngh%E1%BB%87-THCS#:~:text=1) 4. Tài Liệu Tập Huấn Xây Dựng Ma Trận, Đặc Tả Đề Kiểm Tra Môn Công Nghệ (THCS) | PDF
-
-<https://www.scribd.com/document/793435695/4-Tai-Li%E1%BB%87u-T%E1%BA%ADp-Hu%E1%BA%A5n-Xay-D%E1%BB%B1ng-Ma-Tr%E1%BA%ADn-%C4%90%E1%BA%B7c-T%E1%BA%A3-%C4%90%E1%BB%81-Ki%E1%BB%83m-Tra-Mon-Cong-Ngh%E1%BB%87-THCS>
-
-[\[3\]](https://vietjack.com/de-kiem-tra-lop-10/de-thi-hoc-ki-1-cong-nghe-lop-10-ket-noi-tkcn.jsp#:~:text=C%C3%A2u%202) 3 Đề thi Học kì 1 Thiết kế và công nghệ 10 Kết nối tri thức (có đáp án)
-
-<https://vietjack.com/de-kiem-tra-lop-10/de-thi-hoc-ki-1-cong-nghe-lop-10-ket-noi-tkcn.jsp>
-
-[\[4\]](https://lop6.net/bai-kiem-tra-15-phut-cong-nghe-8-ky-i-6934/#:~:text=Ph%E1%BA%A7n%20A,N%E1%BB%99i%20dung) Bài kiểm tra 15 phút công nghệ 8 kỳ I
-
-<https://lop6.net/bai-kiem-tra-15-phut-cong-nghe-8-ky-i-6934/>
-
-[\[5\]](https://vietjack.com/de-thi/de-thi-cong-nghe-lop-11-hoc-ki-2-co-ma-tran-dtvj2022.jsp#:~:text=36%20) Đề thi Học kì 2 Công nghệ 11 năm 2025 có ma trận (5 đề)
-
-<https://vietjack.com/de-thi/de-thi-cong-nghe-lop-11-hoc-ki-2-co-ma-tran-dtvj2022.jsp>
-
-[\[6\]](https://vietjack.com/de-thi/de-thi-cong-nghe-lop-12-hoc-ki-2-co-ma-tran-dtvj2022.jsp#:~:text=Ma%20tr%E1%BA%ADn%20cu%E1%BB%91i%20k%C3%AC%202,C%C3%B4ng%20ngh%E1%BB%87%2012) Đề thi Học kì 2 Công nghệ 12 năm 2025 có ma trận (15 đề)
-
-<https://vietjack.com/de-thi/de-thi-cong-nghe-lop-12-hoc-ki-2-co-ma-tran-dtvj2022.jsp>

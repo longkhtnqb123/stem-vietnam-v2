@@ -64,6 +64,55 @@ export interface ExamAttempt {
     };
 }
 
+// Chú thích: Câu hỏi Đúng/Sai dạng chùm (THPT 2025)
+export interface TrueFalseQuestion {
+    id: string;
+    type: 'true_false';
+    context: string;                    // Ngữ cảnh/tình huống
+    statements: {                       // 4 ý nhận định
+        text: string;
+        isTrue: boolean;
+    }[];
+    explanation?: string;
+    level: 'remember' | 'understand' | 'apply' | 'analyze';
+    chapter?: string;
+}
+
+// ==================== KNTT EXAM MATRIX (CHUẨN 2025) ====================
+// Chú thích: Ma trận đề thi theo bộ Kết nối tri thức và cuộc sống
+// Tham khảo: plan12.md (Kế hoạch xây dựng ma trận đề môn Công nghệ)
+
+export const KNTT_EXAM_MATRIX = {
+    '15min': {
+        mcqCount: 10,
+        trueFalseCount: 0,
+        essayCount: 0,
+        duration: 15,
+        levels: { NB: 0.60, TH: 0.40, VD: 0, VDC: 0 }, // 60% NB, 40% TH
+    },
+    'midterm': {
+        mcqCount: 16,
+        trueFalseCount: 3,
+        essayCount: 2,
+        duration: 45,
+        levels: { NB: 0.40, TH: 0.30, VD: 0.30, VDC: 0 }, // 40% NB, 30% TH, 30% VD
+    },
+    'final': {
+        mcqCount: 20,
+        trueFalseCount: 4,
+        essayCount: 2,
+        duration: 60,
+        levels: { NB: 0.30, TH: 0.40, VD: 0.30, VDC: 0 }, // 30% NB, 40% TH, 30% VD
+    },
+    'thpt': {
+        mcqCount: 24,
+        trueFalseCount: 4,
+        essayCount: 0,
+        duration: 50,
+        levels: { NB: 0.40, TH: 0.30, VD: 0.20, VDC: 0.10 }, // 40/30/20/10
+    },
+} as const;
+
 // ==================== Helper Functions ====================
 
 // Chú thích: jsonResponse với CORS - luôn trả '*' để tránh lỗi CORS
@@ -1159,32 +1208,32 @@ export async function generateTemplateWithAI(
         }
 
         // 2. Build prompt với thông tin chi tiết về nội dung môn học
-        const questionCounts: Record<string, number> = {
-            '15min': 15,
-            'midterm': 30,
-            'final': 40,
-            'thpt': 40,
-        };
-        const numQuestions = questionCounts[body.exam_type] || 30;
+        // Chú thích: Sử dụng KNTT_EXAM_MATRIX để lấy số câu chính xác
+        const matrix = KNTT_EXAM_MATRIX[body.exam_type as keyof typeof KNTT_EXAM_MATRIX] || KNTT_EXAM_MATRIX.midterm;
+        const mcqCount = matrix.mcqCount;
+        const trueFalseCount = matrix.trueFalseCount;
+        const essayCount = matrix.essayCount;
+        const totalQuestions = mcqCount + trueFalseCount + essayCount;
+        const levelDistribution = matrix.levels;
 
-        // Xác định nội dung theo lớp và định hướng
+        // Xác định nội dung theo lớp và định hướng (KNTT specific)
         const getSubjectContent = (grade: string, branch?: string) => {
             const isCN = branch === 'cong_nghiep';
             const isNN = branch === 'nong_nghiep';
 
             switch (grade) {
                 case '10':
-                    if (isCN) return 'Thiết kế và Công nghệ: Vẽ kỹ thuật, hình chiếu vuông góc, hình chiếu trục đo, quy trình thiết kế, cách mạng công nghiệp 4.0';
-                    if (isNN) return 'Công nghệ Trồng trọt: Đất trồng, phân bón, giống cây trồng, nuôi cấy mô, kỹ thuật trồng trọt, phòng trừ sâu bệnh, thu hoạch bảo quản';
+                    if (isCN) return 'Thiết kế và Công nghệ (KNTT): Khái quát thiết kế kỹ thuật, Quy trình thiết kế (6 bước), Yếu tố ảnh hưởng (vật liệu, công nghệ, kinh tế, môi trường), Nguyên tắc thiết kế (công năng, độ bền, an toàn, thẩm mỹ)';
+                    if (isNN) return 'Công nghệ Trồng trọt (KNTT): Đất trồng (thành phần, tính chất), Phân bón (N-P-K, hữu cơ, vi sinh), Giống cây trồng (nhân giống, nuôi cấy mô), Kỹ thuật canh tác, Phòng trừ sâu bệnh';
                     return 'Thiết kế và Công nghệ hoặc Công nghệ Trồng trọt';
                 case '11':
-                    if (isCN) return 'Công nghệ Cơ khí: Gia công cơ khí (tiện, phay, bào, hàn), vật liệu cơ khí, cơ cấu truyền động, động cơ đốt trong';
-                    if (isNN) return 'Công nghệ Chăn nuôi: Giống vật nuôi, thụ tinh nhân tạo, dinh dưỡng thức ăn, chuồng trại, vệ sinh thú y, phòng trị bệnh';
+                    if (isCN) return 'Công nghệ Cơ khí (KNTT): Vật liệu cơ khí (thép, gang, hợp kim), Công nghệ chế tạo phôi (đúc, rèn, hàn), Gia công cắt gọt (máy tiện, phay), Tự động hóa (PLC, cảm biến)';
+                    if (isNN) return 'Công nghệ Chăn nuôi (KNTT): Giống vật nuôi (chọn lọc, thụ tinh nhân tạo), Dinh dưỡng & Thức ăn, Chuồng trại, Phòng trị bệnh (vaccine, an toàn sinh học)';
                     return 'Công nghệ Cơ khí hoặc Công nghệ Chăn nuôi';
                 case '12':
-                    if (isCN) return 'Công nghệ Điện - Điện tử: Mạch điện xoay chiều, hệ thống điện quốc gia, an toàn điện, linh kiện điện tử, vi điều khiển, tự động hóa, robot';
-                    if (isNN) return 'Lâm nghiệp & Thủy sản: Trồng chăm sóc rừng, khai thác bền vững, môi trường nuôi thủy sản, giống tôm cá, nuôi trồng công nghệ cao';
-                    return 'Công nghệ Điện - Điện tử hoặc Lâm nghiệp & Thủy sản';
+                    if (isCN) return 'Điện - Điện tử (KNTT): Thiết bị điện tử dân dụng (Máy tăng âm, Thu thanh, Thu hình), Hệ thống viễn thông, Hệ thống điện quốc gia, Mạch điện xoay chiều 3 pha (đấu Y, đấu Δ), Máy biến áp 3 pha, Động cơ KĐB 3 pha';
+                    if (isNN) return 'Lâm nghiệp & Thủy sản (KNTT): Rừng (phòng hộ, đặc dụng, sản xuất), Kỹ thuật trồng rừng, Khai thác bền vững, Môi trường ao nuôi (pH, DO, NH3), Nuôi tôm RAS, Thức ăn công nghiệp, VietGAP thủy sản';
+                    return 'Điện - Điện tử hoặc Lâm nghiệp & Thủy sản';
                 default:
                     return '';
             }
@@ -1194,21 +1243,40 @@ export async function generateTemplateWithAI(
         const branchName = body.branch === 'cong_nghiep' ? 'Định hướng Công nghiệp' :
             body.branch === 'nong_nghiep' ? 'Định hướng Nông nghiệp' : '';
 
+        // Chú thích: Tính số câu theo mức độ dựa trên ma trận
+        const levelCounts = {
+            remember: Math.round(mcqCount * levelDistribution.NB),
+            understand: Math.round(mcqCount * levelDistribution.TH),
+            apply: Math.round(mcqCount * levelDistribution.VD),
+            analyze: Math.round(mcqCount * levelDistribution.VDC),
+        };
+
         const userPrompt = `Tạo đề thi ${body.exam_type} môn Công nghệ lớp ${body.grade}${branchName ? ` - ${branchName}` : ''}.
+
+**MA TRẬN ĐỀ THI KNTT (BẮT BUỘC TUÂN THỦ):**
+- **MCQ (Trắc nghiệm 4 lựa chọn):** ${mcqCount} câu
+  + Nhận biết (remember): ${levelCounts.remember} câu
+  + Thông hiểu (understand): ${levelCounts.understand} câu
+  + Vận dụng (apply): ${levelCounts.apply} câu
+  + Vận dụng cao (analyze): ${levelCounts.analyze} câu
+${trueFalseCount > 0 ? `- **True/False (Đúng/Sai dạng chùm):** ${trueFalseCount} câu (mỗi câu có 4 ý nhận định)` : ''}
+${essayCount > 0 ? `- **Tự luận:** ${essayCount} câu (1 câu Vận dụng 2đ, 1 câu VDC 1đ)` : ''}
 
 **THÔNG TIN ĐỀ THI:**
 - Lớp: ${body.grade}
 - Định hướng: ${branchName || 'Không xác định'}
-- Nội dung chính: ${subjectContent}
-- Số câu: ${numQuestions} câu
-- Độ khó: ${body.difficulty === 'easy' ? 'Dễ' : body.difficulty === 'hard' ? 'Khó' : 'Trung bình'}
+- Nội dung chính (KNTT): ${subjectContent}
+- Độ khó: ${body.difficulty === 'easy' ? 'Dễ (tăng NB/TH)' : body.difficulty === 'hard' ? 'Khó (tăng VD/VDC)' : 'Trung bình'}
 ${body.chapters?.length ? `- Chương cụ thể: ${body.chapters.join(', ')}` : ''}
 ${body.topic ? `- Chủ đề trọng tâm: ${body.topic}` : ''}
 
-=== KIẾN THỨC SGK (RAG Context) ===
-${ragContext || '(Không có context SGK - sử dụng kiến thức chuẩn chương trình)'}
+=== KIẾN THỨC SGK KNTT (RAG Context) ===
+${ragContext || '(Không có context SGK - sử dụng kiến thức chuẩn chương trình KNTT)'}
 
-**LƯU Ý QUAN TRỌNG:** Câu hỏi PHẢI liên quan đến nội dung "${subjectContent}" của lớp ${body.grade}.
+**LƯU Ý QUAN TRỌNG:**
+1. Câu hỏi PHẢI liên quan đến nội dung "${subjectContent}" của lớp ${body.grade}.
+2. Tuân thủ ĐÚNG số câu và mức độ theo ma trận ở trên.
+3. Mỗi câu phải có trường "source": "SGK Công nghệ ${body.grade} - Kết nối tri thức".
 
 Trả về JSON array đúng format.`;
 
