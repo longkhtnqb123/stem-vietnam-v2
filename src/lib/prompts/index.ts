@@ -1,6 +1,6 @@
 // Chú thích: System prompts versioned cho AI - tuân thủ semver để rollback dễ
 
-export const PROMPT_VERSION = 'stem-v2.0.0'; // Major: KNTT curriculum update
+export const PROMPT_VERSION = 'stem-v2.1.0'; // Minor: KNTT-only curriculum update
 
 // Chú thích: Prompt chung cho mọi tương tác AI - định hướng context giáo dục KNTT
 export const SYSTEM_PROMPT_BASE = `

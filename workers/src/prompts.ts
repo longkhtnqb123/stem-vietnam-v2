@@ -11,52 +11,67 @@ export const SYSTEM_PROMPTS = {
 
 ---
 
-## CHƯƠNG TRÌNH CÔNG NGHỆ KNTT (CHI TIẾT):
+## CHƯƠNG TRÌNH CÔNG NGHỆ KNTT (GDPT 2018) - CHI TIẾT:
 
-### LỚP 10 - THIẾT KẾ VÀ CÔNG NGHỆ (Định hướng Công nghiệp):
-| Chuyên đề | Nội dung chính |
-|-----------|----------------|
-| **Khái quát thiết kế kỹ thuật** | Khái niệm, vai trò, quy trình thiết kế kỹ thuật |
-| **Quy trình thiết kế kỹ thuật** | 6 bước: Xác định vấn đề → Thu thập thông tin → Đề xuất giải pháp → Chọn giải pháp → Lập hồ sơ → Chế tạo & Đánh giá |
-| **Yếu tố ảnh hưởng thiết kế** | Vật liệu, công nghệ, kinh tế, môi trường, thẩm mỹ, ergonomics |
-| **Nguyên tắc thiết kế kỹ thuật** | Tính công năng, độ bền, an toàn, thẩm mỹ, kinh tế |
+### 📚 CÔNG NGHỆ 10 (2 cuốn theo định hướng nghề nghiệp):
 
-### LỚP 10 - CÔNG NGHỆ TRỒNG TRỌT (Định hướng Nông nghiệp):
-- **Đất trồng**: Thành phần, tính chất, các loại đất, cải tạo đất.
-- **Phân bón**: Phân vô cơ (N-P-K), phân hữu cơ, phân vi sinh, cách sử dụng.
-- **Giống cây trồng**: Kỹ thuật nhân giống, nuôi cấy mô, chọn giống.
-- **Kỹ thuật canh tác**: Gieo trồng, chăm sóc, tưới tiêu, phòng trừ sâu bệnh.
+#### 1. THIẾT KẾ VÀ CÔNG NGHỆ (Định hướng Công nghiệp):
+| Chương | Nội dung chính |
+|--------|----------------|
+| **Chương I: Khái quát về công nghệ** | Bài 1: Khoa học, kĩ thuật và công nghệ; Bài 2: Hệ thống kĩ thuật |
+| **Chương II: Công nghệ và đời sống** | Bài 3: Công nghệ phổ biến; Bài 4: Một số công nghệ mới; Bài 5: Đánh giá công nghệ |
+| **Chương III: Vẽ kĩ thuật cơ sở** | Bài 6: Bản vẽ kĩ thuật; Bài 7: Hình chiếu vuông góc; Bài 8: Hình chiếu trục đo; Bài 9: Hình cắt và mặt cắt |
+| **Chương IV: Vẽ kĩ thuật bằng máy tính** | Bài 10: Thiết kế và vẽ kĩ thuật với sự hỗ trợ của máy tính; Bài 11: Hình chiếu phối cảnh |
+| **Chương V: Thiết kế kĩ thuật** | Bài 12-14: Quy trình thiết kế kĩ thuật (6 bước); Bài 18: Các yếu tố ảnh hưởng đến thiết kế |
 
-### LỚP 11 - CÔNG NGHỆ CƠ KHÍ (Định hướng Công nghiệp):
-| Nội dung | Chi tiết |
-|----------|----------|
-| **Vật liệu cơ khí** | Thép, gang, hợp kim màu, vật liệu phi kim |
-| **Công nghệ chế tạo phôi** | Đúc, rèn, hàn, gia công áp lực |
-| **Gia công cắt gọt** | Nguyên lý cắt, máy tiện, máy phay, máy khoan |
-| **Tự động hóa** | PLC, cảm biến, hệ thống điều khiển |
+#### 2. CÔNG NGHỆ TRỒNG TRỌT (Định hướng Nông nghiệp):
+| Chương | Nội dung chính |
+|--------|----------------|
+| **Chương I: Giới thiệu chung về trồng trọt** | Bài 1: Giới thiệu về trồng trọt; Bài 2: Cây trồng và các yếu tố chính |
+| **Chương II: Đất trồng** | Bài 3: Giới thiệu đất trồng; Bài 4: Sử dụng, cải tạo và bảo vệ đất; Bài 5: Giá thể trồng cây |
+| **Chương III: Phân bón** | Bài 7: Giới thiệu phân bón; Bài 8: Sử dụng và bảo quản; Bài 9: Công nghệ vi sinh trong sản xuất phân bón |
+| **Chương IV: Công nghệ giống cây trồng** | Bài 11: Khái niệm giống; Bài 12-13: Chọn tạo và nhân giống cây trồng |
+| **Chương V: Phòng trừ sâu, bệnh hại** | Bài 15-18: Nhận biết và biện pháp phòng trừ ứng dụng công nghệ cao |
 
-### LỚP 11 - CÔNG NGHỆ CHĂN NUÔI (Định hướng Nông nghiệp):
-- **Giống vật nuôi**: Chọn lọc, nhân giống, thụ tinh nhân tạo.
-- **Dinh dưỡng & Thức ăn**: Protein, vitamin, khoáng, phối trộn khẩu phần.
-- **Chuồng trại**: Thiết kế, vệ sinh, xử lý chất thải.
-- **Phòng trị bệnh**: Vaccine, kháng sinh, an toàn sinh học.
+---
 
-### LỚP 12 - ĐIỆN - ĐIỆN TỬ (Định hướng Công nghiệp):
-| Chủ đề | Kiến thức trọng tâm |
-|--------|---------------------|
-| **Thiết bị điện tử dân dụng** | Máy tăng âm (khuếch đại âm thanh), Máy thu thanh (AM/FM), Máy thu hình (TV analog/digital) |
-| **Hệ thống thông tin & viễn thông** | Nguyên lý truyền tin, điều chế tín hiệu, mạng di động |
-| **Hệ thống điện quốc gia** | Nguồn phát, truyền tải, phân phối, an toàn điện |
-| **Mạch điện xoay chiều 3 pha** | Đấu sao (Y), đấu tam giác (Δ), công suất 3 pha |
-| **Máy biến áp 3 pha** | Cấu tạo, nguyên lý, tỷ số biến áp |
-| **Động cơ KĐB 3 pha** | Từ trường quay, tốc độ đồng bộ, hệ số trượt |
+### 📚 CÔNG NGHỆ 11 (2 cuốn theo lĩnh vực):
 
-### LỚP 12 - LÂM NGHIỆP & THỦY SẢN (Định hướng Nông nghiệp):
-| Lĩnh vực | Nội dung |
-|----------|----------|
-| **Lâm nghiệp** | Rừng phòng hộ/đặc dụng/sản xuất, kỹ thuật trồng rừng, khai thác bền vững, chế biến lâm sản |
-| **Thủy sản** | Môi trường ao nuôi (pH, DO, NH3), giống tôm cá, hệ thống nuôi RAS, thức ăn công nghiệp, VietGAP thủy sản |
-| **Công nghệ cao** | Nuôi tôm tuần hoàn khép kín, biofloc, IoT trong nuôi trồng |
+#### 1. CÔNG NGHỆ CƠ KHÍ (Định hướng Công nghiệp):
+| Chương | Nội dung chính |
+|--------|----------------|
+| **Chương I: Khái quát về cơ khí chế tạo** | Bài 1: Khái quát chung; Bài 2: Ngành nghề trong cơ khí chế tạo |
+| **Chương II: Vật liệu cơ khí** | Bài 3: Vật liệu thông dụng (thép, gang, hợp kim); Bài 4: Vật liệu mới |
+| **Chương III: Các phương pháp gia công cơ khí** | Bài 5-7: Gia công cắt gọt (tiện, phay, bào); Bài 8: Gia công không phôi |
+| **Chương IV: Sản xuất cơ khí** | Bài 9-11: Quy trình sản xuất cơ khí, tự động hóa (PLC, cảm biến) |
+| **Chương V: Cơ khí động lực** | Bài 14-16: Động cơ đốt trong và ngành nghề liên quan |
+
+#### 2. CÔNG NGHỆ CHĂN NUÔI (Định hướng Nông nghiệp):
+| Chương | Nội dung chính |
+|--------|----------------|
+| **Chương I: Giới thiệu chung** | Bài 1: Khái quát về chăn nuôi; Bài 2: Ngành nghề trong chăn nuôi |
+| **Chương II: Công nghệ giống vật nuôi** | Bài 3: Chọn giống; Bài 4: Nhân giống vật nuôi (thụ tinh nhân tạo) |
+| **Chương III: Thức ăn chăn nuôi** | Bài 7: Dinh dưỡng (protein, vitamin, khoáng); Bài 8: Sản xuất và chế biến thức ăn |
+| **Chương IV: Phòng, trị bệnh** | Bài 11-13: Quy trình phòng bệnh và điều trị bằng công nghệ mới (vaccine, an toàn sinh học) |
+| **Chương V: Công nghệ chăn nuôi hiện đại** | Bài 19: Chăn nuôi công nghệ cao |
+
+---
+
+### 📚 CÔNG NGHỆ 12 (2 cuốn theo kỹ thuật và quản lý):
+
+#### 1. ĐIỆN - ĐIỆN TỬ (Định hướng Công nghiệp):
+| Chương | Nội dung chính |
+|--------|----------------|
+| **Chương I: Kỹ thuật điện** | Bài 1: Khái quát kỹ thuật điện; Bài 2: Ngành nghề trong kỹ thuật điện |
+| **Chương II: Hệ thống điện quốc gia** | Bài 3: Mạch điện xoay chiều 3 pha (đấu Y, đấu Δ); Bài 4: Sản xuất, truyền tải điện |
+| **Chương III: Thiết bị điện gia đình** | Bài 6: Máy biến áp (3 pha); Bài 7: Động cơ điện xoay chiều (KĐB 3 pha) |
+| **Chương IV: Điện tử dân dụng** | Linh kiện bán dẫn, IC, mạch điều chỉnh thông minh; Máy tăng âm, thu thanh, thu hình |
+
+#### 2. LÂM NGHIỆP - THỦY SẢN (Định hướng Nông nghiệp):
+| Phần | Nội dung chính |
+|------|----------------|
+| **Phần Lâm nghiệp** | Bài 1-5: Vai trò của rừng (phòng hộ, đặc dụng, sản xuất); Quy trình trồng và bảo vệ rừng bền vững |
+| **Phần Thủy sản** | Bài 7-12: Giới thiệu ngành thủy sản; Kỹ thuật nuôi (RAS, biofloc); Môi trường nước (pH, DO, NH3); VietGAP |
 
 ---
 
@@ -241,7 +256,7 @@ Trả về **JSON array** chứa các object câu hỏi. KHÔNG thêm text bên 
     "options": ["A. Công suất lớn hơn", "B. Cấu tạo đơn giản, ít bảo trì", "C. Tốc độ cao hơn", "D. Giá thành cao hơn"],
     "correct": 1,
     "explanation": "Động cơ KĐB 3 pha không cần cổ góp và chổi than nên cấu tạo đơn giản, ít bảo trì.",
-    "source": "SGK Công nghệ 12 - Cánh Diều"
+    "source": "SGK Công nghệ 12 - Kết nối tri thức"
   },
   {
     "id": 25,
@@ -257,7 +272,7 @@ Trả về **JSON array** chứa các object câu hỏi. KHÔNG thêm text bên 
     ],
     "correct": [true, false, true, false],
     "explanation": "a) Đúng - RAS tái sử dụng 90-99% nước. b) Sai - vẫn cần thức ăn. c) Đúng - vi khuẩn nitrat hóa. d) Sai - RAS phù hợp quy mô công nghiệp.",
-    "source": "SGK Công nghệ 12 - Chân trời sáng tạo"
+    "source": "SGK Công nghệ 12 - Kết nối tri thức"
   }
 ]
 \`\`\`
@@ -287,7 +302,7 @@ Trả về **JSON array** chứa các object câu hỏi. KHÔNG thêm text bên 
 Kiểm tra lại đề thi vừa được tạo (Draft Exam) để tìm và sửa các lỗi sau:
 
 ### 1. Kiểm tra NỘI DUNG:
-- **Ảo giác (Hallucination)**: Thông tin sai lệch so với SGK hiện hành (Cánh Diều, Kết nối tri thức, Chân trời sáng tạo).
+- **Ảo giác (Hallucination)**: Thông tin sai lệch so với SGK Kết nối tri thức và cuộc sống (GDPT 2018).
 - **Chính xác đáp án**: Đáp án đúng phải chính xác 100%. Nếu có nghi ngờ, kiểm tra lại với Context SGK.
 - **Phù hợp định hướng**: Câu hỏi có đúng với định hướng (Điện-ĐT hay Lâm-Thủy sản) không?
 
