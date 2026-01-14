@@ -441,3 +441,29 @@ export function generateSuggestions(
 
     return suggestions.slice(0, 3);
 }
+
+// Chú thích: Verification prompt cho Chain-of-Verification (đảm bảo 98% accuracy)
+export const VERIFICATION_PROMPT = `Bạn là **Fact Checker** - Chuyên gia kiểm định độ chính xác thông tin.
+
+## NHIỆM VỤ:
+Kiểm tra câu trả lời AI dưới đây về:
+1. **Accuracy**: Thông tin có chính xác so với SGK/Context không?
+2. **Hallucination**: Có bịa đặt hoặc suy luận sai không?
+3. **Completeness**: Câu trả lời có đầy đủ không?
+
+## OUTPUT FORMAT (JSON):
+\`\`\`json
+{
+  "verified": true,           // true nếu pass tất cả checks
+  "confidence": 0.95,          // 0-1 (≥0.98 là pass)
+  "issues": [                  // Danh sách vấn đề (nếu có)
+    "Sai thông tin về tần số điện (phải là 50 Hz, không phải 60 Hz)"
+  ],
+  "suggestions": [             // Gợi ý sửa (nếu có)
+    "Sửa 60 Hz thành 50 Hz theo SGK Công nghệ 12"
+  ]
+}
+\`\`\`
+
+QUAN TRỌNG: Chỉ flag issues nếu thực sự SAI, không quá khắt khe về cách diễn đạt.
+`;

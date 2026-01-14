@@ -273,19 +273,23 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
             }
         }
 
-        // 2. Enhanced Semantic Cache Check (if KV available)
+        // 2. Enhanced Semantic Cache Check V2 (if KV available - với query type classification)
         let cachedResponse = null;
         if (env.CACHE) {
-            const { EnhancedSemanticCache } = await import('./cache/enhanced-cache');
-            const cache = new EnhancedSemanticCache(env.CACHE);
+            const { EnhancedSemanticCacheV2 } = await import('./cache/enhanced-semantic-cache-v2');
+            const cache = new EnhancedSemanticCacheV2(env.CACHE);
 
             cachedResponse = await cache.getWithFuzzyMatch({
                 query: body.message,
-                apiKey: env.HF_API_TOKEN
+                apiKey: env.HF_API_TOKEN,
+                queryType: 'general' // Sẽ được phân loại sau
             });
 
             if (cachedResponse) {
-                console.log('[chat] ✅ Cache HIT - returning cached response');
+                console.log('[chat] ✅ Cache HIT - returning cached response', {
+                    cacheType: cachedResponse.cacheType,
+                    hitCount: cachedResponse.hitCount
+                });
                 return jsonResponse({
                     success: true,
                     response: cachedResponse.response,
@@ -293,82 +297,93 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
                     reflection: cachedResponse.reflection,
                     sources: cachedResponse.sources,
                     cached: true,
+                    cacheType: cachedResponse.cacheType,
                     cacheHits: cachedResponse.hitCount
                 }, 200, origin);
             }
         }
 
+
         console.log('[chat] Cache MISS - generating new response');
 
-        // Chú thích: Phân loại câu hỏi để quyết định có dùng RAG không
+        // === PARALLEL STAGE 1: Query Classification + Model Routing ===
+        const t0 = Date.now();
         const queryType = classifyQuery(body.message);
+        const modelRouting = classifyQueryForModel(body.message, queryType === 'academic');
+        const finalModel = preferredModel || modelRouting.model;
+
+        console.info('[chat] Query classified', {
+            queryType,
+            tier: modelRouting.tier,
+            model: finalModel,
+            latency: Date.now() - t0
+        });
+
+        // === PARALLEL STAGE 2: RAG + Web Search (concurrent) ===
+        const t1 = Date.now();
+        const promises: Promise<any>[] = [];
+
+        // Promise 1: RAG Context (nếu academic)
+        if (queryType === 'academic' && env.VECTORIZE && apiKey && env.DB) {
+            promises.push(
+                getAdvancedRAGContext(apiKey, env.VECTORIZE, body.message, env.DB)
+                    .then(result => ({ type: 'rag', success: true, data: result }))
+                    .catch(error => {
+                        console.warn('[chat] Advanced RAG failed:', error);
+                        // Fallback to basic RAG
+                        return getRAGContext(env.HF_API_TOKEN || env.OPENROUTER_API_KEY, env.VECTORIZE, body.message, undefined)
+                            .then(result => ({ type: 'rag', success: true, data: result }))
+                            .catch(() => ({ type: 'rag', success: false, data: null }));
+                    })
+            );
+        }
+
+        // Promise 2: Web Search (nếu cần)
+        if (modelRouting.useOnlineSearch) {
+            promises.push(
+                webSearch(body.message)
+                    .then(result => ({ type: 'search', success: true, data: result }))
+                    .catch(error => {
+                        console.warn('[chat] Web search failed:', error);
+                        return { type: 'search', success: false, data: null };
+                    })
+            );
+        }
+
+        // Execute parallel
+        const results = await Promise.allSettled(promises);
+
+        // Process results
         let ragContext = '';
         let sources: unknown[] = [];
-
-        // Chú thích: Nếu là câu hỏi học tập → tìm RAG context từ thư viện sách
-        if (queryType === 'academic' && env.VECTORIZE && apiKey && env.DB) {
-            try {
-                console.info('[chat] Academic query detected, using Advanced RAG...');
-                const ragResult = await getAdvancedRAGContext(
-                    apiKey,
-                    env.VECTORIZE,
-                    body.message,
-                    env.DB
-                );
-                ragContext = ragResult.context;
-                sources = ragResult.sources;
-                console.info('[chat] Advanced RAG found', { sourcesCount: sources.length });
-            } catch (error) {
-                console.warn('[chat] Advanced RAG failed, falling back to basic RAG:', error);
-                // Fallback to old RAG
-                try {
-                    const ragResult = await getRAGContext(
-                        env.HF_API_TOKEN || env.OPENROUTER_API_KEY,
-                        env.VECTORIZE,
-                        body.message,
-                        undefined
-                    );
-                    ragContext = ragResult.context;
-                    sources = ragResult.sources;
-                } catch (fallbackError) {
-                    console.warn('[chat] Fallback RAG also failed, continuing without context:', fallbackError);
-                }
-            }
-        }
-
-        // Chú thích: Build context string nếu có RAG hoặc context từ frontend
-        let fullContext = '';
-        if (ragContext) {
-            fullContext += `=== TÀI LIỆU THAM KHẢO TỪ SGK ===\n${ragContext}\n\n`;
-        }
-        if (body.context) {
-            fullContext += body.context;
-        }
-
-        // Chú thích: Phân loại câu hỏi để chọn model phù hợp (OpenRouter multi-model routing)
-        const modelRouting = classifyQueryForModel(body.message);
-        const finalModel = preferredModel || modelRouting.model;
-        console.info('[chat] Model routing:', { auto: modelRouting.model, preferred: preferredModel, final: finalModel });
-
-        // Chú thích: Nếu cần web search → dùng DuckDuckGo API (miễn phí, không cần key)
         let webSearchContext = '';
-        if (modelRouting.useOnlineSearch) {
-            try {
-                console.info('[chat] Web search triggered, querying DuckDuckGo...');
-                const searchResult = await webSearch(body.message);
-                webSearchContext = formatSearchResultsAsContext(searchResult);
 
-                if (webSearchContext) {
-                    console.info('[chat] DuckDuckGo search found results', {
-                        sourcesCount: searchResult.sources.length
-                    });
-                    fullContext = webSearchContext + '\n' + fullContext;
+        results.forEach(result => {
+            if (result.status === 'fulfilled') {
+                const { type, success, data } = result.value;
+
+                if (type === 'rag' && success && data) {
+                    ragContext = data.context;
+                    sources = data.sources;
+                    console.info('[chat] RAG found', { sourcesCount: sources.length });
                 }
-            } catch (error) {
-                console.warn('[chat] DuckDuckGo search failed:', error);
-                // Tiếp tục mà không có web search context
+
+                if (type === 'search' && success && data) {
+                    webSearchContext = formatSearchResultsAsContext(data);
+                    console.info('[chat] Web search found', { sourcesCount: data.sources.length });
+                }
             }
-        }
+        });
+
+        const parallelLatency = Date.now() - t1;
+        console.info('[chat] Parallel stage done', { latency: parallelLatency });
+
+        // === Build full context ===
+        let fullContext = '';
+        if (webSearchContext) fullContext += webSearchContext + '\n';
+        if (ragContext) fullContext += `=== TÀI LIỆU THAM KHẢO TỪ SGK ===\n${ragContext}\n\n`;
+        if (body.context) fullContext += body.context;
+
 
         // Chú thích: Gọi OpenRouter để generate response
         let aiResponse = '';
@@ -432,6 +447,42 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
         // Chú thích: Tạo suggestions dựa trên nội dung trả lời
         const suggestions = generateSuggestions(body.message, aiResponse, queryType);
 
+        // === Store in cache for future requests ===
+        if (env.CACHE) {
+            try {
+                const { EnhancedSemanticCacheV2, TOP_COMMON_QUERIES } = await import('./cache/enhanced-semantic-cache-v2');
+                const { createEmbedding } = await import('./huggingface');
+
+                const cache = new EnhancedSemanticCacheV2(env.CACHE);
+
+                // Determine cache type
+                const normalizedQuery = body.message.toLowerCase().replace(/[?!.,;]/g, '').trim();
+                const isCommon = TOP_COMMON_QUERIES.some(q =>
+                    q.toLowerCase().replace(/[?!.,;]/g, '').trim() === normalizedQuery
+                );
+
+                const cacheQueryType = isCommon ? 'common' : queryType;
+
+                // Get embedding for semantic matching
+                const { embedding } = await createEmbedding(env.HF_API_TOKEN || apiKey, body.message);
+
+                await cache.set({
+                    query: body.message,
+                    queryEmbedding: embedding,
+                    response: aiResponse,
+                    queryType: cacheQueryType,
+                    sources,
+                    thinking: thinkingProcess,
+                    reflection: reflectionData
+                });
+
+                console.log('[chat] Cached response', { queryType: cacheQueryType });
+            } catch (cacheError) {
+                console.warn('[chat] Failed to cache response:', cacheError);
+                // Continue anyway
+            }
+        }
+
         return jsonResponse({
             success: true,
             response: aiResponse,
@@ -442,6 +493,7 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
             suggestions, // Gợi ý câu hỏi tiếp theo
             model: usedModel, // Trả về model đã sử dụng để debug
         }, 200, origin);
+
 
 
     } catch (error) {

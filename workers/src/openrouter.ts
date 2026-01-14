@@ -8,38 +8,47 @@
 // Chú thích: Các model miễn phí tối ưu theo từng use case
 export const MODELS = {
     // Web Search - dùng suffix :online để kích hoạt Exa/Perplexity plugin
-    // Có thể append vào bất kỳ model nào
     ONLINE_SUFFIX: ':online',
 
-    // File Search, URL Context, Multimodal - Gemini 2.0 Flash Lite (More stable)
-    GEMINI_FLASH: 'google/gemini-2.0-flash-lite-preview-02-05:free',
+    // Fast models (optimized for speed)
+    GEMINI_FLASH: 'google/gemini-2.0-flash-lite-preview-02-05:free',  // ~500ms
+    MIMO_CODE: 'xiaomi/mimo-v2-flash:free',                           // ~800ms
 
-    // Code Execution - Xiaomi MiMo (ngang Claude 4.5 Sonnet)
-    MIMO_CODE: 'xiaomi/mimo-v2-flash:free',
-
-    // Agentic Coding - Devstral (xử lý codebase lớn)  
-    DEVSTRAL: 'mistralai/devstral-2-2512:free',
-
-    // Reasoning/Logic - DeepSeek R1 Chimera
-    DEEPSEEK_REASON: 'tngtech/deepseek-r1t2-chimera:free',
+    // Accurate models (optimized for accuracy)
+    DEEPSEEK_REASON: 'tngtech/deepseek-r1t2-chimera:free',           // ~2s, 98% accuracy
+    DEVSTRAL: 'mistralai/devstral-2-2512:free',                       // ~1.5s
 } as const;
 
-// Chú thích: Model mặc định cho từng loại tác vụ
-export const MODEL_ROUTES = {
-    // Chat thông thường - MiMo (nhanh, thông minh, ngang Claude 4.5)
-    chat: MODELS.MIMO_CODE,
+// Chú thích: Tiered model strategy - Fast vs Accurate
+export const FAST_MODELS = {
+    tier1: MODELS.GEMINI_FLASH,     // <500ms, 92-95% accuracy, prioritize speed
+    tier2: MODELS.MIMO_CODE,        // <1s, 94-96% accuracy, balanced
+} as const;
 
-    // Chat cần web search - thêm :online suffix
+export const ACCURATE_MODELS = {
+    tier1: MODELS.DEEPSEEK_REASON,  // <2s, 97-98% accuracy, prioritize correctness
+    tier2: MODELS.DEVSTRAL,         // <2s, 96-97% accuracy, fallback
+} as const;
+
+// Chú thích: Model routing mặc định - ưu tiên FAST để improve latency
+export const MODEL_ROUTES = {
+    // Chat thông thường - Gemini Flash (nhanh nhất)
+    chat: FAST_MODELS.tier1,
+
+    // Chat cần accuracy cao (academic) - DeepSeek
+    chatAccurate: ACCURATE_MODELS.tier1,
+
+    // Chat cần web search - Gemini Flash + online
     chatWithSearch: MODELS.GEMINI_FLASH + MODELS.ONLINE_SUFFIX,
 
-    // Tạo đề thi - DeepSeek R1 (suy luận tốt nhất, tạo câu hỏi chất lượng)
-    examGeneration: MODELS.DEEPSEEK_REASON,
+    // Tạo đề thi - DeepSeek (cần accuracy cao)
+    examGeneration: ACCURATE_MODELS.tier1,
 
-    // Giải bài tập code - MiMo
-    codeExecution: MODELS.MIMO_CODE,
+    // Giải bài tập code - MiMo (balanced)
+    codeExecution: FAST_MODELS.tier2,
 
-    // Suy luận logic phức tạp - DeepSeek
-    reasoning: MODELS.DEEPSEEK_REASON,
+    // Suy luận logic - DeepSeek (accuracy)
+    reasoning: ACCURATE_MODELS.tier1,
 } as const;
 
 // ============================================
@@ -250,10 +259,11 @@ export async function* streamOpenRouter(
 // HELPER FUNCTIONS
 // ============================================
 
-// Chú thích: Phân loại câu hỏi để chọn model phù hợp
-export function classifyQueryForModel(query: string): {
+// Chú thích: Phân loại câu hỏi để chọn model phù hợp với tiered strategy
+export function classifyQueryForModel(query: string, requireAccuracy = false): {
     model: string;
     useOnlineSearch: boolean;
+    tier: 'fast' | 'accurate';
     reason: string;
 } {
     const queryLower = query.toLowerCase();
@@ -274,12 +284,22 @@ export function classifyQueryForModel(query: string): {
         'chạy code', 'execute', 'compile', 'run',
     ];
 
-    // Chú thích: Keywords về suy luận logic
+    // Chú thích: Keywords về suy luận logic (cần accuracy cao)
     const reasoningKeywords = [
         'suy luận', 'logic', 'chứng minh', 'phân tích',
-        'tại sao', 'giải thích', 'so sánh', 'đánh giá',
+        'tại sao', 'giải thích chi tiết', 'so sánh', 'đánh giá',
         'ưu điểm', 'nhược điểm', 'pros', 'cons',
     ];
+
+    // Chú thích: Câu hỏi phức tạp cần accuracy cao
+    const complexKeywords = [
+        'định lý', 'công thức', 'chứng minh', 'bằng cách nào',
+        'tại sao lại', 'nguyên lý', 'cơ chế hoạt động',
+    ];
+
+    // Check nếu query phức tạp → dùng accurate model
+    const isComplex = complexKeywords.some(kw => queryLower.includes(kw)) ||
+        query.length > 100; // Câu hỏi dài thường phức tạp
 
     // Check search keywords
     for (const kw of searchKeywords) {
@@ -287,7 +307,8 @@ export function classifyQueryForModel(query: string): {
             return {
                 model: MODEL_ROUTES.chatWithSearch,
                 useOnlineSearch: true,
-                reason: `Cần web search: "${kw}"`,
+                tier: 'fast',
+                reason: `Web search: "${kw}"`,
             };
         }
     }
@@ -298,27 +319,40 @@ export function classifyQueryForModel(query: string): {
             return {
                 model: MODEL_ROUTES.codeExecution,
                 useOnlineSearch: false,
-                reason: `Code execution: "${kw}"`,
+                tier: 'fast', // Code execution ưu tiên speed
+                reason: `Code: "${kw}"`,
             };
         }
     }
 
-    // Check reasoning keywords
+    // Check reasoning keywords → accurate model
     for (const kw of reasoningKeywords) {
         if (queryLower.includes(kw)) {
             return {
                 model: MODEL_ROUTES.reasoning,
                 useOnlineSearch: false,
+                tier: 'accurate',
                 reason: `Reasoning: "${kw}"`,
             };
         }
     }
 
-    // Mặc định: Gemini Flash cho đa năng
+    // Nếu user yêu cầu accuracy hoặc query phức tạp → accurate model
+    if (requireAccuracy || isComplex) {
+        return {
+            model: MODEL_ROUTES.chatAccurate,
+            useOnlineSearch: false,
+            tier: 'accurate',
+            reason: isComplex ? 'Complex query detected' : 'Accuracy required',
+        };
+    }
+
+    // Mặc định: FAST tier cho latency tốt nhất
     return {
         model: MODEL_ROUTES.chat,
         useOnlineSearch: false,
-        reason: 'Default: Gemini Flash',
+        tier: 'fast',
+        reason: 'Default: Fast tier',
     };
 }
 
