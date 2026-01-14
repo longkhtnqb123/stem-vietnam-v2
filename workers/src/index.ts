@@ -845,6 +845,155 @@ export default {
             return researchRoutes.fetch(newRequest, env);
         }
 
+        // === GDPT 2018 Crawler Routes ===
+        if (path.startsWith('/api/crawler')) {
+            const { crawlAllGDPT2018Textbooks, crawlSingleTextbook, GDPT_2018_TEXTBOOKS } = await import('./crawlers/sgk-gdpt2018-crawler');
+
+            // GET /api/crawler/textbooks - List all GDPT 2018 textbooks
+            if (path === '/api/crawler/textbooks' && request.method === 'GET') {
+                const allTextbooks = [
+                    ...GDPT_2018_TEXTBOOKS.grade10,
+                    ...GDPT_2018_TEXTBOOKS.grade11,
+                    ...GDPT_2018_TEXTBOOKS.grade12
+                ];
+
+                return jsonResponse({
+                    success: true,
+                    gdpt2018_compliant: true,
+                    total: allTextbooks.length,
+                    textbooks: allTextbooks.map(t => ({
+                        id: t.id,
+                        title: t.title,
+                        orientation: t.orientation,
+                        chapters: t.chapters.length,
+                        verified: t.gdpt2018_verified
+                    }))
+                }, 200, allowedOrigin);
+            }
+
+            // POST /api/crawler/crawl - Trigger manual crawl
+            if (path === '/api/crawler/crawl' && request.method === 'POST') {
+                try {
+                    const body = await request.json() as { textbook_id?: string };
+
+                    if (body.textbook_id) {
+                        // Crawl single textbook
+                        const allTextbooks = [
+                            ...GDPT_2018_TEXTBOOKS.grade10,
+                            ...GDPT_2018_TEXTBOOKS.grade11,
+                            ...GDPT_2018_TEXTBOOKS.grade12
+                        ];
+
+                        const textbook = allTextbooks.find(t => t.id === body.textbook_id);
+                        if (!textbook) {
+                            return jsonResponse({ error: 'Textbook not found' }, 404, allowedOrigin);
+                        }
+
+                        const result = await crawlSingleTextbook(textbook, env);
+                        return jsonResponse({
+                            success: result.success,
+                            textbook: textbook.title,
+                            chunks: result.chunks
+                        }, 200, allowedOrigin);
+
+                    } else {
+                        // Crawl all textbooks
+                        const results = await crawlAllGDPT2018Textbooks(env);
+                        const totalChunks = results.reduce((sum, r) => sum + r.chunks, 0);
+
+                        return jsonResponse({
+                            success: true,
+                            textbooks_crawled: results.length,
+                            total_chunks: totalChunks,
+                            gdpt2018_verified: true
+                        }, 200, allowedOrigin);
+                    }
+                } catch (error) {
+                    return jsonResponse({
+                        error: 'Crawl failed',
+                        details: error instanceof Error ? error.message : 'Unknown'
+                    }, 500, allowedOrigin);
+                }
+            }
+
+            // GET /api/crawler/status - Check crawl jobs status
+            if (path === '/api/crawler/status' && request.method === 'GET') {
+                try {
+                    const jobs = await env.DB.prepare(`
+                        SELECT * FROM crawl_jobs 
+                        ORDER BY created_at DESC 
+                        LIMIT 10
+                    `).all();
+
+                    const stats = await env.DB.prepare(`
+                        SELECT 
+                            COUNT(*) as total_chunks,
+                            COUNT(DISTINCT textbook_id) as textbooks,
+                            AVG(quality_score) as avg_quality
+                        FROM crawled_content
+                        WHERE gdpt2018_verified = TRUE
+                    `).first();
+
+                    return jsonResponse({
+                        success: true,
+                        recent_jobs: jobs.results,
+                        stats
+                    }, 200, allowedOrigin);
+                } catch (error) {
+                    return jsonResponse({
+                        error: 'Failed to get status',
+                        details: error instanceof Error ? error.message : 'Unknown'
+                    }, 500, allowedOrigin);
+                }
+            }
+
+            // POST /api/crawler/qa - Crawl Q&A platforms (Phase 3)
+            if (path === '/api/crawler/qa' && request.method === 'POST') {
+                try {
+                    const { crawlAllQA } = await import('./crawlers/qa-crawler');
+                    const results = await crawlAllQA(env);
+                    const totalPairs = results.reduce((sum: number, r: any) => sum + r.pairs, 0);
+
+                    return jsonResponse({
+                        success: true,
+                        phase: 3,
+                        platforms_crawled: results.length,
+                        total_qa_pairs: totalPairs,
+                        gdpt2018_verified: true
+                    }, 200, allowedOrigin);
+                } catch (error) {
+                    return jsonResponse({
+                        error: 'Q&A crawl failed',
+                        details: error instanceof Error ? error.message : 'Unknown'
+                    }, 500, allowedOrigin);
+                }
+            }
+
+            // POST /api/crawler/generate-training - Generate synthetic data (Phase 4)
+            if (path === '/api/crawler/generate-training' && request.method === 'POST') {
+                try {
+                    const body = await request.json() as { limit?: number };
+                    const { generateTrainingData, exportTrainingData } = await import('./crawlers/synthetic-data-generator');
+
+                    const totalExamples = await generateTrainingData(env, body.limit || 50);
+                    const exportFile = await exportTrainingData(env);
+
+                    return jsonResponse({
+                        success: true,
+                        phase: 4,
+                        training_examples_generated: totalExamples,
+                        export_file: exportFile,
+                        ready_for_fine_tuning: true
+                    }, 200, allowedOrigin);
+                } catch (error) {
+                    return jsonResponse({
+                        error: 'Training data generation failed',
+                        details: error instanceof Error ? error.message : 'Unknown'
+                    }, 500, allowedOrigin);
+                }
+            }
+        }
+
         // Chú thích: API routes
         if (request.method === 'POST') {
             switch (path) {
