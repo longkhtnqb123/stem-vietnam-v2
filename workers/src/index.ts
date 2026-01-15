@@ -59,6 +59,7 @@ import { gamificationRoutes } from './gamification-routes';
 import { teacherRoutes } from './teacher-routes';
 import { schoolRoutes } from './school-routes';
 import { researchRoutes } from './research-routes';
+import { logUsage, getUsageStats } from './usage-routes';
 
 // Chú thích: Environment interface (đã xoá Vertex AI, chuyển sang HuggingFace)
 export interface Env {
@@ -433,7 +434,7 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
                 body.message,
                 fullContext || undefined
             );
-
+            const t2 = Date.now();
             const result = await callOpenRouter(apiKey, {
                 messages,
                 model: finalModel,
@@ -442,6 +443,11 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
 
             aiResponse = result.text;
             usedModel = result.model;
+
+            // Chú thích: Log token usage cho thống kê
+            if (user) {
+                logUsage(env, user.sub, 'chat', usedModel, result.tokensIn, result.tokensOut, Date.now() - t2);
+            }
         }
 
         // Chú thích: Tạo suggestions dựa trên nội dung trả lời
@@ -843,6 +849,15 @@ export default {
             const newPath = path.replace('/api/research', '') || '/';
             const newRequest = new Request(new URL(newPath, request.url), request);
             return researchRoutes.fetch(newRequest, env);
+        }
+
+        // === Usage Statistics Routes ===
+        if (path === '/api/usage/stats' && request.method === 'GET') {
+            const user = await getUserFromToken(request, env);
+            if (!user) {
+                return jsonResponse({ error: 'Unauthorized' }, 401, allowedOrigin);
+            }
+            return getUsageStats(request, user, env);
         }
 
         // === GDPT 2018 Crawler Routes ===

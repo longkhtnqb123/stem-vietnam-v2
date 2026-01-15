@@ -12,15 +12,18 @@ interface ExamEnv {
     HF_API_TOKEN: string;
 }
 
-// Cấu trúc 1 câu hỏi
+// Cấu trúc 1 câu hỏi (hỗ trợ cả MCQ và True/False)
 export interface ExamQuestion {
     id: string;
+    type?: 'multiple_choice' | 'true_false';  // Loại câu hỏi
     content: string;           // Nội dung câu hỏi
-    options: string[];         // 4 đáp án A, B, C, D
-    answer: string;            // Đáp án đúng: 'A', 'B', 'C', 'D'
+    options?: string[];        // 4 đáp án A, B, C, D (cho MCQ)
+    statements?: string[];     // 4 ý nhận định (cho True/False)
+    answer: string | boolean[];  // 'A','B','C','D' cho MCQ hoặc [true,false,...] cho T/F
     explanation?: string;      // Giải thích (hiển thị sau khi nộp)
     level: 'remember' | 'understand' | 'apply' | 'analyze'; // Mức độ tư duy
     chapter?: string;          // Chương (optional)
+    source?: string;           // Nguồn SGK
 }
 
 // Đề thi template
@@ -129,18 +132,18 @@ function jsonResponse(data: unknown, status: number, _corsOriginList: string): R
     });
 }
 
-// Chấm điểm tự động
+// Chấm điểm tự động - Hỗ trợ cả MCQ và True/False
 function gradeExam(
     questions: ExamQuestion[],
-    answers: Record<string, string>
+    answers: Record<string, string | boolean[]>
 ): {
     score: number;
     correct_count: number;
     analysis: ExamAttempt['analysis'];
     detailed_results: Array<{
         questionId: string;
-        userAnswer: string;
-        correctAnswer: string;
+        userAnswer: string | boolean[];
+        correctAnswer: string | boolean[];
         isCorrect: boolean;
         level: string;
     }>;
@@ -155,8 +158,8 @@ function gradeExam(
 
     const detailed_results: Array<{
         questionId: string;
-        userAnswer: string;
-        correctAnswer: string;
+        userAnswer: string | boolean[];
+        correctAnswer: string | boolean[];
         isCorrect: boolean;
         level: string;
     }> = [];
@@ -164,8 +167,22 @@ function gradeExam(
     let correct_count = 0;
 
     for (const q of questions) {
-        const userAnswer = answers[q.id] || '';
-        const isCorrect = userAnswer.toUpperCase() === q.answer.toUpperCase();
+        const userAnswer = answers[q.id];
+        let isCorrect = false;
+
+        // Chú thích: Xử lý khác nhau cho MCQ vs True/False
+        if (q.type === 'true_false' && Array.isArray(q.answer)) {
+            // TRUE/FALSE: So sánh từng ý
+            const userTFAnswer = (userAnswer as boolean[]) || [false, false, false, false];
+            const correctTFAnswer = q.answer as boolean[];
+            // Đúng nếu tất cả 4 ý đều đúng
+            isCorrect = correctTFAnswer.every((correct, i) => correct === userTFAnswer[i]);
+        } else {
+            // MCQ: So sánh string
+            const userMCQAnswer = (userAnswer || '') as string;
+            const correctMCQAnswer = (q.answer || '') as string;
+            isCorrect = userMCQAnswer.toString().toUpperCase() === correctMCQAnswer.toString().toUpperCase();
+        }
 
         if (isCorrect) correct_count++;
 
@@ -177,7 +194,7 @@ function gradeExam(
 
         detailed_results.push({
             questionId: q.id,
-            userAnswer,
+            userAnswer: userAnswer || '',
             correctAnswer: q.answer,
             isCorrect,
             level: q.level,
@@ -401,30 +418,33 @@ export async function startAttempt(
             shuffleMap: number[];
         }
 
-        const shuffledQuestionsWithMapping: ShuffledQuestion[] = shuffledQuestions.map(q => {
-            // Tạo array indices [0, 1, 2, 3]
-            const indices = [0, 1, 2, 3];
-            // Shuffle indices
-            const shuffledIndices = [...indices].sort(() => Math.random() - 0.5);
+        const shuffledQuestionsWithMapping: ShuffledQuestion[] = shuffledQuestions
+            .filter(q => q.type !== 'true_false')  // Chỉ shuffle MCQ
+            .map(q => {
+                // Tạo array indices [0, 1, 2, 3]
+                const indices = [0, 1, 2, 3];
+                // Shuffle indices
+                const shuffledIndices = [...indices].sort(() => Math.random() - 0.5);
 
-            // Áp dụng shuffle vào options
-            const shuffledOptions = shuffledIndices.map(i => q.options[i]);
+                // Áp dụng shuffle vào options
+                const shuffledOptions = shuffledIndices.map(i => (q.options || [])[i]);
 
-            // Tìm vị trí mới của đáp án đúng
-            const originalAnswerIndex = ['A', 'B', 'C', 'D'].indexOf(q.answer.toUpperCase());
-            const newAnswerIndex = shuffledIndices.indexOf(originalAnswerIndex);
-            const newAnswer = ['A', 'B', 'C', 'D'][newAnswerIndex];
+                // Tìm vị trí mới của đáp án đúng (chỉ cho MCQ)
+                const answerStr = typeof q.answer === 'string' ? q.answer : 'A';
+                const originalAnswerIndex = ['A', 'B', 'C', 'D'].indexOf(answerStr.toUpperCase());
+                const newAnswerIndex = shuffledIndices.indexOf(originalAnswerIndex);
+                const newAnswer = ['A', 'B', 'C', 'D'][newAnswerIndex];
 
-            return {
-                id: q.id,
-                content: q.content,
-                options: shuffledOptions,
-                level: q.level,
-                chapter: q.chapter,
-                originalAnswer: newAnswer, // Đáp án sau shuffle
-                shuffleMap: shuffledIndices,
-            };
-        });
+                return {
+                    id: q.id,
+                    content: q.content,
+                    options: shuffledOptions,
+                    level: q.level,
+                    chapter: q.chapter,
+                    originalAnswer: newAnswer, // Đáp án sau shuffle
+                    shuffleMap: shuffledIndices,
+                };
+            });
 
         // Lưu mapping vào attempt để chấm điểm đúng
         await env.DB.prepare(`
@@ -596,16 +616,29 @@ export async function submitAttempt(
                 analysis: gradeResult.analysis,
                 detailed_results: gradeResult.detailed_results,
                 // Trả về questions với explanation
-                questions_with_answers: questions.map(q => ({
-                    id: q.id,
-                    content: q.content,
-                    options: q.options,
-                    answer: q.answer,
-                    explanation: q.explanation,
-                    level: q.level,
-                    userAnswer: finalAnswers[q.id] || null,
-                    isCorrect: (finalAnswers[q.id] || '').toUpperCase() === q.answer.toUpperCase(),
-                })),
+                questions_with_answers: questions.map(q => {
+                    let isCorrect = false;
+                    const userAns = finalAnswers[q.id];
+                    if (q.type === 'true_false' && Array.isArray(q.answer)) {
+                        const userTF = (userAns as boolean[]) || [false, false, false, false];
+                        isCorrect = q.answer.every((c, i) => c === userTF[i]);
+                    } else {
+                        const correctStr = typeof q.answer === 'string' ? q.answer : 'A';
+                        isCorrect = (userAns || '').toString().toUpperCase() === correctStr.toUpperCase();
+                    }
+                    return {
+                        id: q.id,
+                        type: q.type,
+                        content: q.content,
+                        options: q.options,
+                        statements: q.statements,
+                        answer: q.answer,
+                        explanation: q.explanation,
+                        level: q.level,
+                        userAnswer: userAns || null,
+                        isCorrect,
+                    };
+                }),
             },
         }, 200, env.CORS_ORIGIN);
     } catch (error) {
@@ -714,16 +747,29 @@ export async function getAttempt(
                     status: attempt.status,
                     analysis: attempt.analysis ? JSON.parse(attempt.analysis) : null,
                 },
-                questions_with_answers: questions.map(q => ({
-                    id: q.id,
-                    content: q.content,
-                    options: q.options,
-                    answer: q.answer,
-                    explanation: q.explanation,
-                    level: q.level,
-                    userAnswer: answers[q.id] || null,
-                    isCorrect: (answers[q.id] || '').toUpperCase() === q.answer.toUpperCase(),
-                })),
+                questions_with_answers: questions.map(q => {
+                    let isCorrect = false;
+                    const userAns = answers[q.id];
+                    if (q.type === 'true_false' && Array.isArray(q.answer)) {
+                        const userTF = (userAns as unknown as boolean[]) || [false, false, false, false];
+                        isCorrect = q.answer.every((c, i) => c === userTF[i]);
+                    } else {
+                        const correctStr = typeof q.answer === 'string' ? q.answer : 'A';
+                        isCorrect = ((userAns || '') as string).toUpperCase() === correctStr.toUpperCase();
+                    }
+                    return {
+                        id: q.id,
+                        type: q.type,
+                        content: q.content,
+                        options: q.options,
+                        statements: q.statements,
+                        answer: q.answer,
+                        explanation: q.explanation,
+                        level: q.level,
+                        userAnswer: userAns || null,
+                        isCorrect,
+                    };
+                }),
             }, 200, env.CORS_ORIGIN);
         }
 
@@ -1301,16 +1347,47 @@ Trả về JSON array đúng format.`;
             questions = JSON.parse(jsonMatch[0]);
 
             // Validate và normalize
-            questions = questions.map((q, idx) => ({
-                id: q.id || `q${idx + 1}`,
-                content: q.content || q.question || '',
-                options: Array.isArray(q.options) ? q.options : [],
-                answer: (q.answer || 'A').toUpperCase(),
-                explanation: q.explanation || '',
-                level: ['remember', 'understand', 'apply', 'analyze'].includes(q.level)
-                    ? q.level as ExamQuestion['level']
-                    : 'remember',
-            }));
+            questions = questions.map((q: any, idx: number) => {
+                // Chú thích: Handle different answer formats from AI
+                // AI có thể trả về: "A", 0, "correct": 1, hoặc [true, false, true, false]
+                let normalizedAnswer: string | boolean[];
+                const isTrueFalse = q.type === 'true_false' || Array.isArray(q.statements);
+
+                if (isTrueFalse) {
+                    // True/False: answer is array of booleans
+                    normalizedAnswer = Array.isArray(q.correct) ? q.correct :
+                        Array.isArray(q.answer) ? q.answer :
+                            [false, false, false, false];
+                } else {
+                    // MCQ: answer is 'A', 'B', 'C', 'D' or index 0-3
+                    const rawAnswer = q.correct !== undefined ? q.correct : q.answer;
+                    if (typeof rawAnswer === 'number') {
+                        normalizedAnswer = ['A', 'B', 'C', 'D'][rawAnswer] || 'A';
+                    } else if (typeof rawAnswer === 'string') {
+                        // Chỉ lấy chữ cái đầu tiên nếu là "A. ..." format
+                        normalizedAnswer = rawAnswer.charAt(0).toUpperCase();
+                        if (!['A', 'B', 'C', 'D'].includes(normalizedAnswer)) {
+                            normalizedAnswer = 'A';
+                        }
+                    } else {
+                        normalizedAnswer = 'A';
+                    }
+                }
+
+                return {
+                    id: q.id || `q${idx + 1}`,
+                    type: isTrueFalse ? 'true_false' : 'multiple_choice',
+                    content: q.content || q.question || '',
+                    options: Array.isArray(q.options) ? q.options : [],
+                    statements: Array.isArray(q.statements) ? q.statements : undefined,
+                    answer: normalizedAnswer,
+                    explanation: q.explanation || '',
+                    level: ['remember', 'understand', 'apply', 'analyze'].includes(q.level)
+                        ? q.level as ExamQuestion['level']
+                        : 'remember',
+                    source: q.source || undefined,
+                };
+            });
 
         } catch (parseError) {
             console.error('[exam-ai] Parse error:', parseError, aiResult.text.substring(0, 500));

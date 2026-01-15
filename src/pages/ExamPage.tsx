@@ -528,10 +528,10 @@ export default function ExamPage() {
                                     onChange={(e) => setAiParams(p => ({ ...p, exam_type: e.target.value as any }))}
                                     className="input-field w-full"
                                 >
-                                    <option value="15min">Kiểm tra 15 phút (15 câu)</option>
-                                    <option value="midterm">Giữa kì (30 câu)</option>
-                                    <option value="final">Cuối kì (40 câu)</option>
-                                    <option value="thpt">THPT Quốc gia (40 câu)</option>
+                                    <option value="15min">Kiểm tra 15 phút (10 câu MCQ)</option>
+                                    <option value="midterm">Giữa kì (16 MCQ + 3 Đ/S)</option>
+                                    <option value="final">Cuối kì (20 MCQ + 4 Đ/S)</option>
+                                    <option value="thpt">THPT Quốc gia (24 MCQ + 4 Đ/S)</option>
                                 </select>
                             </div>
 

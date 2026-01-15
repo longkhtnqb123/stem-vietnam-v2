@@ -13,6 +13,7 @@ import {
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../lib/auth';
 import { XPBar, StreakCounter, DailyGoalCard } from '../components/gamification/GamificationComponents';
+import UsageStatsCard from '../components/UsageStatsCard';
 
 const API_URL = (import.meta.env.VITE_API_URL || 'https://stem-vietnam-api.stu725114073.workers.dev').replace(/\/$/, '');
 
@@ -132,6 +133,9 @@ export default function StudentDashboard() {
                     achieved={overview.totalAttempts % 3 === 0 && overview.totalAttempts > 0}
                 />
             </div>
+
+            {/* Thống kê sử dụng AI */}
+            {token && <UsageStatsCard token={token} />}
 
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
