@@ -1,18 +1,7 @@
-// Chú thích: Student Dashboard - Thống kê tiến độ học tập cho học sinh
 import { useState, useEffect } from 'react';
-import {
-    Trophy,
-    TrendingUp,
-    Target,
-    Flame,
-    Star,
-    BookOpen,
-    ChevronRight,
-    Lightbulb
-} from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { BookOpen } from 'lucide-react';
 import { useAuthStore } from '../lib/auth';
-import { XPBar, StreakCounter, DailyGoalCard } from '../components/gamification/GamificationComponents';
 
 const API_URL = (import.meta.env.VITE_API_URL || 'https://stem-vietnam-api.stu725114073.workers.dev').replace(/\/$/, '');
 
@@ -56,7 +45,7 @@ export default function StudentDashboard() {
 
                 if (!res.ok) {
                     const errData = await res.json();
-                    throw new Error(errData.error || 'Lỗi tải dữ liệu');
+                    throw new Error(errData.error || 'Loi tai du lieu');
                 }
 
                 const json = await res.json();
@@ -73,19 +62,22 @@ export default function StudentDashboard() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-[60vh]">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent" />
+            <div className="lms-page">
+                <div className="lms-empty">
+                    <div className="lms-spinner" />
+                    <p className="lms-note">Dang tai dashboard...</p>
+                </div>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="flex items-center justify-center h-[60vh]">
-                <div className="text-center text-red-500">
-                    <p className="text-xl mb-2">❌ {error}</p>
-                    <button onClick={() => window.location.reload()} className="text-blue-600 hover:underline">
-                        Thử lại
+            <div className="lms-page">
+                <div className="lms-empty">
+                    <p className="lms-note">Loi: {error}</p>
+                    <button onClick={() => window.location.reload()} className="lms-button-secondary">
+                        Thu lai
                     </button>
                 </div>
             </div>
@@ -94,229 +86,92 @@ export default function StudentDashboard() {
 
     if (!data) return null;
 
-    const { overview, progressData, bloomAnalysis, recommendations, recentAttempts } = data;
+    const { overview, bloomAnalysis, recommendations, recentAttempts } = data;
 
     return (
-        <div className="max-w-7xl mx-auto space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
-                        🎓 Xin chào, {user?.name}!
-                    </h1>
-                    <p className="text-slate-600 dark:text-slate-400 mt-1">
-                        Tiếp tục luyện tập để đạt kết quả tốt hơn nhé!
-                    </p>
+        <div className="lms-page">
+            <section className="lms-card">
+                <div className="lms-card-header">
+                    <div>
+                        <div className="lms-card-title">Xin chao, {user?.name}</div>
+                        <div className="lms-card-subtitle">Tong quan tien do hoc tap</div>
+                    </div>
+                    <Link to="/exam" className="lms-button">
+                        <BookOpen size={16} /> Lam bai thi
+                    </Link>
                 </div>
-                <Link
-                    to="/exam-online"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary-500 to-secondary-500 text-white rounded-xl font-medium hover:from-primary-600 hover:to-secondary-600 transition-colors shadow-lg shadow-primary-500/30"
-                >
-                    <BookOpen size={18} />
-                    Làm bài thi
-                </Link>
-            </div>
+            </section>
 
-            {/* Gamification Section - XP, Streak, Daily Goal */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <XPBar
-                    currentXP={overview.totalAttempts * 25}
-                    level={Math.floor(overview.totalAttempts / 5) + 1}
-                    progressToNextLevel={(overview.totalAttempts % 5) * 20}
-                    xpToNextLevel={125 - (overview.totalAttempts % 5) * 25}
-                />
-                <StreakCounter streak={overview.streak} />
-                <DailyGoalCard
-                    targetExams={3}
-                    completedExams={Math.min(overview.totalAttempts % 3, 3)}
-                    achieved={overview.totalAttempts % 3 === 0 && overview.totalAttempts > 0}
-                />
-            </div>
+            <section className="lms-grid lms-grid-3">
+                <div className="lms-card">
+                    <div className="lms-card-title">Bai thi da lam</div>
+                    <div className="lms-note">{overview.totalAttempts} bai</div>
+                </div>
+                <div className="lms-card">
+                    <div className="lms-card-title">Diem trung binh</div>
+                    <div className="lms-note">{overview.averageScore.toFixed(1)}/10</div>
+                </div>
+                <div className="lms-card">
+                    <div className="lms-card-title">Ti le dat</div>
+                    <div className="lms-note">{Math.round(overview.passRate)}%</div>
+                </div>
+            </section>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl p-4 text-white shadow-lg shadow-primary-500/20">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Target size={20} className="opacity-80" />
-                        <span className="text-xs opacity-80">Bài đã làm</span>
-                    </div>
-                    <p className="text-2xl font-bold">{overview.totalAttempts}</p>
+            <section className="lms-card">
+                <div className="lms-card-header">
+                    <div className="lms-card-title">Gan day</div>
                 </div>
-                <div className="bg-gradient-to-br from-secondary-500 to-secondary-600 rounded-2xl p-4 text-white shadow-lg shadow-secondary-500/20">
-                    <div className="flex items-center gap-2 mb-2">
-                        <TrendingUp size={20} className="opacity-80" />
-                        <span className="text-xs opacity-80">Điểm TB</span>
-                    </div>
-                    <p className="text-2xl font-bold">{overview.averageScore.toFixed(1)}</p>
-                </div>
-                <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl p-4 text-white shadow-lg shadow-primary-600/20">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Trophy size={20} className="opacity-80" />
-                        <span className="text-xs opacity-80">Cao nhất</span>
-                    </div>
-                    <p className="text-2xl font-bold">{overview.highestScore.toFixed(1)}</p>
-                </div>
-                <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-4 text-white">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Star size={20} className="opacity-80" />
-                        <span className="text-xs opacity-80">Tỷ lệ đạt</span>
-                    </div>
-                    <p className="text-2xl font-bold">{overview.passRate}%</p>
-                </div>
-                <div className="bg-gradient-to-br from-red-500 to-pink-500 rounded-2xl p-4 text-white">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Flame size={20} className="opacity-80" />
-                        <span className="text-xs opacity-80">Streak</span>
-                    </div>
-                    <p className="text-2xl font-bold">{overview.streak} 🔥</p>
-                </div>
-            </div>
+                {recentAttempts.length === 0 ? (
+                    <div className="lms-empty">Chua co bai thi</div>
+                ) : (
+                    <table className="lms-table">
+                        <thead>
+                            <tr>
+                                <th>De thi</th>
+                                <th>Lop</th>
+                                <th>Diem</th>
+                                <th>Ngay</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {recentAttempts.map((attempt) => (
+                                <tr key={attempt.id}>
+                                    <td>{attempt.templateTitle}</td>
+                                    <td>{attempt.grade}</td>
+                                    <td>{attempt.score.toFixed(1)}</td>
+                                    <td>{new Date(attempt.submittedAt).toLocaleDateString('vi-VN')}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </section>
 
-            {/* Progress Chart */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm">
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                    <TrendingUp size={20} className="text-blue-500" />
-                    Tiến độ 7 ngày gần nhất
-                </h2>
-                <div className="flex items-end justify-between gap-2 h-32">
-                    {progressData.map((p, idx) => (
-                        <div key={idx} className="flex-1 flex flex-col items-center">
-                            <div className="w-full relative">
-                                {p.count > 0 && (
-                                    <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs font-semibold text-green-600">
-                                        {p.score}
-                                    </span>
-                                )}
-                                <div
-                                    className={`w-full rounded-t-lg transition-all duration-500 ${p.count > 0
-                                        ? 'bg-gradient-to-t from-primary-500 to-secondary-400'
-                                        : 'bg-slate-200 dark:bg-slate-700'
-                                        }`}
-                                    style={{
-                                        height: p.count > 0 ? `${(p.score / 10) * 100}px` : '8px',
-                                    }}
-                                />
-                            </div>
-                            <span className="text-xs text-slate-500 mt-2">{p.date}</span>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-                {/* Bloom Analysis */}
-                <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                        <Target size={20} className="text-purple-500" />
-                        Điểm mạnh / Điểm yếu
-                    </h2>
-                    <div className="space-y-4">
-                        {bloomAnalysis.map((b) => (
-                            <div key={b.level}>
-                                <div className="flex items-center justify-between mb-1">
-                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                        {b.label}
-                                    </span>
-                                    <span className={`text-sm font-bold ${b.percentage >= 70 ? 'text-green-600' :
-                                        b.percentage >= 50 ? 'text-yellow-600' : 'text-red-500'
-                                        }`}>
-                                        {b.total > 0 ? `${b.percentage}%` : '--'}
-                                    </span>
-                                </div>
-                                <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                                    <div
-                                        className={`h-full rounded-full transition-all duration-500 ${b.percentage >= 70 ? 'bg-green-500' :
-                                            b.percentage >= 50 ? 'bg-yellow-500' : 'bg-red-500'
-                                            }`}
-                                        style={{ width: `${b.percentage}%` }}
-                                    />
-                                </div>
-                                <p className="text-xs text-slate-500 mt-1">
-                                    {b.total > 0 ? `${b.total} câu đã làm` : 'Chưa có dữ liệu'}
-                                </p>
+            <section className="lms-grid lms-grid-2">
+                <div className="lms-card">
+                    <div className="lms-card-title">Phan tich muc do</div>
+                    <div className="lms-section">
+                        {bloomAnalysis.map((item) => (
+                            <div key={item.level} className="lms-row" style={{ justifyContent: 'space-between' }}>
+                                <span>{item.label}</span>
+                                <span className="lms-note">{item.percentage}%</span>
                             </div>
                         ))}
                     </div>
                 </div>
-
-                {/* Recommendations */}
-                <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                        <Lightbulb size={20} className="text-yellow-500" />
-                        Gợi ý ôn tập
-                    </h2>
+                <div className="lms-card">
+                    <div className="lms-card-title">Goi y on tap</div>
                     {recommendations.length === 0 ? (
-                        <div className="text-center py-6 text-slate-500">
-                            <Star size={40} className="mx-auto mb-3 text-yellow-400" />
-                            <p>Tuyệt vời! Bạn đang làm rất tốt 🎉</p>
-                        </div>
+                        <div className="lms-note">Chua co goi y.</div>
                     ) : (
-                        <ul className="space-y-3">
+                        <ul className="lms-section">
                             {recommendations.map((rec, idx) => (
-                                <li key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
-                                    <span className="text-yellow-500 mt-0.5">💡</span>
-                                    <span className="text-sm text-slate-700 dark:text-slate-300">{rec}</span>
-                                </li>
+                                <li key={idx} className="lms-note">- {rec}</li>
                             ))}
                         </ul>
                     )}
-                    <Link
-                        to="/exam-online"
-                        className="mt-4 inline-flex items-center gap-1 text-blue-600 hover:underline text-sm"
-                    >
-                        Làm bài để cải thiện <ChevronRight size={14} />
-                    </Link>
                 </div>
-            </div>
-
-            {/* Recent Attempts */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <BookOpen size={20} className="text-green-500" />
-                        Bài làm gần đây
-                    </h2>
-                    <Link to="/exam-online" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
-                        Xem tất cả <ChevronRight size={14} />
-                    </Link>
-                </div>
-
-                {recentAttempts.length === 0 ? (
-                    <div className="text-center py-8 text-slate-500">
-                        <BookOpen size={48} className="mx-auto mb-3 opacity-50" />
-                        <p>Chưa có bài làm nào</p>
-                        <Link to="/exam-online" className="text-blue-600 hover:underline mt-2 inline-block">
-                            Làm bài đầu tiên →
-                        </Link>
-                    </div>
-                ) : (
-                    <div className="space-y-3">
-                        {recentAttempts.map((a) => (
-                            <div
-                                key={a.id}
-                                className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50"
-                            >
-                                <div className="flex-1 min-w-0">
-                                    <h4 className="font-medium text-slate-900 dark:text-white truncate">
-                                        {a.templateTitle || 'Đề thi'}
-                                    </h4>
-                                    <p className="text-xs text-slate-500 mt-1">
-                                        Lớp {a.grade} • {a.correctCount}/{a.totalQuestions} câu đúng
-                                    </p>
-                                </div>
-                                <div className="text-right ml-4">
-                                    <span className={`text-xl font-bold ${a.score >= 8 ? 'text-green-600' :
-                                        a.score >= 5 ? 'text-yellow-600' : 'text-red-500'
-                                        }`}>
-                                        {a.score.toFixed(1)}
-                                    </span>
-                                    <p className="text-xs text-slate-500">điểm</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
+            </section>
         </div>
     );
 }

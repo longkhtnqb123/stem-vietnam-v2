@@ -28,15 +28,15 @@ function getFileType(file: File): FileAttachment['type'] {
 // Chú thích: Icon theo file type
 function FileIcon({ type }: { type: FileAttachment['type'] }) {
     switch (type) {
-        case 'image': return <Image size={16} className="text-green-500" />;
-        case 'video': return <Film size={16} className="text-purple-500" />;
-        case 'audio': return <Music size={16} className="text-pink-500" />;
-        case 'document': return <FileText size={16} className="text-blue-500" />;
-        default: return <File size={16} className="text-slate-400" />;
+        case 'image': return <Image size={16} className="lms-file-icon is-image" />;
+        case 'video': return <Film size={16} className="lms-file-icon is-video" />;
+        case 'audio': return <Music size={16} className="lms-file-icon is-audio" />;
+        case 'document': return <FileText size={16} className="lms-file-icon is-document" />;
+        default: return <File size={16} className="lms-file-icon is-other" />;
     }
 }
 
-export default function ChatInput({ onSend, isLoading, placeholder = "Nhập tin nhắn..." }: ChatInputProps) {
+export default function ChatInput({ onSend, isLoading, placeholder = "Nhap tin nhan..." }: ChatInputProps) {
     const [input, setInput] = useState('');
     const [files, setFiles] = useState<FileAttachment[]>([]);
     const [isDragging, setIsDragging] = useState(false);
@@ -182,30 +182,31 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhập tin
 
     return (
         <div
-            className={`relative transition-all ${isDragging ? 'ring-2 ring-primary-500 ring-offset-2 rounded-2xl' : ''}`}
+            className="lms-section"
+            style={{ position: 'relative' }}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
         >
-            {/* File Previews */}
             {files.length > 0 && (
-                <div className="mb-3 flex flex-wrap gap-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                <div className="lms-attachments">
                     {files.map(file => (
                         <div
                             key={file.id}
-                            className="relative group flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
+                            className="lms-attachment"
                         >
                             {file.preview ? (
-                                <img src={file.preview} alt="" className="w-8 h-8 rounded object-cover" />
+                                <img src={file.preview} alt="" />
                             ) : (
                                 <FileIcon type={file.type} />
                             )}
-                            <span className="text-sm text-slate-700 dark:text-slate-300 max-w-[150px] truncate">
+                            <span className="lms-note" style={{ maxWidth: 160, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                 {file.file.name}
                             </span>
                             <button
                                 onClick={() => removeFile(file.id)}
-                                className="p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-all"
+                                className="lms-icon-button is-danger"
+                                aria-label="Remove file"
                             >
                                 <X size={14} />
                             </button>
@@ -214,38 +215,31 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhập tin
                 </div>
             )}
 
-            {/* Input Area */}
-            <div className="flex items-end gap-2 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-2 shadow-lg">
-                {/* File Upload Button */}
+            <div className={`lms-chat-input-box ${isDragging ? 'is-dragging' : ''}`}>
                 <input
                     type="file"
                     ref={fileInputRef}
                     onChange={(e) => handleFiles(e.target.files)}
-                    className="hidden"
+                    style={{ display: 'none' }}
                     multiple
                     accept="*/*"
                 />
                 <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-all"
-                    title="Đính kèm file"
+                    className="lms-icon-button"
+                    title="Dinh kem file"
                 >
-                    <Paperclip size={20} />
+                    <Paperclip size={18} />
                 </button>
 
-                {/* Voice Input Button */}
                 <button
                     onClick={toggleListening}
-                    className={`p-3 rounded-xl transition-all ${isListening
-                            ? 'bg-red-100 text-red-600 animate-pulse ring-2 ring-red-500 ring-offset-1 dark:bg-red-900/30 dark:text-red-400'
-                            : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400'
-                        }`}
-                    title={isListening ? "Dừng ghi âm" : "Nhập bằng giọng nói"}
+                    className={`lms-icon-button ${isListening ? 'is-active' : ''}`}
+                    title={isListening ? 'Dung ghi am' : 'Nhap bang giong noi'}
                 >
-                    {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+                    {isListening ? <MicOff size={18} /> : <Mic size={18} />}
                 </button>
 
-                {/* Textarea */}
                 <textarea
                     ref={textareaRef}
                     value={input}
@@ -256,30 +250,22 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhập tin
                             handleSubmit();
                         }
                     }}
-                    placeholder={isListening ? "Đang nghe bạn nói..." : placeholder}
+                    placeholder={isListening ? 'Dang nghe ban noi...' : placeholder}
                     rows={1}
-                    className="flex-1 resize-none bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white placeholder-slate-400 py-3 px-2 max-h-[200px]"
+                    className="lms-chat-textarea"
                     disabled={isLoading}
                 />
 
-                {/* Send Button */}
                 <button
                     onClick={handleSubmit}
                     disabled={(!input.trim() && files.length === 0) || isLoading}
-                    className="p-3 rounded-xl bg-primary-500 text-white hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
+                    className="lms-icon-button is-primary"
+                    aria-label="Send"
                 >
-                    <Send size={20} />
+                    <Send size={18} />
                 </button>
             </div>
-
-            {/* Drag Overlay */}
-            {isDragging && (
-                <div className="absolute inset-0 bg-primary-500/10 rounded-2xl flex items-center justify-center border-2 border-dashed border-primary-500">
-                    <p className="text-primary-600 dark:text-primary-400 font-medium">
-                        Thả file vào đây
-                    </p>
-                </div>
-            )}
         </div>
     );
 }
+

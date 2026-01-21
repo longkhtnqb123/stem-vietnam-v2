@@ -37,8 +37,11 @@ import TourGuide, { useTourGuide } from './components/common/TourGuide';
 // Chú thích: Loading fallback component
 function PageLoader() {
   return (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent" />
+    <div className="lms-page">
+      <div className="lms-empty">
+        <div className="lms-spinner" />
+        <p className="lms-note">Dang tai...</p>
+      </div>
     </div>
   );
 }
@@ -46,10 +49,10 @@ function PageLoader() {
 // Chú thích: Full page loader for landing
 function FullPageLoader() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary-500 border-t-transparent mx-auto mb-4" />
-        <p className="text-slate-500 dark:text-slate-400">Đang tải...</p>
+    <div className="lms-shell" style={{ justifyContent: 'center', alignItems: 'center' }}>
+      <div className="lms-empty">
+        <div className="lms-spinner" />
+        <p className="lms-note">Dang tai...</p>
       </div>
     </div>
   );
@@ -100,16 +103,16 @@ function App() {
       <TourGuide isOpen={showTour} onComplete={completeTour} />
       {/* Notification Toast */}
       {notification && (
-        <div className={`
-          fixed top-4 right-4 z-50 p-4 rounded-xl shadow-lg animate-slide-up
-          ${notification.type === 'success' ? 'bg-green-500 text-white' : ''}
-          ${notification.type === 'error' ? 'bg-red-500 text-white' : ''}
-          ${notification.type === 'info' ? 'bg-primary-500 text-white' : ''}
-        `}>
-          <div className="flex items-center gap-2">
-            <span>{notification.message}</span>
-            <button onClick={clearNotification} className="ml-2 hover:opacity-75">×</button>
-          </div>
+        <div
+          className={`lms-toast ${notification.type === 'success'
+            ? 'is-success'
+            : notification.type === 'error'
+              ? 'is-error'
+              : 'is-info'
+            }`}
+        >
+          <span>{notification.message}</span>
+          <button onClick={clearNotification} aria-label="Close notification">X</button>
         </div>
       )}
 
@@ -266,4 +269,6 @@ function App() {
 }
 
 export default App;
+
+
 

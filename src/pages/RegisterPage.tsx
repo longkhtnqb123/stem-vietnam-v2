@@ -1,7 +1,6 @@
-// Chú thích: Register Page - Giao diện nhẹ nhàng, nền trắng
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Check, GraduationCap, Users } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Check } from 'lucide-react';
 import { useAuthStore, type UserRole } from '../lib/auth';
 
 export default function RegisterPage() {
@@ -15,7 +14,7 @@ export default function RegisterPage() {
     const { register, isLoading, error, clearError } = useAuthStore();
     const navigate = useNavigate();
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
 
         if (password !== confirmPassword) {
@@ -25,7 +24,6 @@ export default function RegisterPage() {
         const result = await register(name, email, password, role);
         if (result) {
             setSuccess(true);
-            // Chú thích: Redirect về home vì đã tự động login sau khi đăng ký
             setTimeout(() => navigate('/'), 1500);
         }
     };
@@ -35,172 +33,128 @@ export default function RegisterPage() {
 
     if (success) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50">
-                <div className="text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
-                        <Check className="text-green-600" size={32} />
+            <div className="lms-auth">
+                <div className="lms-card lms-auth-card" style={{ textAlign: 'center' }}>
+                    <div className="lms-user-avatar" style={{ margin: '0 auto' }}>
+                        <Check size={16} />
                     </div>
-                    <h2 className="text-xl font-bold text-slate-900 mb-2">Đăng ký thành công!</h2>
-                    <p className="text-slate-500 text-sm">Đang chuyển đến trang chủ...</p>
+                    <h2 className="lms-auth-title">Dang ky thanh cong</h2>
+                    <p className="lms-auth-subtitle">Dang chuyen den trang chu...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-            <div className="w-full max-w-md">
-                {/* Logo */}
-                <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary-500 mb-4">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                    </div>
-                    <h1 className="text-2xl font-bold text-slate-900">Tạo tài khoản</h1>
-                    <p className="text-slate-500 mt-1 text-sm">Tham gia Học Công Nghệ ngay hôm nay</p>
+        <div className="lms-auth">
+            <div className="lms-auth-card">
+                <div className="lms-auth-header">
+                    <div className="lms-user-avatar">SV</div>
+                    <h1 className="lms-auth-title">Tao tai khoan</h1>
+                    <p className="lms-auth-subtitle">Tham gia he thong hoc tap</p>
                 </div>
 
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <form onSubmit={handleSubmit} className="lms-card lms-form">
                     {error && (
-                        <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
+                        <div className="lms-alert">
                             {error}
                         </div>
                     )}
 
-                    {/* Chú thích: Chọn role (Học sinh / Giáo viên) */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium text-slate-700 mb-3">Bạn là:</label>
-                        <div className="grid grid-cols-2 gap-3">
+                    <div className="lms-section">
+                        <label className="lms-label">Vai tro</label>
+                        <div className="lms-row">
                             <button
                                 type="button"
                                 onClick={() => setRole('student')}
-                                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${role === 'student'
-                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                                    }`}
+                                className={role === 'student' ? 'lms-button' : 'lms-button-secondary'}
                             >
-                                <GraduationCap size={28} />
-                                <span className="font-medium text-sm">🎓 Học sinh</span>
+                                Hoc sinh
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setRole('teacher')}
-                                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${role === 'teacher'
-                                        ? 'border-purple-500 bg-purple-50 text-purple-700'
-                                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                                    }`}
+                                className={role === 'teacher' ? 'lms-button' : 'lms-button-secondary'}
                             >
-                                <Users size={28} />
-                                <span className="font-medium text-sm">👩‍🏫 Giáo viên</span>
+                                Giao vien
                             </button>
                         </div>
                     </div>
 
-                    <div className="space-y-4">
-                        {/* Name */}
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Họ và tên</label>
-                            <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                <input
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => { setName(e.target.value); clearError(); }}
-                                    placeholder="Nguyễn Văn A"
-                                    className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm"
-                                    required
-                                />
-                            </div>
-                        </div>
+                    <div className="lms-section">
+                        <label className="lms-label">Ho va ten</label>
+                        <input
+                            type="text"
+                            value={name}
+                            onChange={(e) => { setName(e.target.value); clearError(); }}
+                            placeholder="Nguyen Van A"
+                            className="lms-input"
+                            required
+                        />
+                    </div>
 
-                        {/* Email */}
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => { setEmail(e.target.value); clearError(); }}
-                                    placeholder="email@example.com"
-                                    className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm"
-                                    required
-                                />
-                            </div>
-                        </div>
+                    <div className="lms-section">
+                        <label className="lms-label">Email</label>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => { setEmail(e.target.value); clearError(); }}
+                            placeholder="email@example.com"
+                            className="lms-input"
+                            required
+                        />
+                    </div>
 
-                        {/* Password */}
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Mật khẩu</label>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                <input
-                                    type={showPassword ? 'text' : 'password'}
-                                    value={password}
-                                    onChange={(e) => { setPassword(e.target.value); clearError(); }}
-                                    placeholder="Ít nhất 6 ký tự"
-                                    className="w-full pl-10 pr-10 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm"
-                                    required
-                                    minLength={6}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                                >
-                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Confirm Password */}
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Xác nhận mật khẩu</label>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                <input
-                                    type={showPassword ? 'text' : 'password'}
-                                    value={confirmPassword}
-                                    onChange={(e) => { setConfirmPassword(e.target.value); clearError(); }}
-                                    placeholder="Nhập lại mật khẩu"
-                                    className={`w-full pl-10 pr-10 py-2.5 rounded-lg bg-slate-50 border text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm ${passwordMatch ? 'border-green-400' : passwordMismatch ? 'border-red-400' : 'border-slate-200'
-                                        }`}
-                                    required
-                                />
-                                {passwordMatch && (
-                                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500" size={18} />
-                                )}
-                            </div>
-                            {passwordMismatch && (
-                                <p className="text-red-500 text-xs mt-1">Mật khẩu không khớp</p>
-                            )}
+                    <div className="lms-section">
+                        <label className="lms-label">Mat khau</label>
+                        <div className="lms-row">
+                            <input
+                                type={showPassword ? 'text' : 'password'}
+                                value={password}
+                                onChange={(e) => { setPassword(e.target.value); clearError(); }}
+                                placeholder="Toi thieu 6 ky tu"
+                                className="lms-input"
+                                required
+                                minLength={6}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="lms-button-ghost"
+                            >
+                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
                         </div>
                     </div>
 
-                    {/* Submit */}
+                    <div className="lms-section">
+                        <label className="lms-label">Xac nhan mat khau</label>
+                        <input
+                            type={showPassword ? 'text' : 'password'}
+                            value={confirmPassword}
+                            onChange={(e) => { setConfirmPassword(e.target.value); clearError(); }}
+                            placeholder="Nhap lai mat khau"
+                            className="lms-input"
+                            required
+                        />
+                        {passwordMatch && <span className="lms-note">Mat khau khop</span>}
+                        {passwordMismatch && <span className="lms-note" style={{ color: 'var(--lms-danger)' }}>Mat khau khong khop</span>}
+                    </div>
+
                     <button
                         type="submit"
                         disabled={isLoading || Boolean(passwordMismatch)}
-                        className="w-full mt-6 py-2.5 rounded-lg bg-primary-500 text-white font-medium flex items-center justify-center gap-2 hover:bg-primary-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                        className="lms-button"
                     >
-                        {isLoading ? (
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : (
-                            <>
-                                Đăng ký
-                                <ArrowRight size={16} />
-                            </>
-                        )}
+                        {isLoading ? <div className="lms-spinner" /> : <ArrowRight size={16} />}
+                        <span>Dang ky</span>
                     </button>
                 </form>
 
-                {/* Login link */}
-                <p className="text-center mt-6 text-slate-500 text-sm">
-                    Đã có tài khoản?{' '}
-                    <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
-                        Đăng nhập
+                <p className="lms-note" style={{ textAlign: 'center' }}>
+                    Da co tai khoan?{' '}
+                    <Link to="/login" className="lms-badge">
+                        Dang nhap
                     </Link>
                 </p>
             </div>

@@ -3,6 +3,7 @@
 
 /* Import design tokens */
 @import "./styles/design-tokens.css";
+@import "./styles/lms.css";
 
 /* Chú thích: Theme customization cho Tailwind v4 - Emerald Theme */
 @theme {
@@ -61,12 +62,13 @@
   --accent-bg: 254 243 199;
 }
 
-/* Theme-aware body styles */
+/* Base body styles for LMS */
 body {
-  background-color: rgb(var(--background));
-  color: rgb(var(--foreground));
-  @apply antialiased;
-  font-family: 'Inter', 'Nunito', system-ui, sans-serif;
+  background-color: var(--lms-bg);
+  color: var(--lms-text);
+  font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  line-height: 1.5;
+  margin: 0;
 }
 
 /* Sepia-specific overrides */

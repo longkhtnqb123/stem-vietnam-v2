@@ -58,11 +58,8 @@ function SpeakerButton({ text }: { text: string }) {
     return (
         <button
             onClick={speak}
-            className={`p-1 rounded transition-colors ${isSpeaking
-                    ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
-                    : 'text-slate-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20'
-                }`}
-            title={isSpeaking ? "Dừng đọc" : "Đọc to"}
+            className={isSpeaking ? 'lms-icon-button is-accent' : 'lms-icon-button'}
+            title={isSpeaking ? "Dung doc" : "Doc to"}
         >
             {isSpeaking ? <Square size={14} fill="currentColor" /> : <Volume2 size={14} />}
         </button>
@@ -101,9 +98,12 @@ function MermaidDiagram({ code }: { code: string }) {
 
     if (error) {
         return (
-            <div className="my-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-                <pre className="mt-2 text-xs text-slate-600 dark:text-slate-400 overflow-x-auto">{code}</pre>
+            <div
+                className="lms-alert"
+                style={{ background: '#fbeceb', color: 'var(--lms-danger)', borderColor: 'rgba(217, 48, 37, 0.3)' }}
+            >
+                <p>{error}</p>
+                <pre className="lms-code-pre">{code}</pre>
             </div>
         );
     }
@@ -111,7 +111,8 @@ function MermaidDiagram({ code }: { code: string }) {
     return (
         <div
             ref={containerRef}
-            className="my-3 p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-x-auto flex justify-center"
+            className="lms-card"
+            style={{ marginTop: 12, marginBottom: 12, padding: 12, overflowX: 'auto' }}
             dangerouslySetInnerHTML={{ __html: svg }}
         />
     );
@@ -131,7 +132,7 @@ function CodeBlock({ inline, className, children, ...props }: any) {
     if (inline) {
         return (
             <code
-                className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-pink-600 dark:text-pink-400 text-sm font-mono"
+                className="lms-code-inline"
                 {...props}
             >
                 {children}
@@ -140,14 +141,14 @@ function CodeBlock({ inline, className, children, ...props }: any) {
     }
 
     return (
-        <div className="my-2 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+        <div className="lms-code-block">
             {language && (
-                <div className="px-3 py-1 bg-slate-100 dark:bg-slate-700 text-xs text-slate-500 dark:text-slate-400 font-mono">
+                <div className="lms-code-header">
                     {language}
                 </div>
             )}
-            <pre className="p-3 bg-slate-50 dark:bg-slate-800 overflow-x-auto">
-                <code className="text-sm font-mono text-slate-800 dark:text-slate-200" {...props}>
+            <pre className="lms-code-pre">
+                <code {...props}>
                     {children}
                 </code>
             </pre>
@@ -158,40 +159,16 @@ function CodeBlock({ inline, className, children, ...props }: any) {
 // Chú thích: Custom components cho markdown elements
 const markdownComponents = {
     code: CodeBlock,
-    // Chú thích: Style cho các heading
-    h1: ({ children }: any) => <h1 className="text-xl font-bold mt-4 mb-2">{children}</h1>,
-    h2: ({ children }: any) => <h2 className="text-lg font-bold mt-3 mb-2">{children}</h2>,
-    h3: ({ children }: any) => <h3 className="text-base font-semibold mt-2 mb-1">{children}</h3>,
-    // Chú thích: Style cho list
-    ul: ({ children }: any) => <ul className="list-disc list-inside my-2 space-y-1">{children}</ul>,
-    ol: ({ children }: any) => <ol className="list-decimal list-inside my-2 space-y-1">{children}</ol>,
-    li: ({ children }: any) => <li className="ml-2">{children}</li>,
-    // Chú thích: Style cho blockquote
-    blockquote: ({ children }: any) => (
-        <blockquote className="border-l-4 border-primary-500 pl-3 my-2 italic text-slate-600 dark:text-slate-400">
-            {children}
-        </blockquote>
-    ),
-    // Chú thích: Style cho links
     a: ({ href, children }: any) => (
-        <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:underline">
+        <a href={href} target="_blank" rel="noopener noreferrer" className="lms-link">
             {children}
         </a>
     ),
-    // Chú thích: Style cho table
     table: ({ children }: any) => (
-        <div className="overflow-x-auto my-2">
-            <table className="min-w-full border border-slate-200 dark:border-slate-700 rounded">
-                {children}
-            </table>
+        <div style={{ overflowX: 'auto' }}>
+            <table>{children}</table>
         </div>
     ),
-    th: ({ children }: any) => <th className="px-3 py-2 bg-slate-100 dark:bg-slate-700 text-left font-semibold border-b">{children}</th>,
-    td: ({ children }: any) => <td className="px-3 py-2 border-b border-slate-100 dark:border-slate-700">{children}</td>,
-    // Chú thích: Style cho strong/bold
-    strong: ({ children }: any) => <strong className="font-semibold text-slate-900 dark:text-white">{children}</strong>,
-    // Chú thích: Style cho paragraph - giảm spacing
-    p: ({ children }: any) => <p className="my-1.5">{children}</p>,
 };
 
 export default function MessageBubble({ message }: MessageBubbleProps) {
@@ -218,28 +195,19 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
     };
 
     return (
-        <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
-            {/* Avatar */}
-            <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isUser
-                ? 'bg-primary-500 text-white'
-                : 'bg-gradient-to-br from-violet-500 to-purple-600 text-white'
-                }`}>
+        <div className={`lms-message ${isUser ? 'is-user' : ''}`}>
+            <div className={`lms-message-avatar ${isUser ? '' : 'is-assistant'}`}>
                 {isUser ? <User size={16} /> : <Sparkles size={16} />}
             </div>
 
-            {/* Content */}
-            <div className={`flex-1 max-w-[85%] ${isUser ? 'text-right' : ''}`}>
-                <div className={`inline-block rounded-2xl px-4 py-3 ${isUser
-                    ? 'bg-primary-500 text-white rounded-tr-sm'
-                    : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-tl-sm shadow-sm'
-                    }`}>
-                    {/* Chú thích: Render với Markdown + LaTeX, user message thì giữ đơn giản */}
+            <div className="lms-message-body" style={{ textAlign: isUser ? 'right' : 'left' }}>
+                <div className={`lms-message-bubble ${isUser ? 'is-user' : 'is-assistant'}`}>
                     {isUser ? (
-                        <div className="whitespace-pre-wrap text-[15px] leading-relaxed">
+                        <div style={{ whiteSpace: 'pre-wrap' }}>
                             {message.content}
                         </div>
                     ) : (
-                        <div className="prose prose-sm dark:prose-invert max-w-none text-[15px] leading-relaxed">
+                        <div className="lms-markdown">
                             <ReactMarkdown
                                 remarkPlugins={[remarkGfm, remarkMath]}
                                 rehypePlugins={[rehypeKatex]}
@@ -250,75 +218,68 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                         </div>
                     )}
 
-                    {/* Attached files (if any) */}
                     {message.attachments && message.attachments.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-2">
+                        <div className="lms-row" style={{ marginTop: 8 }}>
                             {message.attachments.map((file, idx) => (
-                                <div
-                                    key={idx}
-                                    className="text-xs px-2 py-1 rounded bg-white/20 dark:bg-black/20"
-                                >
-                                    📎 {file.name}
-                                </div>
+                                <span key={idx} className="lms-badge">
+                                    File: {file.name}
+                                </span>
                             ))}
                         </div>
                     )}
                 </div>
 
-                {/* Sources - Chỉ hiển thị cho assistant và khi có nguồn */}
                 {!isUser && message.sourceChunks && message.sourceChunks.length > 0 && (
-                    <div className="mt-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-                        <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-2 font-medium">
+                    <div className="lms-message-sources">
+                        <div className="lms-row" style={{ gap: 6, marginBottom: 6 }}>
                             <BookOpen size={12} />
-                            Nguồn tham khảo
-                        </p>
-                        <div className="space-y-1">
+                            <span className="lms-note">Nguon tham khao</span>
+                        </div>
+                        <div className="lms-section" style={{ gap: 6 }}>
                             {message.sourceChunks.slice(0, 3).map((chunk, idx) => (
                                 <a
                                     key={idx}
                                     href={chunk.document.fileUrl || '#'}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-2 text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:underline"
+                                    className="lms-link"
                                 >
-                                    <ExternalLink size={10} />
-                                    [{idx + 1}] {chunk.document.title}
+                                    <span>[{idx + 1}] {chunk.document.title}</span>
+                                    <ExternalLink size={12} />
                                 </a>
                             ))}
                         </div>
                     </div>
                 )}
 
-                {/* Feedback Buttons - Chỉ hiển thị cho assistant */}
                 {!isUser && (
-                    <div className="flex items-center gap-2 mt-2">
-                        {/* TTS Button */}
+                    <div className="lms-message-meta">
                         <SpeakerButton text={message.content} />
 
                         {feedbackSent ? (
-                            <span className="text-xs text-slate-500 dark:text-slate-400">
-                                {feedbackSent === 'helpful' ? '✅ Cảm ơn phản hồi!' : '📝 Đã ghi nhận'}
+                            <span className="lms-note">
+                                {feedbackSent === 'helpful' ? 'Cam on phan hoi!' : 'Da ghi nhan'}
                             </span>
                         ) : (
                             <>
                                 <button
                                     onClick={() => sendFeedback(true)}
-                                    className="p-1 rounded hover:bg-green-100 dark:hover:bg-green-900/30 text-slate-400 hover:text-green-600 transition-colors"
-                                    title="Hữu ích"
+                                    className="lms-icon-button"
+                                    title="Huu ich"
                                 >
                                     <ThumbsUp size={14} />
                                 </button>
                                 <button
                                     onClick={() => sendFeedback(false)}
-                                    className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-600 transition-colors"
-                                    title="Chưa hữu ích"
+                                    className="lms-icon-button"
+                                    title="Chua huu ich"
                                 >
                                     <ThumbsDown size={14} />
                                 </button>
                             </>
                         )}
-                        {/* Timestamp */}
-                        <span className="text-[10px] text-slate-400 ml-auto">
+                        <span className="lms-meta-spacer" />
+                        <span>
                             {new Date(message.timestamp).toLocaleTimeString('vi-VN', {
                                 hour: '2-digit',
                                 minute: '2-digit'
@@ -327,9 +288,8 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                     </div>
                 )}
 
-                {/* Timestamp for user messages */}
                 {isUser && (
-                    <p className="text-[10px] text-slate-400 mt-1 text-right">
+                    <p className="lms-note" style={{ marginTop: 6 }}>
                         {new Date(message.timestamp).toLocaleTimeString('vi-VN', {
                             hour: '2-digit',
                             minute: '2-digit'
@@ -340,3 +300,4 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
         </div>
     );
 }
+

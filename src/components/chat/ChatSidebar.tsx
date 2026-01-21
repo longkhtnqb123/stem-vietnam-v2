@@ -30,65 +30,64 @@ export default function ChatSidebar({
 
     if (isCollapsed) {
         return (
-            <div className="w-16 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex flex-col items-center py-4 gap-2">
+            <div className="lms-chat-sidebar is-collapsed">
                 <button
                     onClick={onNew}
-                    className="p-3 rounded-xl bg-primary-500 text-white hover:bg-primary-600 transition-all shadow-lg hover:shadow-xl"
+                    className="lms-icon-button is-primary"
+                    aria-label="New conversation"
                 >
-                    <Plus size={20} />
+                    <Plus size={18} />
                 </button>
             </div>
         );
     }
 
     return (
-        <div className="w-72 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex flex-col h-full">
+        <div className="lms-chat-sidebar">
             {/* Header */}
-            <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+            <div className="lms-chat-sidebar-header">
                 <button
                     onClick={onNew}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-primary-500 text-white hover:bg-primary-600 transition-all shadow-lg hover:shadow-xl font-medium"
+                    className="lms-button"
+                    style={{ width: '100%' }}
                 >
-                    <Plus size={20} />
+                    <Plus size={18} />
                     Cuộc trò chuyện mới
                 </button>
             </div>
 
             {/* Search */}
-            <div className="p-3">
-                <div className="relative">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <div className="lms-chat-sidebar-search">
+                <div className="lms-input-group">
+                    <Search size={16} />
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Tìm kiếm..."
-                        className="w-full pl-10 pr-4 py-2 text-sm rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                        className="lms-input"
                     />
                 </div>
             </div>
 
             {/* Conversations List */}
-            <div className="flex-1 overflow-y-auto px-2 pb-4">
+            <div className="lms-chat-list">
                 {filteredConversations.length === 0 ? (
-                    <div className="text-center text-slate-400 dark:text-slate-500 py-8 text-sm">
-                        {searchQuery ? 'Không tìm thấy kết quả' : 'Chưa có cuộc trò chuyện nào'}
+                    <div className="lms-note" style={{ textAlign: 'center', padding: '12px 0' }}>
+                        {searchQuery ? 'Khong tim thay ket qua' : 'Chua co cuoc tro chuyen nao'}
                     </div>
                 ) : (
-                    <div className="space-y-1">
+                    <div className="lms-list">
                         {filteredConversations.map((conv) => (
                             <div
                                 key={conv.id}
-                                className={`group relative flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer transition-all ${activeId === conv.id
-                                    ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
-                                    : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
-                                    }`}
+                                className={`lms-chat-item ${activeId === conv.id ? 'is-active' : ''}`}
                                 onClick={() => onSelect(conv.id)}
                                 onMouseEnter={() => setHoveredId(conv.id)}
                                 onMouseLeave={() => setHoveredId(null)}
                             >
-                                <MessageSquare size={18} className="flex-shrink-0 opacity-60" />
-                                <span className="flex-1 truncate text-sm font-medium">
+                                <MessageSquare size={16} />
+                                <span className="lms-nav-label">
                                     {conv.title}
                                 </span>
 
@@ -99,7 +98,8 @@ export default function ChatSidebar({
                                             e.stopPropagation();
                                             onDelete(conv.id);
                                         }}
-                                        className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-all"
+                                        className="lms-icon-button lms-chat-delete"
+                                        aria-label="Delete conversation"
                                     >
                                         <Trash2 size={14} />
                                     </button>
@@ -111,10 +111,8 @@ export default function ChatSidebar({
             </div>
 
             {/* Footer */}
-            <div className="p-3 border-t border-slate-200 dark:border-slate-700 text-center">
-                <p className="text-xs text-slate-400">
-                    {conversations.length} cuộc trò chuyện
-                </p>
+            <div className="lms-chat-sidebar-footer">
+                {conversations.length} cuoc tro chuyen
             </div>
         </div>
     );

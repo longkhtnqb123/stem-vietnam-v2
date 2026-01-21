@@ -82,37 +82,28 @@ export default function VersionCheck() {
     if (!showUpdate) return null;
 
     return (
-        <div className="fixed bottom-4 right-4 z-50 animate-fade-in-up">
-            <div className="bg-white rounded-lg shadow-lg border border-slate-200 p-4 max-w-sm flex items-start gap-3">
-                <div className="bg-blue-100 p-2 rounded-full text-blue-600">
-                    <RefreshCw size={20} />
-                </div>
-                <div className="flex-1">
-                    <h3 className="font-semibold text-slate-800 text-sm">Cập nhật mới</h3>
-                    <p className="text-slate-600 text-xs mt-1">
-                        Phiên bản mới của ứng dụng đã sẵn sàng. Vui lòng làm mới để trải nghiệm tốt nhất.
-                    </p>
-                    <div className="mt-3 flex gap-2">
-                        <button
-                            onClick={handleUpdate}
-                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded transition-colors"
-                        >
-                            Cập nhật ngay
-                        </button>
-                        <button
-                            onClick={() => setShowUpdate(false)}
-                            className="text-slate-500 hover:text-slate-700 text-xs font-medium px-3 py-1.5 rounded transition-colors"
-                        >
-                            Để sau
-                        </button>
+        <div style={{ position: 'fixed', right: 24, bottom: 24, zIndex: 120 }}>
+            <div className="lms-card" style={{ maxWidth: 360 }}>
+                <div className="lms-row" style={{ alignItems: 'flex-start' }}>
+                    <div className="lms-badge">
+                        <RefreshCw size={16} />
+                        Cap nhat moi
                     </div>
+                    <button onClick={() => setShowUpdate(false)} className="lms-button-ghost">
+                        <X size={14} />
+                    </button>
                 </div>
-                <button
-                    onClick={() => setShowUpdate(false)}
-                    className="text-slate-400 hover:text-slate-600"
-                >
-                    <X size={16} />
-                </button>
+                <p className="lms-note">
+                    Phien ban moi cua ung dung da san sang. Vui long lam moi de trai nghiem tot nhat.
+                </p>
+                <div className="lms-row" style={{ marginTop: 12 }}>
+                    <button onClick={handleUpdate} className="lms-button">
+                        Cap nhat ngay
+                    </button>
+                    <button onClick={() => setShowUpdate(false)} className="lms-button-ghost">
+                        De sau
+                    </button>
+                </div>
             </div>
         </div>
     );

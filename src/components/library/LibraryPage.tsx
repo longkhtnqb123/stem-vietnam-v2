@@ -1,35 +1,17 @@
-// Chú thích: Library Page - Quản lý tài liệu nguồn cho RAG
-// Hiển thị SGK mặc định + Chuyên đề + Đề thi mẫu theo Tabs
 import { useState, useEffect, useRef } from 'react';
-import {
-    Library,
-    Upload,
-    FileText,
-    Trash2,
-    BookOpen,
-    Plus,
-    CheckCircle2,
-    AlertCircle,
-    Download,
-    Book,
-    FileSpreadsheet,
-    Link as LinkIcon,
-    Loader2
-} from 'lucide-react';
+import { Library, Upload, Trash2, BookOpen, Plus, CheckCircle2, AlertCircle, Download, Link as LinkIcon } from 'lucide-react';
 import type { Document } from '../../types';
 import { DEFAULT_LIBRARY, BOOK_PUBLISHERS, checkDocumentExists } from '../../data/library/defaultBooks';
 import { useAppStore } from '../../stores/appStore';
 import { useAuthStore } from '../../lib/auth';
 
-// Chú thích: API URL
 const API_URL = (import.meta.env.VITE_API_URL || 'https://stem-vietnam-api.stu725114073.workers.dev').replace(/\/$/, '');
 
-// Chú thích: Categories tabs - theo loại tài liệu thực tế
 const TABS = [
-    { id: 'policy', label: 'Văn bản pháp quy', icon: FileSpreadsheet, prefix: 'policy-' },
-    { id: 'sgk', label: 'Sách giáo khoa', icon: Book, prefix: 'sgk-' },
-    { id: 'chuyen_de', label: 'Chuyên đề học tập', icon: BookOpen, prefix: 'cd-' },
-    { id: 'user', label: 'Tài liệu của bạn', icon: Upload, prefix: 'user-' },
+    { id: 'policy', label: 'Van ban', prefix: 'policy-' },
+    { id: 'sgk', label: 'SGK', prefix: 'sgk-' },
+    { id: 'chuyen_de', label: 'Chuyen de', prefix: 'cd-' },
+    { id: 'user', label: 'Tai lieu cua ban', prefix: 'user-' },
 ] as const;
 
 export default function LibraryPage() {
@@ -57,7 +39,6 @@ export default function LibraryPage() {
         file: null as File | null,
     });
 
-    // Chú thích: Kiểm tra file PDF có tồn tại không khi mount
     useEffect(() => {
         const checkAllDocuments = async () => {
             const statuses: Record<string, boolean> = {};
@@ -69,7 +50,6 @@ export default function LibraryPage() {
         checkAllDocuments();
     }, []);
 
-    // Chú thích: Filter documents logic
     const getTabDocuments = () => {
         let docs: Document[] = [];
 
@@ -99,11 +79,9 @@ export default function LibraryPage() {
 
     const filteredDocuments = getTabDocuments();
 
-
     const handleUpload = async () => {
         setUploadError(null);
 
-        // Chú thích: Nếu là URL mode, chỉ add vào local (không gọi API)
         if (uploadForm.inputType === 'url') {
             const newDoc: Document = {
                 id: `user-doc-${Date.now()}`,
@@ -118,13 +96,12 @@ export default function LibraryPage() {
             setShowUpload(false);
             setActiveTab('user');
             resetForm();
-            showNotification('success', 'Đã thêm tài liệu!');
+            showNotification('success', 'Da them tai lieu!');
             return;
         }
 
-        // Chú thích: Nếu là file mode, gọi API upload
         if (!uploadForm.file) {
-            setUploadError('Vui lòng chọn file để upload');
+            setUploadError('Vui long chon file de upload');
             return;
         }
 
@@ -150,10 +127,9 @@ export default function LibraryPage() {
             const data = await res.json();
 
             if (!res.ok) {
-                throw new Error(data.error || data.details || 'Upload thất bại');
+                throw new Error(data.error || data.details || 'Upload that bai');
             }
 
-            // Chú thích: Add document vào local state
             const newDoc: Document = {
                 id: `user-doc-${Date.now()}`,
                 title: uploadForm.title,
@@ -167,11 +143,11 @@ export default function LibraryPage() {
             setShowUpload(false);
             setActiveTab('user');
             resetForm();
-            showNotification('success', `Đã upload và index ${data.result?.chunksCreated || 0} chunks!`);
+            showNotification('success', `Da upload ${data.result?.chunksCreated || 0} chunks!`);
 
         } catch (error) {
             console.error('[library] upload error:', error);
-            setUploadError(error instanceof Error ? error.message : 'Upload thất bại');
+            setUploadError(error instanceof Error ? error.message : 'Upload that bai');
         } finally {
             setIsUploading(false);
         }
@@ -195,394 +171,234 @@ export default function LibraryPage() {
             setUploadForm(prev => ({
                 ...prev,
                 file,
-                title: prev.title || file.name.replace(/\.[^/.]+$/, ''), // Auto-fill title từ filename
+                title: prev.title || file.name.replace(/\.[^/.]+$/, ''),
             }));
         }
     };
 
     const handleDelete = (id: string) => {
         if (id.startsWith('user-doc-')) {
-            if (confirm('Bạn có chắc muốn xoá tài liệu này?')) {
+            if (confirm('Ban chac chan muon xoa tai lieu nay?')) {
                 setUserDocuments(prev => prev.filter(d => d.id !== id));
             }
         }
     };
 
     return (
-        <div className="max-w-6xl mx-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                        <Library className="text-primary-500" />
-                        Thư Viện Tài Liệu
-                    </h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">
-                        Kho tài liệu chính thống cho RAG: SGK, Chuyên đề, Đề thi mẫu
-                    </p>
-                </div>
-                <button
-                    onClick={() => setShowUpload(true)}
-                    className="btn-primary flex items-center gap-2"
-                >
-                    <Plus size={20} />
-                    Thêm Tài Liệu
-                </button>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex bg-white dark:bg-slate-800 p-1.5 rounded-2xl mb-6 shadow-sm border border-slate-200 dark:border-slate-700 overflow-x-auto">
-                {TABS.map((tab) => {
-                    const Icon = tab.icon;
-                    const isActive = activeTab === tab.id;
-                    return (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all whitespace-nowrap ${isActive
-                                ? 'bg-primary-500 text-white shadow-md'
-                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
-                                }`}
-                        >
-                            <Icon size={18} />
-                            {tab.label}
-                        </button>
-                    );
-                })}
-            </div>
-
-            {/* Stats & Filters Row */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
-                {/* Helper Banner */}
-                <div className="flex-1 glass-card p-4 bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800 flex items-center gap-3">
-                    <BookOpen className="text-primary-600" />
+        <div className="lms-page">
+            <section className="lms-card">
+                <div className="lms-card-header">
                     <div>
-                        <p className="font-semibold text-primary-900 dark:text-primary-100 text-sm">
-                            RAG Context
-                        </p>
-                        <p className="text-xs text-primary-700 dark:text-primary-300">
-                            {activeTab === 'sgk' && 'Nguồn kiến thức nền tảng chính xác nhất.'}
-                            {activeTab === 'chuyen_de' && 'Kiến thức chuyên sâu và mở rộng.'}
-                            {activeTab === 'de_thi' && 'Cấu trúc đề thi chuẩn Bộ GD&ĐT.'}
-                            {activeTab === 'user' && 'Tài liệu bổ sung cá nhân của bạn.'}
-                        </p>
+                        <div className="lms-card-title">Thu vien tai lieu</div>
+                        <div className="lms-card-subtitle">Tai lieu SGK va chuyen de cho AI</div>
+                    </div>
+                    <button onClick={() => setShowUpload(true)} className="lms-button">
+                        <Plus size={16} /> Them tai lieu
+                    </button>
+                </div>
+            </section>
+
+            <section className="lms-card">
+                <div className="lms-row" style={{ justifyContent: 'space-between' }}>
+                    <div className="lms-row">
+                        {TABS.map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={activeTab === tab.id ? 'lms-button' : 'lms-button-secondary'}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="lms-row">
+                        <label className="lms-note">Dung thu vien mac dinh</label>
+                        <input type="checkbox" checked={useDefaultLibrary} onChange={toggleDefaultLibrary} />
                     </div>
                 </div>
+            </section>
 
-                {/* Filter Controls */}
-                <div className="flex items-center gap-3 bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700">
-                    <div className="flex gap-1">
+            <section className="lms-card">
+                <div className="lms-row" style={{ justifyContent: 'space-between' }}>
+                    <div className="lms-row">
                         {(['all', '10', '11', '12'] as const).map(grade => (
                             <button
                                 key={grade}
                                 onClick={() => setFilterGrade(grade)}
-                                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${filterGrade === grade
-                                    ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white'
-                                    : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
-                                    }`}
+                                className={filterGrade === grade ? 'lms-button' : 'lms-button-secondary'}
                             >
-                                {grade === 'all' ? 'Tất cả' : grade}
+                                {grade === 'all' ? 'Tat ca' : grade}
                             </button>
                         ))}
                     </div>
-
-                    <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
-
                     <select
                         value={filterPublisher}
                         onChange={(e) => setFilterPublisher(e.target.value)}
-                        className="text-sm bg-transparent border-none focus:ring-0 text-slate-700 dark:text-slate-300"
+                        className="lms-select"
                     >
-                        <option value="all">Tất cả nguồn</option>
+                        <option value="all">Tat ca nguon</option>
                         {Object.values(BOOK_PUBLISHERS).map(pub => (
                             <option key={pub} value={pub}>{pub}</option>
                         ))}
                     </select>
                 </div>
-            </div>
+            </section>
 
-            {/* Documents grid */}
-            {filteredDocuments.length > 0 ? (
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredDocuments.map((doc) => {
-                        const isDefault = !doc.id.startsWith('user-doc-');
-                        const hasFile = documentStatus[doc.id];
+            <section className="lms-card">
+                {filteredDocuments.length > 0 ? (
+                    <table className="lms-table">
+                        <thead>
+                            <tr>
+                                <th>Tai lieu</th>
+                                <th>Lop</th>
+                                <th>Nguon</th>
+                                <th>Trang thai</th>
+                                <th>Thao tac</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredDocuments.map((doc) => {
+                                const isDefault = !doc.id.startsWith('user-doc-');
+                                const hasFile = documentStatus[doc.id];
+                                return (
+                                    <tr key={doc.id}>
+                                        <td>{doc.title}</td>
+                                        <td>{doc.grade}</td>
+                                        <td>{doc.source}</td>
+                                        <td>
+                                            {isDefault ? (
+                                                hasFile ? (
+                                                    <span className="lms-note"><CheckCircle2 size={14} /> San sang</span>
+                                                ) : (
+                                                    <span className="lms-note"><AlertCircle size={14} /> Thieu file</span>
+                                                )
+                                            ) : (
+                                                <span className="lms-note">Ca nhan</span>
+                                            )}
+                                        </td>
+                                        <td>
+                                            <div className="lms-row">
+                                                {doc.fileUrl && (
+                                                    <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="lms-button-ghost">
+                                                        <LinkIcon size={14} /> Mo
+                                                    </a>
+                                                )}
+                                                {doc.fileUrl && (
+                                                    <a href={doc.fileUrl} className="lms-button-ghost" download>
+                                                        <Download size={14} /> Tai
+                                                    </a>
+                                                )}
+                                                {!isDefault && (
+                                                    <button onClick={() => handleDelete(doc.id)} className="lms-button-ghost">
+                                                        <Trash2 size={14} /> Xoa
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                ) : (
+                    <div className="lms-empty">Chua co tai lieu</div>
+                )}
+            </section>
 
-                        return (
-                            <div
-                                key={doc.id}
-                                className={`glass-card p-4 hover:shadow-lg transition-shadow relative group ${!hasFile && isDefault ? 'border-amber-300 dark:border-amber-700' : ''
-                                    }`}
-                            >
-                                {/* Status badge */}
-                                <div className="absolute top-3 right-3">
-                                    {isDefault ? (
-                                        hasFile ? (
-                                            <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-full">
-                                                <CheckCircle2 size={12} />
-                                                Sẵn sàng
-                                            </span>
-                                        ) : (
-                                            <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-full">
-                                                <AlertCircle size={12} />
-                                                Thiếu file
-                                            </span>
-                                        )
-                                    ) : (
-                                        <button
-                                            onClick={() => handleDelete(doc.id)}
-                                            className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
-                                    )}
-                                </div>
-
-                                <div className="flex items-start gap-3 mb-3">
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${isDefault
-                                        ? 'bg-primary-100 dark:bg-primary-900/30'
-                                        : 'bg-slate-100 dark:bg-slate-700'
-                                        }`}>
-                                        {doc.id.startsWith('sgk-') && <Book className="text-primary-600" size={20} />}
-                                        {doc.id.startsWith('cd-') && <BookOpen className="text-indigo-600" size={20} />}
-                                        {doc.id.startsWith('de-') && <FileSpreadsheet className="text-emerald-600" size={20} />}
-                                        {doc.id.startsWith('user-') && <FileText className="text-slate-500" size={20} />}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="font-semibold text-slate-900 dark:text-white text-sm line-clamp-2" title={doc.title}>
-                                            {doc.title}
-                                        </h3>
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-wrap gap-1.5 text-xs mb-3">
-                                    <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                                        Lớp {doc.grade}
-                                    </span>
-                                    <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 truncate max-w-[150px]">
-                                        {doc.source}
-                                    </span>
-                                </div>
-
-                                {doc.id === 'master-drive-link' && (
-                                    <div className="flex items-center gap-2 mb-3 bg-primary-50 dark:bg-primary-900/30 p-2 rounded-lg">
-                                        <button
-                                            onClick={toggleDefaultLibrary}
-                                            className={`${useDefaultLibrary ? 'bg-primary-600' : 'bg-slate-300'}
-                                                relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none`}
-                                        >
-                                            <span className="sr-only">Use Default Library</span>
-                                            <span
-                                                aria-hidden="true"
-                                                className={`${useDefaultLibrary ? 'translate-x-4' : 'translate-x-0'}
-                                                    pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out`}
-                                            />
-                                        </button>
-                                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                                            {useDefaultLibrary ? 'AI đang học từ nguồn này' : 'AI bỏ qua nguồn này'}
-                                        </span>
-                                    </div>
-                                )}
-
-                                {/* Actions */}
-                                {hasFile && (
-                                    <a
-                                        href={doc.fileUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center gap-2 text-xs text-primary-600 hover:text-primary-700 font-medium"
-                                    >
-                                        {doc.fileUrl.startsWith('http') ? <LinkIcon size={14} /> : <Download size={14} />}
-                                        {doc.fileUrl.startsWith('http') ? 'Mở liên kết' : 'Xem PDF'}
-                                    </a>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            ) : (
-                <div className="text-center py-12">
-                    <p className="text-slate-500 dark:text-slate-400">Không tìm thấy tài liệu phù hợp.</p>
-                </div>
-            )}
-
-            {/* Upload/Add Modal */}
             {showUpload && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="glass-panel w-full max-w-md p-6 animate-slide-up">
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                            {uploadForm.inputType === 'file' ? <Upload size={24} /> : <LinkIcon size={24} />}
-                            {uploadForm.inputType === 'file' ? 'Tải Tệp Lên' : 'Thêm từ Google Drive'}
-                        </h2>
+                <div className="lms-modal">
+                    <div className="lms-modal-panel" style={{ maxWidth: 640 }}>
+                        <div className="lms-modal-header">
+                            <div className="lms-card-title">Them tai lieu</div>
+                            <button onClick={() => setShowUpload(false)} className="lms-button-ghost">
+                                Dong
+                            </button>
+                        </div>
+                        <div className="lms-modal-body lms-form">
+                            {uploadError && <div className="lms-alert">{uploadError}</div>}
 
-                        <div className="space-y-4">
-                            {/* Input Type Switcher */}
-                            <div className="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-lg">
-                                <button
-                                    onClick={() => setUploadForm(prev => ({ ...prev, inputType: 'file' }))}
-                                    className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-sm font-medium rounded-md transition-all ${uploadForm.inputType === 'file'
-                                        ? 'bg-white dark:bg-slate-600 shadow text-primary-600 dark:text-white'
-                                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-                                        }`}
-                                >
-                                    <Upload size={14} />
-                                    Tải tệp
-                                </button>
-                                <button
-                                    onClick={() => setUploadForm(prev => ({ ...prev, inputType: 'url' }))}
-                                    className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-sm font-medium rounded-md transition-all ${uploadForm.inputType === 'url'
-                                        ? 'bg-white dark:bg-slate-600 shadow text-primary-600 dark:text-white'
-                                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-                                        }`}
-                                >
-                                    <LinkIcon size={14} />
-                                    Google Drive
-                                </button>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                    Tên tài liệu *
-                                </label>
+                            <div className="lms-section">
+                                <label className="lms-label">Tieu de</label>
                                 <input
                                     type="text"
                                     value={uploadForm.title}
                                     onChange={(e) => setUploadForm(prev => ({ ...prev, title: e.target.value }))}
-                                    placeholder="VD: Đề thi thử THPT 2024"
-                                    className="input-field"
+                                    className="lms-input"
                                 />
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                    Lớp
-                                </label>
-                                <div className="flex gap-2">
-                                    {(['10', '11', '12'] as const).map((grade) => (
-                                        <button
-                                            key={grade}
-                                            type="button"
-                                            onClick={() => setUploadForm(prev => ({ ...prev, grade }))}
-                                            className={`flex-1 py-2 rounded-lg transition-all ${uploadForm.grade === grade
-                                                ? 'bg-primary-600 text-white'
-                                                : 'bg-slate-100 dark:bg-slate-700'
-                                                }`}
-                                        >
-                                            {grade}
-                                        </button>
-                                    ))}
-                                </div>
+                            <div className="lms-section">
+                                <label className="lms-label">Lop</label>
+                                <select
+                                    value={uploadForm.grade}
+                                    onChange={(e) => setUploadForm(prev => ({ ...prev, grade: e.target.value as any }))}
+                                    className="lms-select"
+                                >
+                                    <option value="10">10</option>
+                                    <option value="11">11</option>
+                                    <option value="12">12</option>
+                                </select>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                    Nguồn
-                                </label>
+                            <div className="lms-section">
+                                <label className="lms-label">Nguon</label>
                                 <input
                                     type="text"
                                     value={uploadForm.source}
                                     onChange={(e) => setUploadForm(prev => ({ ...prev, source: e.target.value }))}
-                                    placeholder="VD: Sưu tầm..."
-                                    className="input-field"
+                                    className="lms-input"
                                 />
                             </div>
 
-                            {/* Dynamic Input Area */}
+                            <div className="lms-section">
+                                <label className="lms-label">Cach them</label>
+                                <div className="lms-row">
+                                    <button
+                                        type="button"
+                                        onClick={() => setUploadForm(prev => ({ ...prev, inputType: 'file' }))}
+                                        className={uploadForm.inputType === 'file' ? 'lms-button' : 'lms-button-secondary'}
+                                    >
+                                        <Upload size={14} /> File
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setUploadForm(prev => ({ ...prev, inputType: 'url' }))}
+                                        className={uploadForm.inputType === 'url' ? 'lms-button' : 'lms-button-secondary'}
+                                    >
+                                        <LinkIcon size={14} /> URL
+                                    </button>
+                                </div>
+                            </div>
+
                             {uploadForm.inputType === 'file' ? (
-                                <div
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer ${uploadForm.file
-                                        ? 'border-green-400 bg-green-50 dark:bg-green-900/20'
-                                        : 'border-slate-300 dark:border-slate-600 hover:border-primary-500'
-                                        }`}
-                                >
+                                <div className="lms-section">
                                     <input
                                         ref={fileInputRef}
                                         type="file"
-                                        accept=".txt,.md,.docx,.pdf,.html,.json"
+                                        accept=".pdf"
                                         onChange={handleFileChange}
-                                        className="hidden"
                                     />
-                                    {uploadForm.file ? (
-                                        <>
-                                            <CheckCircle2 className="mx-auto text-green-500 mb-2" size={32} />
-                                            <p className="text-sm font-medium text-green-700 dark:text-green-400">
-                                                {uploadForm.file.name}
-                                            </p>
-                                            <p className="text-xs text-slate-500 mt-1">
-                                                {(uploadForm.file.size / 1024 / 1024).toFixed(2)} MB - Click để đổi file
-                                            </p>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Upload className="mx-auto text-slate-400 mb-2" size={32} />
-                                            <p className="text-sm font-medium text-slate-900 dark:text-white">
-                                                Kéo thả file vào đây
-                                            </p>
-                                            <p className="text-xs text-slate-500 mt-1">
-                                                Hỗ trợ: TXT, MD, DOCX, PDF, HTML, JSON (tối đa 25MB)
-                                            </p>
-                                        </>
-                                    )}
                                 </div>
                             ) : (
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                        Link Google Drive / Dropbox *
-                                    </label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <LinkIcon size={16} className="text-slate-400" />
-                                        </div>
-                                        <input
-                                            type="url"
-                                            value={uploadForm.fileUrl}
-                                            onChange={(e) => setUploadForm(prev => ({ ...prev, fileUrl: e.target.value }))}
-                                            placeholder="https://drive.google.com/..."
-                                            className="input-field pl-10"
-                                        />
-                                    </div>
-                                    <p className="text-xs text-slate-500 mt-1">
-                                        * Đảm bảo link đã được chia sẻ công khai (Anyone with the link)
-                                    </p>
+                                <div className="lms-section">
+                                    <input
+                                        type="text"
+                                        value={uploadForm.fileUrl}
+                                        onChange={(e) => setUploadForm(prev => ({ ...prev, fileUrl: e.target.value }))}
+                                        className="lms-input"
+                                        placeholder="Nhap duong dan file"
+                                    />
                                 </div>
                             )}
-                            {/* Error display */}
-                            {uploadError && (
-                                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
-                                    <AlertCircle size={16} />
-                                    {uploadError}
-                                </div>
-                            )}
-
-                            <div className="flex gap-3 mt-6">
-                                <button
-                                    onClick={() => { setShowUpload(false); resetForm(); }}
-                                    disabled={isUploading}
-                                    className="btn-secondary flex-1"
-                                >
-                                    Huỷ
-                                </button>
-                                <button
-                                    onClick={handleUpload}
-                                    disabled={
-                                        isUploading ||
-                                        !uploadForm.title.trim() ||
-                                        (uploadForm.inputType === 'url' && !uploadForm.fileUrl.trim()) ||
-                                        (uploadForm.inputType === 'file' && !uploadForm.file)
-                                    }
-                                    className="btn-primary flex-1 flex items-center justify-center gap-2"
-                                >
-                                    {isUploading ? (
-                                        <>
-                                            <Loader2 className="animate-spin" size={16} />
-                                            Đang upload...
-                                        </>
-                                    ) : (
-                                        uploadForm.inputType === 'file' ? 'Tải lên' : 'Thêm Link'
-                                    )}
-                                </button>
-                            </div>
+                        </div>
+                        <div className="lms-modal-footer">
+                            <button onClick={() => setShowUpload(false)} className="lms-button-secondary">
+                                Huy
+                            </button>
+                            <button onClick={handleUpload} disabled={isUploading} className="lms-button">
+                                {isUploading ? <Loader2 size={16} /> : <Plus size={16} />}
+                                <span>Upload</span>
+                            </button>
                         </div>
                     </div>
                 </div>

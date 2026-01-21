@@ -506,171 +506,145 @@ export default function ChatPage() {
     }, [location.state]);
 
     return (
-        <div className="h-[calc(100vh-4rem)] flex bg-slate-100 dark:bg-slate-900 -m-6 -mt-4">
-            {/* Sidebar */}
-            <div className={`transition-all duration-300 relative ${isSidebarOpen ? 'w-72' : 'w-0 overflow-hidden'}`}>
+        <div className="lms-page">
+            <div className="lms-chat">
                 <ChatSidebar
                     conversations={conversations}
                     activeId={activeId}
                     onSelect={setActiveId}
                     onNew={handleNewConversation}
                     onDelete={handleDeleteConversation}
+                    isCollapsed={!isSidebarOpen}
                 />
-                <button
-                    onClick={() => setIsSidebarOpen(false)}
-                    className="absolute top-4 right-2 p-1.5 rounded-lg bg-white/80 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 border border-slate-200 dark:border-slate-700 shadow-sm"
-                    title="Đóng Sidebar"
-                >
-                    <PanelLeftClose size={16} />
-                </button>
-            </div>
 
-            {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col min-w-0">
-                {/* Header */}
-                <div className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-                    <button
-                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                        className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                        title={isSidebarOpen ? "Đóng Sidebar" : "Mở Sidebar"}
-                    >
-                        {isSidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
-                    </button>
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-                            <Sparkles size={16} className="text-white" />
+                <div className="lms-chat-main">
+                    <div className="lms-chat-header">
+                        <button
+                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                            className="lms-icon-button"
+                            title={isSidebarOpen ? 'Dong danh sach' : 'Mo danh sach'}
+                        >
+                            {isSidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
+                        </button>
+                        <div className="lms-chat-brand">
+                            <Sparkles size={16} />
                         </div>
                         <div>
-                            <div className="flex items-center gap-2">
-                                <h1 className="font-semibold text-slate-900 dark:text-white">StemBot - Trợ lý học tập</h1>
+                            <div className="lms-row" style={{ gap: 6 }}>
+                                <div className="lms-chat-title">StemBot - Tro ly hoc tap</div>
                                 {user?.id && (
-                                    <div title={isSynced ? "Đã đồng bộ đám mây" : "Chế độ Offline / Đang lưu..."}>
-                                        {isSynced ? (
-                                            <Cloud size={14} className="text-emerald-500" />
-                                        ) : (
-                                            <CloudOff size={14} className="text-slate-400" />
-                                        )}
-                                    </div>
+                                    <span title={isSynced ? 'Da dong bo' : 'Offline'}>
+                                        {isSynced ? <Cloud size={14} /> : <CloudOff size={14} />}
+                                    </span>
                                 )}
                             </div>
-                            <p className="text-xs text-slate-500 flex items-center gap-1">
-                                <span className="uppercase font-medium text-primary-600 dark:text-primary-400">
+                            <div className="lms-row" style={{ gap: 8 }}>
+                                <span className="lms-badge">
                                     {provider === 'default' ? 'OpenRouter' : provider}
                                 </span>
-                                <span className="text-slate-300">•</span>
-                                <span className="truncate max-w-[200px]" title={selectedModel || 'Default Model'}>
+                                <span
+                                    className="lms-note"
+                                    style={{ maxWidth: 260, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                                    title={selectedModel || 'Default Model'}
+                                >
                                     {selectedModel ? selectedModel.split('/').pop() : 'Default Model'}
                                 </span>
-                            </p>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Messages */}
-                <div
-                    ref={messagesContainerRef}
-                    onScroll={handleScroll}
-                    className="flex-1 overflow-y-auto px-4 py-6 space-y-4 scroll-smooth relative"
-                >
-                    {messages.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-center">
-                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center mb-6 shadow-lg">
-                                <Sparkles size={36} className="text-white" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                                Xin chào! Tôi là STEM AI
-                            </h2>
-                            <p className="text-slate-500 dark:text-slate-400 max-w-md">
-                                Tôi có thể giúp bạn với mọi câu hỏi - từ kiến thức Công nghệ THPT đến tin tức mới nhất.
-                                Hãy hỏi bất cứ điều gì!
-                            </p>
-                            <div className="mt-6 flex flex-wrap gap-2 justify-center">
-                                {['Mạng máy tính là gì?', 'Tin tức AI hôm nay', 'Giải thích TCP/IP'].map(q => (
-                                    <button
-                                        key={q}
-                                        onClick={() => handleSend(q, [])}
-                                        className="px-4 py-2 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm"
-                                    >
-                                        {q}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    ) : (
-                        <>
-                            {messages.map(msg => (
-                                <MessageBubble key={msg.id} message={msg} />
-                            ))}
-
-                            {isLoading && (
-                                <div className="flex justify-start">
-                                    <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-tl-none p-4 shadow-sm border border-slate-100 dark:border-slate-700 max-w-[80%]">
-                                        <div className="flex items-center gap-3">
-                                            <div className="relative">
-                                                <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center animate-pulse">
-                                                    <BrainCircuit className="text-primary-600 animate-spin-slow" size={18} />
-                                                </div>
-                                                <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-800 rounded-full p-0.5">
-                                                    <Clock size={10} className="text-slate-400" />
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                                                    {thinkingStep}
-                                                </p>
-                                                <p className="text-xs text-slate-400 flex items-center gap-1">
-                                                    <span>{elapsedTime.toFixed(1)}s</span>
-                                                    <span>•</span>
-                                                    <span className="text-primary-500">Google Search</span>
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
+                    <div
+                        ref={messagesContainerRef}
+                        onScroll={handleScroll}
+                        className="lms-chat-messages"
+                    >
+                        {messages.length === 0 ? (
+                            <div className="lms-chat-empty">
+                                <div className="lms-chat-brand">
+                                    <Sparkles size={20} />
                                 </div>
-                            )}
-
-                            {/* Suggestions - Gợi ý câu hỏi tiếp theo */}
-                            {!isLoading && suggestions.length > 0 && (
-                                <div className="flex flex-wrap gap-2 justify-center mt-4">
-                                    {suggestions.map((q, idx) => (
+                                <h2 className="lms-chat-title">Xin chao! Toi la STEM AI</h2>
+                                <p className="lms-note" style={{ maxWidth: 360 }}>
+                                    Toi co the giup ban voi moi cau hoi. Hay bat dau bang mot cau hoi bat ky.
+                                </p>
+                                <div className="lms-chat-suggestions">
+                                    {['Mang may tinh la gi?', 'Tin tuc AI hom nay', 'Giai thich TCP/IP'].map(q => (
                                         <button
-                                            key={idx}
-                                            onClick={() => {
-                                                handleSend(q, []);
-                                                setSuggestions([]);
-                                            }}
-                                            className="px-4 py-2 rounded-full bg-gradient-to-r from-primary-50 to-violet-50 dark:from-primary-900/30 dark:to-violet-900/30 border border-primary-200 dark:border-primary-700 text-sm text-primary-700 dark:text-primary-300 hover:from-primary-100 hover:to-violet-100 dark:hover:from-primary-900/50 dark:hover:to-violet-900/50 transition-all shadow-sm hover:shadow-md"
+                                            key={q}
+                                            onClick={() => handleSend(q, [])}
+                                            className="lms-chip"
                                         >
-                                            💡 {q}
+                                            {q}
                                         </button>
                                     ))}
                                 </div>
-                            )}
-                        </>
-                    )}
-                    <div ref={messagesEndRef} />
+                            </div>
+                        ) : (
+                            <>
+                                {messages.map(msg => (
+                                    <MessageBubble key={msg.id} message={msg} />
+                                ))}
 
-                    {/* Chú thích: Nút floating scroll to bottom */}
-                    {showScrollButton && (
-                        <button
-                            onClick={scrollToBottom}
-                            className="fixed bottom-28 right-8 z-50 w-12 h-12 rounded-full bg-primary-500 hover:bg-primary-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center animate-bounce-slow group"
-                            title="Cuộn xuống cuối"
-                        >
-                            <ArrowDown size={20} className="group-hover:translate-y-0.5 transition-transform" />
-                        </button>
-                    )}
-                </div>
+                                {isLoading && (
+                                    <div className="lms-message">
+                                        <div className="lms-message-avatar is-assistant">
+                                            <BrainCircuit size={16} />
+                                        </div>
+                                        <div className="lms-message-body">
+                                            <div className="lms-message-bubble lms-message-bubble is-assistant">
+                                                <div className="lms-section">
+                                                    <div className="lms-row" style={{ justifyContent: 'space-between' }}>
+                                                        <span>{thinkingStep}</span>
+                                                        <span className="lms-note">{elapsedTime.toFixed(1)}s</span>
+                                                    </div>
+                                                    <span className="lms-note">Google Search</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
-                {/* Input */}
-                <div className="p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
-                    <ChatInput
-                        onSend={handleSend}
-                        isLoading={isLoading}
-                        placeholder="Nhập câu hỏi của bạn..."
-                    />
+                                {!isLoading && suggestions.length > 0 && (
+                                    <div className="lms-chat-suggestions">
+                                        {suggestions.map((q, idx) => (
+                                            <button
+                                                key={idx}
+                                                onClick={() => {
+                                                    handleSend(q, []);
+                                                    setSuggestions([]);
+                                                }}
+                                                className="lms-chip is-active"
+                                            >
+                                                Goi y: {q}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
+                        )}
+                        <div ref={messagesEndRef} />
+
+                        {showScrollButton && (
+                            <button
+                                onClick={scrollToBottom}
+                                className="lms-chat-scroll"
+                                title="Cuon xuong cuoi"
+                            >
+                                <ArrowDown size={18} />
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="lms-chat-input">
+                        <ChatInput
+                            onSend={handleSend}
+                            isLoading={isLoading}
+                            placeholder="Nhap cau hoi cua ban..."
+                        />
+                    </div>
                 </div>
             </div>
         </div>
     );
 }
+

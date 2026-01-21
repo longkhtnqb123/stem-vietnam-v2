@@ -1,17 +1,5 @@
-// School Admin Portal Page
-// Trang quản lý trường học cho Admin hệ thống
-
-import { useState, useEffect } from 'react';
-import {
-    School,
-    Plus,
-    Users,
-    BookOpen,
-    TrendingUp,
-    Search,
-    ChevronRight,
-    Building2
-} from 'lucide-react';
+import { useState, useEffect, type FormEvent } from 'react';
+import { Plus } from 'lucide-react';
 import { useAuthStore } from '../lib/auth';
 
 const API_URL = (import.meta.env.VITE_API_URL || 'https://stem-vietnam-api.stu725114073.workers.dev').replace(/\/$/, '');
@@ -35,9 +23,7 @@ export default function SchoolAdminPage() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [_selectedSchool, setSelectedSchool] = useState<SchoolData | null>(null);
 
-    // Form state for create/edit
     const [formData, setFormData] = useState({
         name: '',
         code: '',
@@ -65,7 +51,7 @@ export default function SchoolAdminPage() {
         }
     }
 
-    async function handleCreateSchool(e: React.FormEvent) {
+    async function handleCreateSchool(e: FormEvent) {
         e.preventDefault();
         try {
             const res = await fetch(`${API_URL}/api/schools`, {
@@ -86,238 +72,134 @@ export default function SchoolAdminPage() {
         }
     }
 
-    const filteredSchools = schools.filter(s =>
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.code.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
     if (user?.role !== 'admin') {
         return (
-            <div className="max-w-4xl mx-auto text-center py-12">
-                <School className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                    Không có quyền truy cập
-                </h1>
-                <p className="text-slate-600 dark:text-slate-400">
-                    Trang này chỉ dành cho Admin hệ thống.
-                </p>
+            <div className="lms-page">
+                <div className="lms-empty">Ban khong co quyen truy cap.</div>
             </div>
         );
     }
 
+    if (loading) {
+        return (
+            <div className="lms-page">
+                <div className="lms-empty">
+                    <div className="lms-spinner" />
+                    <p className="lms-note">Dang tai truong hoc...</p>
+                </div>
+            </div>
+        );
+    }
+
+    const filtered = schools.filter((s) =>
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.code.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     return (
-        <div className="max-w-7xl mx-auto space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                        <Building2 className="w-8 h-8 text-primary-500" />
-                        Quản Lý Trường Học
-                    </h1>
-                    <p className="text-slate-600 dark:text-slate-400 mt-1">
-                        Quản lý các trường trong hệ thống STEM Vietnam
-                    </p>
-                </div>
-                <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="btn-primary flex items-center gap-2"
-                >
-                    <Plus size={18} />
-                    Thêm Trường
-                </button>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bento-card">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                            <Building2 className="w-5 h-5 text-primary-600" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-slate-500">Tổng trường</p>
-                            <p className="text-2xl font-bold text-slate-900 dark:text-white">{schools.length}</p>
-                        </div>
+        <div className="lms-page">
+            <section className="lms-card">
+                <div className="lms-card-header">
+                    <div>
+                        <div className="lms-card-title">Quan ly truong hoc</div>
+                        <div className="lms-card-subtitle">Danh sach truong va thong tin lien he</div>
                     </div>
+                    <button onClick={() => setShowCreateModal(true)} className="lms-button">
+                        <Plus size={16} /> Them truong
+                    </button>
                 </div>
-                <div className="bento-card">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-secondary-100 dark:bg-secondary-900/30 flex items-center justify-center">
-                            <Users className="w-5 h-5 text-secondary-600" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-slate-500">Tổng giáo viên</p>
-                            <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                                {schools.reduce((acc, s) => acc + s.teacher_count, 0)}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <div className="bento-card">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-accent-100 dark:bg-accent-900/30 flex items-center justify-center">
-                            <BookOpen className="w-5 h-5 text-accent-600" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-slate-500">Tổng lớp học</p>
-                            <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                                {schools.reduce((acc, s) => acc + s.class_count, 0)}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <div className="bento-card">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                            <TrendingUp className="w-5 h-5 text-green-600" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-slate-500">Hoạt động</p>
-                            <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                                {schools.filter(s => s.class_count > 0).length}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Search */}
-            <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                 <input
-                    type="text"
-                    placeholder="Tìm kiếm trường học..."
+                    className="lms-input"
+                    placeholder="Tim kiem truong..."
                     value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    className="input-field pl-12"
+                    onChange={(e) => setSearchQuery(e.target.value)}
                 />
-            </div>
+            </section>
 
-            {/* Schools List */}
-            {loading ? (
-                <div className="text-center py-12">
-                    <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto" />
-                    <p className="text-slate-500 mt-4">Đang tải...</p>
-                </div>
-            ) : filteredSchools.length === 0 ? (
-                <div className="text-center py-12 bento-card">
-                    <School className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                    <p className="text-slate-600 dark:text-slate-400">
-                        {searchQuery ? 'Không tìm thấy trường phù hợp' : 'Chưa có trường nào trong hệ thống'}
-                    </p>
-                </div>
-            ) : (
-                <div className="grid gap-4">
-                    {filteredSchools.map(school => (
-                        <div
-                            key={school.id}
-                            className="bento-card hover:shadow-lg transition-shadow cursor-pointer"
-                            onClick={() => setSelectedSchool(school)}
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-bold text-lg">
-                                        {school.name.charAt(0)}
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-slate-900 dark:text-white">{school.name}</h3>
-                                        <p className="text-sm text-slate-500">Mã: {school.code}</p>
-                                        <div className="flex items-center gap-4 mt-1 text-xs text-slate-500">
-                                            <span className="flex items-center gap-1">
-                                                <Users size={12} /> {school.teacher_count} GV
-                                            </span>
-                                            <span className="flex items-center gap-1">
-                                                <BookOpen size={12} /> {school.class_count} lớp
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <ChevronRight className="text-slate-400" />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+            <section className="lms-card">
+                {filtered.length === 0 ? (
+                    <div className="lms-empty">Khong co du lieu</div>
+                ) : (
+                    <table className="lms-table">
+                        <thead>
+                            <tr>
+                                <th>Ten truong</th>
+                                <th>Ma</th>
+                                <th>So lop</th>
+                                <th>So giao vien</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filtered.map((school) => (
+                                <tr key={school.id}>
+                                    <td>{school.name}</td>
+                                    <td>{school.code}</td>
+                                    <td>{school.class_count}</td>
+                                    <td>{school.teacher_count}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </section>
 
-            {/* Create Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-md w-full">
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
-                            Thêm Trường Mới
-                        </h2>
-                        <form onSubmit={handleCreateSchool} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                    Tên trường *
-                                </label>
+                <div className="lms-modal">
+                    <div className="lms-modal-panel" style={{ maxWidth: 560 }}>
+                        <div className="lms-modal-header">
+                            <div className="lms-card-title">Them truong</div>
+                            <button onClick={() => setShowCreateModal(false)} className="lms-button-ghost">
+                                Dong
+                            </button>
+                        </div>
+                        <form onSubmit={handleCreateSchool} className="lms-modal-body lms-form">
+                            <div className="lms-section">
+                                <label className="lms-label">Ten truong</label>
                                 <input
-                                    type="text"
-                                    required
+                                    className="lms-input"
                                     value={formData.name}
-                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    className="input-field"
-                                    placeholder="VD: THPT Nguyễn Trãi"
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    required
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                    Mã trường
-                                </label>
+                            <div className="lms-section">
+                                <label className="lms-label">Ma truong</label>
                                 <input
-                                    type="text"
+                                    className="lms-input"
                                     value={formData.code}
-                                    onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                                    className="input-field"
-                                    placeholder="Để trống để tự động tạo"
+                                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                                    required
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                    Địa chỉ
-                                </label>
+                            <div className="lms-section">
+                                <label className="lms-label">Dia chi</label>
                                 <input
-                                    type="text"
+                                    className="lms-input"
                                     value={formData.address}
-                                    onChange={e => setFormData({ ...formData, address: e.target.value })}
-                                    className="input-field"
+                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                        Email liên hệ
-                                    </label>
-                                    <input
-                                        type="email"
-                                        value={formData.contactEmail}
-                                        onChange={e => setFormData({ ...formData, contactEmail: e.target.value })}
-                                        className="input-field"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                        Số điện thoại
-                                    </label>
-                                    <input
-                                        type="tel"
-                                        value={formData.contactPhone}
-                                        onChange={e => setFormData({ ...formData, contactPhone: e.target.value })}
-                                        className="input-field"
-                                    />
-                                </div>
+                            <div className="lms-section">
+                                <label className="lms-label">Email</label>
+                                <input
+                                    className="lms-input"
+                                    value={formData.contactEmail}
+                                    onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                                />
                             </div>
-                            <div className="flex gap-3 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowCreateModal(false)}
-                                    className="btn-secondary flex-1"
-                                >
-                                    Hủy
+                            <div className="lms-section">
+                                <label className="lms-label">Dien thoai</label>
+                                <input
+                                    className="lms-input"
+                                    value={formData.contactPhone}
+                                    onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
+                                />
+                            </div>
+                            <div className="lms-modal-footer">
+                                <button type="button" onClick={() => setShowCreateModal(false)} className="lms-button-secondary">
+                                    Huy
                                 </button>
-                                <button type="submit" className="btn-primary flex-1">
-                                    Tạo Trường
-                                </button>
+                                <button type="submit" className="lms-button">Luu</button>
                             </div>
                         </form>
                     </div>

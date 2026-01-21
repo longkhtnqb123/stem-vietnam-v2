@@ -1,20 +1,7 @@
-// Chú thích: Teacher Dashboard - Thống kê tổng quan cho giáo viên
 import { useState, useEffect } from 'react';
-import {
-    FileText,
-    Users,
-    Trophy,
-    TrendingUp,
-    BarChart3,
-    Plus,
-    Eye,
-    Award,
-    ChevronRight
-} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../lib/auth';
 
-// API URL
 const API_URL = (import.meta.env.VITE_API_URL || 'https://stem-vietnam-api.stu725114073.workers.dev').replace(/\/$/, '');
 
 interface DashboardData {
@@ -62,7 +49,7 @@ export default function TeacherDashboard() {
 
                 if (!res.ok) {
                     const errData = await res.json();
-                    throw new Error(errData.error || 'Lỗi tải dữ liệu');
+                    throw new Error(errData.error || 'Loi tai du lieu');
                 }
 
                 const json = await res.json();
@@ -77,20 +64,12 @@ export default function TeacherDashboard() {
         fetchDashboard();
     }, [token]);
 
-    // Chú thích: Check role
     if (user?.role === 'student') {
         return (
-            <div className="flex items-center justify-center h-[60vh]">
-                <div className="text-center">
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                        ⚠️ Không có quyền truy cập
-                    </h2>
-                    <p className="text-slate-600 dark:text-slate-400 mb-4">
-                        Dashboard này chỉ dành cho giáo viên
-                    </p>
-                    <Link to="/chat" className="text-blue-600 hover:underline">
-                        ← Quay về Chat AI
-                    </Link>
+            <div className="lms-page">
+                <div className="lms-empty">
+                    <p className="lms-note">Ban khong co quyen truy cap.</p>
+                    <Link to="/chat" className="lms-button-secondary">Ve Chat</Link>
                 </div>
             </div>
         );
@@ -98,19 +77,22 @@ export default function TeacherDashboard() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-[60vh]">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent" />
+            <div className="lms-page">
+                <div className="lms-empty">
+                    <div className="lms-spinner" />
+                    <p className="lms-note">Dang tai dashboard...</p>
+                </div>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="flex items-center justify-center h-[60vh]">
-                <div className="text-center text-red-500">
-                    <p className="text-xl mb-2">❌ {error}</p>
-                    <button onClick={() => window.location.reload()} className="text-blue-600 hover:underline">
-                        Thử lại
+            <div className="lms-page">
+                <div className="lms-empty">
+                    <p className="lms-note">Loi: {error}</p>
+                    <button onClick={() => window.location.reload()} className="lms-button-secondary">
+                        Thu lai
                     </button>
                 </div>
             </div>
@@ -119,176 +101,94 @@ export default function TeacherDashboard() {
 
     if (!data) return null;
 
-    const { overview, scoreDistribution, templates, topStudents } = data;
-
-    // Chú thích: Tính max value cho chart
-    const maxDistribution = Math.max(...Object.values(scoreDistribution), 1);
+    const { overview, templates, topStudents } = data;
 
     return (
-        <div className="max-w-7xl mx-auto space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
-                        📊 Dashboard Giáo Viên
-                    </h1>
-                    <p className="text-slate-600 dark:text-slate-400 mt-1">
-                        Xin chào, {user?.name}! Đây là tổng quan về các đề thi của bạn.
-                    </p>
+        <div className="lms-page">
+            <section className="lms-card">
+                <div className="lms-card-header">
+                    <div>
+                        <div className="lms-card-title">Teacher Dashboard</div>
+                        <div className="lms-card-subtitle">Tong quan lop hoc va de thi</div>
+                    </div>
+                    <Link to="/exam" className="lms-button">Tao de thi</Link>
                 </div>
-                <Link
-                    to="/exam-online"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-medium hover:from-purple-700 hover:to-pink-700 transition-colors"
-                >
-                    <Plus size={18} />
-                    Tạo đề mới
-                </Link>
-            </div>
+            </section>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl p-5 text-white shadow-lg shadow-primary-500/20">
-                    <div className="flex items-center gap-3 mb-3">
-                        <FileText size={24} className="opacity-80" />
-                        <span className="text-sm opacity-80">Đề đã tạo</span>
-                    </div>
-                    <p className="text-3xl font-bold">{overview.totalTemplates}</p>
+            <section className="lms-grid lms-grid-3">
+                <div className="lms-card">
+                    <div className="lms-card-title">De thi</div>
+                    <div className="lms-note">{overview.totalTemplates}</div>
                 </div>
-                <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-5 text-white">
-                    <div className="flex items-center gap-3 mb-3">
-                        <Users size={24} className="opacity-80" />
-                        <span className="text-sm opacity-80">Lượt làm bài</span>
-                    </div>
-                    <p className="text-3xl font-bold">{overview.totalAttempts}</p>
+                <div className="lms-card">
+                    <div className="lms-card-title">Luot lam bai</div>
+                    <div className="lms-note">{overview.totalAttempts}</div>
                 </div>
-                <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-5 text-white">
-                    <div className="flex items-center gap-3 mb-3">
-                        <TrendingUp size={24} className="opacity-80" />
-                        <span className="text-sm opacity-80">Điểm TB</span>
-                    </div>
-                    <p className="text-3xl font-bold">{overview.averageScore.toFixed(1)}</p>
+                <div className="lms-card">
+                    <div className="lms-card-title">Diem trung binh</div>
+                    <div className="lms-note">{overview.averageScore.toFixed(1)}</div>
                 </div>
-                <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-5 text-white">
-                    <div className="flex items-center gap-3 mb-3">
-                        <Trophy size={24} className="opacity-80" />
-                        <span className="text-sm opacity-80">Tỷ lệ đạt</span>
-                    </div>
-                    <p className="text-3xl font-bold">{overview.passRate}%</p>
-                </div>
-            </div>
+            </section>
 
-            {/* Score Distribution */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm">
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                    <BarChart3 size={20} className="text-blue-500" />
-                    Phân bổ điểm (tất cả đề)
-                </h2>
-                <div className="flex items-end gap-3 h-40">
-                    {Object.entries(scoreDistribution).map(([range, count]) => (
-                        <div key={range} className="flex-1 flex flex-col items-center">
-                            <div
-                                className="w-full bg-gradient-to-t from-primary-500 to-secondary-400 rounded-t-lg transition-all duration-500"
-                                style={{ height: `${(count / maxDistribution) * 100}%`, minHeight: count > 0 ? '20px' : '4px' }}
-                            />
-                            <span className="text-xs text-slate-500 mt-2">{range}</span>
-                            <span className="text-sm font-semibold text-slate-900 dark:text-white">{count}</span>
-                        </div>
-                    ))}
+            <section className="lms-card">
+                <div className="lms-card-header">
+                    <div className="lms-card-title">De thi gan day</div>
                 </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-                {/* My Templates */}
-                <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <FileText size={20} className="text-purple-500" />
-                            Đề thi của tôi
-                        </h2>
-                        <Link to="/exam-online" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
-                            Xem tất cả <ChevronRight size={14} />
-                        </Link>
-                    </div>
-
-                    {templates.length === 0 ? (
-                        <div className="text-center py-8 text-slate-500">
-                            <FileText size={48} className="mx-auto mb-3 opacity-50" />
-                            <p>Chưa có đề thi nào</p>
-                            <Link to="/exam-online" className="text-blue-600 hover:underline mt-2 inline-block">
-                                Tạo đề đầu tiên →
-                            </Link>
-                        </div>
-                    ) : (
-                        <div className="space-y-3 max-h-80 overflow-y-auto">
-                            {templates.slice(0, 5).map((t) => (
-                                <div
-                                    key={t.id}
-                                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                                >
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="font-medium text-slate-900 dark:text-white truncate">
-                                            {t.title}
-                                        </h4>
-                                        <p className="text-xs text-slate-500 mt-1">
-                                            Lớp {t.grade} • {t.totalQuestions} câu • {t.timesTaken} lượt làm
-                                        </p>
-                                    </div>
-                                    <Link
-                                        to={`/exam-online`}
-                                        className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-400"
-                                    >
-                                        <Eye size={18} />
-                                    </Link>
-                                </div>
+                {templates.length === 0 ? (
+                    <div className="lms-empty">Chua co de thi</div>
+                ) : (
+                    <table className="lms-table">
+                        <thead>
+                            <tr>
+                                <th>Tieu de</th>
+                                <th>Lop</th>
+                                <th>So cau</th>
+                                <th>Luot lam</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {templates.slice(0, 6).map((item) => (
+                                <tr key={item.id}>
+                                    <td>{item.title}</td>
+                                    <td>{item.grade}</td>
+                                    <td>{item.totalQuestions}</td>
+                                    <td>{item.timesTaken}</td>
+                                </tr>
                             ))}
-                        </div>
-                    )}
+                        </tbody>
+                    </table>
+                )}
+            </section>
+
+            <section className="lms-card">
+                <div className="lms-card-header">
+                    <div className="lms-card-title">Top hoc sinh</div>
                 </div>
-
-                {/* Top Students */}
-                <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                        <Award size={20} className="text-yellow-500" />
-                        Top Học Sinh Xuất Sắc
-                    </h2>
-
-                    {topStudents.length === 0 ? (
-                        <div className="text-center py-8 text-slate-500">
-                            <Trophy size={48} className="mx-auto mb-3 opacity-50" />
-                            <p>Chưa có học sinh nào làm bài</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-3 max-h-80 overflow-y-auto">
-                            {topStudents.map((s) => (
-                                <div
-                                    key={s.rank}
-                                    className="flex items-center gap-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50"
-                                >
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${s.rank === 1 ? 'bg-yellow-100 text-yellow-700' :
-                                        s.rank === 2 ? 'bg-slate-200 text-slate-700' :
-                                            s.rank === 3 ? 'bg-orange-100 text-orange-700' :
-                                                'bg-slate-100 text-slate-600'
-                                        }`}>
-                                        {s.rank <= 3 ? ['🥇', '🥈', '🥉'][s.rank - 1] : s.rank}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="font-medium text-slate-900 dark:text-white truncate">
-                                            {s.name}
-                                        </h4>
-                                        <p className="text-xs text-slate-500 truncate">
-                                            {s.templateTitle}
-                                        </p>
-                                    </div>
-                                    <div className="text-right">
-                                        <span className="text-lg font-bold text-green-600">{s.score.toFixed(1)}</span>
-                                        <span className="text-xs text-slate-500 block">điểm</span>
-                                    </div>
-                                </div>
+                {topStudents.length === 0 ? (
+                    <div className="lms-empty">Chua co du lieu</div>
+                ) : (
+                    <table className="lms-table">
+                        <thead>
+                            <tr>
+                                <th>Hang</th>
+                                <th>Hoc sinh</th>
+                                <th>Diem</th>
+                                <th>De thi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {topStudents.slice(0, 6).map((student) => (
+                                <tr key={student.rank}>
+                                    <td>{student.rank}</td>
+                                    <td>{student.name || student.email || 'Hoc sinh'}</td>
+                                    <td>{student.score.toFixed(1)}</td>
+                                    <td>{student.templateTitle}</td>
+                                </tr>
                             ))}
-                        </div>
-                    )}
-                </div>
-            </div>
+                        </tbody>
+                    </table>
+                )}
+            </section>
         </div>
     );
 }
