@@ -528,10 +528,10 @@ export default function ExamPage() {
                                     onChange={(e) => setAiParams(p => ({ ...p, exam_type: e.target.value as any }))}
                                     className="input-field w-full"
                                 >
-                                    <option value="15min">Kiểm tra 15 phút (10 câu MCQ)</option>
-                                    <option value="midterm">Giữa kì (16 MCQ + 3 Đ/S)</option>
-                                    <option value="final">Cuối kì (20 MCQ + 4 Đ/S)</option>
-                                    <option value="thpt">THPT Quốc gia (24 MCQ + 4 Đ/S)</option>
+                                    <option value="15min">Kiểm tra 15 phút (15 câu)</option>
+                                    <option value="midterm">Giữa kì (30 câu)</option>
+                                    <option value="final">Cuối kì (40 câu)</option>
+                                    <option value="thpt">THPT Quốc gia (40 câu)</option>
                                 </select>
                             </div>
 
@@ -634,8 +634,8 @@ export default function ExamPage() {
                                             {/* Số thứ tự + Badge loại câu */}
                                             <div className="flex flex-col items-center gap-1">
                                                 <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${isTrueFalse
-                                                        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600'
-                                                        : 'bg-primary-100 dark:bg-primary-900/30 text-primary-600'
+                                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600'
+                                                    : 'bg-primary-100 dark:bg-primary-900/30 text-primary-600'
                                                     }`}>
                                                     {idx + 1}
                                                 </span>
@@ -662,13 +662,13 @@ export default function ExamPage() {
                                                                 <div
                                                                     key={stmtIdx}
                                                                     className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${isCorrect
-                                                                            ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
-                                                                            : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                                                                        ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                                                                        : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
                                                                         }`}
                                                                 >
                                                                     <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isCorrect
-                                                                            ? 'bg-green-500 text-white'
-                                                                            : 'bg-red-500 text-white'
+                                                                        ? 'bg-green-500 text-white'
+                                                                        : 'bg-red-500 text-white'
                                                                         }`}>
                                                                         {isCorrect ? 'Đ' : 'S'}
                                                                     </span>

@@ -83,13 +83,33 @@ body.sepia {
   border-color: #d9c398;
 }
 
-.sepia .text-slate-900 { color: #44403c !important; }
-.sepia .text-slate-600 { color: #78716c !important; }
-.sepia .text-slate-400 { color: #a8a29e !important; }
-.sepia .bg-slate-50 { background-color: #fef3c7 !important; }
-.sepia .bg-slate-100 { background-color: #fde68a !important; }
-.sepia .bg-white { background-color: #fffbeb !important; }
-.sepia .border-slate-200 { border-color: #d9c398 !important; }
+.sepia .text-slate-900 {
+  color: #44403c !important;
+}
+
+.sepia .text-slate-600 {
+  color: #78716c !important;
+}
+
+.sepia .text-slate-400 {
+  color: #a8a29e !important;
+}
+
+.sepia .bg-slate-50 {
+  background-color: #fef3c7 !important;
+}
+
+.sepia .bg-slate-100 {
+  background-color: #fde68a !important;
+}
+
+.sepia .bg-white {
+  background-color: #fffbeb !important;
+}
+
+.sepia .border-slate-200 {
+  border-color: #d9c398 !important;
+}
 
 /* ============================================ */
 /* CARD STYLES - Updated for Emerald theme     */
