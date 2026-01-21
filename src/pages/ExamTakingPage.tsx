@@ -96,6 +96,7 @@ function QuestionDisplay({
 }) {
     const optionLetters = ['A', 'B', 'C', 'D'];
     const isTrueFalse = question.type === 'true_false';
+    const isEssay = question.type === 'essay';
 
     // Chú thích: Handler cho True/False toggle
     const handleTrueFalseToggle = (stmtIdx: number, value: boolean) => {
@@ -115,6 +116,11 @@ function QuestionDisplay({
                     {isTrueFalse && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-200 dark:bg-amber-800 text-amber-700 dark:text-amber-300 font-medium">
                             Đ/S
+                        </span>
+                    )}
+                    {isEssay && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-200 font-medium">
+                            TL
                         </span>
                     )}
                 </div>
@@ -137,8 +143,40 @@ function QuestionDisplay({
                 </p>
             </div>
 
-            {/* Options - MCQ hoặc True/False */}
-            {isTrueFalse && question.statements ? (
+            {/* Options - MCQ, True/False, hoac tu luan */}
+            {isEssay ? (
+                // === ESSAY QUESTION ===
+                <div className="space-y-4">
+                    <textarea
+                        value={typeof selectedAnswer === 'string' ? selectedAnswer : ''}
+                        onChange={(e) => !showResult && onSelectAnswer(e.target.value)}
+                        disabled={showResult}
+                        placeholder="Nhap cau tra loi cua ban..."
+                        className="w-full min-h-[140px] p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-primary-400"
+                    />
+
+                    {showResult && (
+                        <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 bg-slate-50 dark:bg-slate-800">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-slate-600 dark:text-slate-400">Diem:</span>
+                                <span className="font-semibold text-primary-600">
+                                    {(question.essayScore ?? 0).toFixed(2)}/{question.max_points ?? 1}
+                                </span>
+                            </div>
+                            {question.matchedKeywords && question.matchedKeywords.length > 0 && (
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                                    Tu khoa: {question.matchedKeywords.join(', ')}
+                                </p>
+                            )}
+                            {question.sample_answer && (
+                                <div className="mt-2 text-xs text-slate-600 dark:text-slate-300">
+                                    Goi y dap an: {question.sample_answer}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            ) : isTrueFalse && question.statements ? (
                 // === TRUE/FALSE QUESTION ===
                 <div className="space-y-3">
                     {question.statements.map((stmt, stmtIdx) => {
@@ -169,7 +207,7 @@ function QuestionDisplay({
                                             : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                                             } ${showResult ? 'cursor-default' : 'hover:bg-green-100'}`}
                                     >
-                                        Đúng
+                                        Dung
                                     </button>
                                     <button
                                         onClick={() => !showResult && handleTrueFalseToggle(stmtIdx, false)}
@@ -184,7 +222,7 @@ function QuestionDisplay({
                                 </div>
                                 {showResult && (
                                     <div className={`mt-2 text-xs ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
-                                        {isCorrect ? '✓ Đúng' : `✗ Đáp án đúng: ${correctValue ? 'Đúng' : 'Sai'}`}
+                                        {isCorrect ? 'Dung' : `Dap an dung: ${correctValue ? 'Dung' : 'Sai'}`}
                                     </div>
                                 )}
                             </div>
@@ -198,7 +236,7 @@ function QuestionDisplay({
                         const isSelected = selectedAnswer === opt;
                         const optionText = question.options?.[idx] || '';
 
-                        // Khi hiển thị kết quả
+                        // Khi hien thi ket qua
                         let resultStyle = '';
                         if (showResult) {
                             const isCorrectAnswer = question.answer === opt || question.answer === idx;
@@ -249,8 +287,7 @@ function QuestionDisplay({
                     })}
                 </div>
             )}
-
-            {/* Giải thích (sau khi nộp) */}
+{/* Giải thích (sau khi nộp) */}
             {showResult && question.explanation && (
                 <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
                     <h4 className="font-medium text-blue-700 dark:text-blue-300 mb-2">
@@ -424,12 +461,25 @@ export default function ExamTakingPage() {
         onSave: handleAutoSave,
     });
 
-    // Handlers - Hỗ trợ cả MCQ (string) và True/False (boolean[])
+    // Handlers - Ho tro MCQ, True/False, va tu luan
     function handleSelectAnswer(answer: string | boolean[]) {
-        if (result) return; // Đã nộp rồi
+        if (result) return; // Da nop roi
 
         const q = questions[currentIndex];
-        // Chú thích: Serialize boolean[] thành JSON string để lưu vào answers object
+        if (q.type === 'essay' && typeof answer === 'string') {
+            setAnswers(prev => {
+                const next = { ...prev };
+                if (!answer.trim()) {
+                    delete next[q.id];
+                } else {
+                    next[q.id] = answer;
+                }
+                return next;
+            });
+            return;
+        }
+
+        // Serialize boolean[] thanh JSON string de luu vao answers
         const answerValue = Array.isArray(answer) ? JSON.stringify(answer) : answer;
         setAnswers(prev => ({
             ...prev,
@@ -723,3 +773,8 @@ export default function ExamTakingPage() {
         </div>
     );
 }
+
+
+
+
+

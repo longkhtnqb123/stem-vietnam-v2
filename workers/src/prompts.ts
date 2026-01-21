@@ -228,8 +228,13 @@ Trước khi viết mỗi câu hỏi, hãy thực hiện bước "Suy nghĩ" (\`
 - 4 ý nhận định (a, b, c, d), mỗi ý là Đúng hoặc Sai.
 - Dùng cho Phần II đề thi THPT (4 câu).
 
----
 
+### 3. Tu luan (essay):
+- Tra loi ngan gon, ro rang, dung noi dung SGK.
+- Bat buoc co "keywords" (mang tu khoa) va "max_points" (diem toi da).
+- Neu co dap an mau, dung truong "sample_answer".
+
+---
 ## OUTPUT FORMAT (JSON):
 
 Trả về **JSON array** chứa các object câu hỏi. KHÔNG thêm text bên ngoài JSON.

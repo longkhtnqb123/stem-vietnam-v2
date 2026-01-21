@@ -8,17 +8,27 @@ import { useAuthStore } from './auth';
 export interface ExamQuestion {
     id: string;
     content: string;
-    // Chú thích: Hỗ trợ cả MCQ và True/False (THPT 2025)
-    type?: 'multiple_choice' | 'true_false';
-    options?: string[];           // Cho MCQ (4 lựa chọn A/B/C/D)
-    statements?: string[];        // Cho True/False (4 ý nhận định)
+    // Ho tro MCQ, True/False, va tu luan
+    type?: 'multiple_choice' | 'true_false' | 'essay';
+    options?: string[];           // Cho MCQ (4 lua chon A/B/C/D)
+    statements?: string[];        // Cho True/False (4 nhan dinh)
     answer?: string | number | boolean[];  // String/number cho MCQ, boolean[] cho T/F
-    explanation?: string;         // Giải thích (hiện sau khi nộp bài)
+    explanation?: string;         // Giai thich (hien sau khi nop bai)
     level: 'remember' | 'understand' | 'apply' | 'analyze';
     chapter?: string;
-    source?: string;              // Nguồn SGK
-    userAnswer?: string | boolean[];  // Trả lời của user
-    isCorrect?: boolean;          // Đúng/sai
+    source?: string;              // Nguon SGK
+    userAnswer?: string | boolean[];  // Tra loi cua user
+    isCorrect?: boolean;          // Dung/sai
+    // Cau tu luan
+    max_points?: number;
+    keywords?: string[] | string;
+    sample_answer?: string;
+    rubric?: string;
+    // Ket qua cham
+    essayScore?: number;
+    matchedKeywords?: string[];
+    trueFalseCorrect?: number;
+    trueFalseTotal?: number;
 }
 
 export interface ExamTemplate {
@@ -345,7 +355,7 @@ export function getExamTypeLabel(type: string): string {
         '15min': 'Kiểm tra 15 phút',
         'midterm': 'Giữa kì',
         'final': 'Cuối kì',
-        'thpt': 'THPT Quốc gia',
+        'thpt': 'THPT 2025',
     };
     return labels[type] || type;
 }
@@ -423,3 +433,6 @@ export const examOnlineApi = {
     getDifficultyLabel,
     getLevelLabel
 };
+
+
+

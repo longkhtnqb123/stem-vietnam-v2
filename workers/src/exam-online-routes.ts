@@ -15,15 +15,20 @@ interface ExamEnv {
 // Cấu trúc 1 câu hỏi (hỗ trợ cả MCQ và True/False)
 export interface ExamQuestion {
     id: string;
-    type?: 'multiple_choice' | 'true_false';  // Loại câu hỏi
-    content: string;           // Nội dung câu hỏi
-    options?: string[];        // 4 đáp án A, B, C, D (cho MCQ)
-    statements?: string[];     // 4 ý nhận định (cho True/False)
-    answer: string | boolean[];  // 'A','B','C','D' cho MCQ hoặc [true,false,...] cho T/F
-    explanation?: string;      // Giải thích (hiển thị sau khi nộp)
-    level: 'remember' | 'understand' | 'apply' | 'analyze'; // Mức độ tư duy
-    chapter?: string;          // Chương (optional)
-    source?: string;           // Nguồn SGK
+    type?: 'multiple_choice' | 'true_false' | 'essay';  // Loai cau hoi
+    content: string;           // Noi dung cau hoi
+    options?: string[];        // 4 dap an A, B, C, D (cho MCQ)
+    statements?: string[];     // 4 nhan dinh (cho True/False)
+    answer?: string | boolean[] | number;  // MCQ/T-F (tu luan co the khong co)
+    explanation?: string;      // Giai thich
+    level: 'remember' | 'understand' | 'apply' | 'analyze';
+    chapter?: string;
+    source?: string;
+    // Tu luan
+    max_points?: number;
+    keywords?: string[] | string;
+    sample_answer?: string;
+    rubric?: string;
 }
 
 // Đề thi template
@@ -51,7 +56,7 @@ export interface ExamAttempt {
     id: string;
     user_id: string;
     template_id: string;
-    answers: Record<string, string>; // {questionId: 'A' | 'B' | 'C' | 'D'}
+    answers: Record<string, unknown>; // {questionId: 'A' | 'B' | 'C' | 'D'}
     score?: number;
     correct_count?: number;
     total_questions: number;
@@ -67,6 +72,12 @@ export interface ExamAttempt {
     };
 }
 
+// Luu mapping cau hoi/option cho attempt (shuffle)
+interface AttemptMeta {
+    questionOrder?: string[];
+    optionOrder?: Record<string, number[]>;
+    shuffleMapping?: Record<string, string>;
+}
 // Chú thích: Câu hỏi Đúng/Sai dạng chùm (THPT 2025)
 export interface TrueFalseQuestion {
     id: string;
@@ -131,6 +142,217 @@ function jsonResponse(data: unknown, status: number, _corsOriginList: string): R
         },
     });
 }
+const ESSAY_CORRECT_THRESHOLD = 0.6;
+
+function normalizeText(value: string): string {
+    return value
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function normalizeKeywordList(value: unknown): string[] {
+    if (Array.isArray(value)) {
+        return value
+            .filter((item) => typeof item === 'string')
+            .map((item) => item.trim())
+            .filter((item) => item.length > 0);
+    }
+    if (typeof value === 'string') {
+        return value
+            .split(/[\,\n;]+/)
+            .map((item) => item.trim())
+            .filter((item) => item.length > 0);
+    }
+    return [];
+}
+
+function normalizeShuffleMapping(value: unknown): Record<string, string> {
+    const mapping: Record<string, string> = {};
+    if (!value || typeof value !== 'object') return mapping;
+
+    for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+        if (typeof raw !== 'string') continue;
+        const letter = raw.trim().charAt(0).toUpperCase();
+        if (['A', 'B', 'C', 'D'].includes(letter)) {
+            mapping[key] = letter;
+        }
+    }
+
+    return mapping;
+}
+
+function normalizeOptionOrder(value: unknown): Record<string, number[]> {
+    const order: Record<string, number[]> = {};
+    if (!value || typeof value !== 'object') return order;
+
+    for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+        if (!Array.isArray(raw)) continue;
+        const cleaned = raw
+            .map((item) => Number(item))
+            .filter((item) => Number.isFinite(item) && item >= 0)
+            .map((item) => Math.trunc(item));
+        if (cleaned.length > 0) {
+            const seen = new Set<number>();
+            order[key] = cleaned.filter((item) => {
+                if (seen.has(item)) return false;
+                seen.add(item);
+                return true;
+            });
+        }
+    }
+
+    return order;
+}
+
+function extractAttemptMeta(raw: Record<string, unknown>): { meta: AttemptMeta; answers: Record<string, string> } {
+    const rawMeta = (raw && typeof raw === 'object' ? (raw as any)._meta : undefined) || {};
+    const meta: AttemptMeta = {
+        questionOrder: Array.isArray(rawMeta.questionOrder)
+            ? rawMeta.questionOrder.filter((id: unknown) => typeof id === 'string')
+            : undefined,
+        optionOrder: normalizeOptionOrder(rawMeta.optionOrder),
+        shuffleMapping: normalizeShuffleMapping(rawMeta.shuffleMapping),
+    };
+
+    const answers: Record<string, string> = {};
+    for (const [key, value] of Object.entries(raw)) {
+        if (key === '_meta') continue;
+        if (typeof value === 'string') {
+            answers[key] = value;
+        } else if (Array.isArray(value)) {
+            answers[key] = JSON.stringify(value);
+        } else if (typeof value === 'number' || typeof value === 'boolean') {
+            answers[key] = String(value);
+        }
+    }
+
+    return { meta, answers };
+}
+
+function buildAnswersPayload(meta: AttemptMeta, answers: Record<string, string>): Record<string, unknown> {
+    return {
+        ...answers,
+        _meta: {
+            questionOrder: meta.questionOrder || [],
+            optionOrder: meta.optionOrder || {},
+            shuffleMapping: meta.shuffleMapping || {},
+        },
+    };
+}
+
+function applyQuestionOrder(questions: ExamQuestion[], order?: string[]): ExamQuestion[] {
+    if (!order || order.length === 0) return questions;
+    const byId = new Map(questions.map((q) => [q.id, q]));
+    const ordered: ExamQuestion[] = [];
+
+    for (const id of order) {
+        const question = byId.get(id);
+        if (question) {
+            ordered.push(question);
+            byId.delete(id);
+        }
+    }
+
+    return ordered.concat([...byId.values()]);
+}
+
+function applyOptionOrder(question: ExamQuestion, optionOrder?: Record<string, number[]>): ExamQuestion {
+    if (!question.options || !optionOrder || !optionOrder[question.id]) return question;
+
+    const order = optionOrder[question.id];
+    if (!Array.isArray(order) || order.length === 0) return question;
+
+    const used = new Set<number>();
+    const reordered: string[] = [];
+
+    for (const idx of order) {
+        if (used.has(idx)) continue;
+        const option = question.options[idx];
+        if (typeof option === 'string') {
+            reordered.push(option);
+            used.add(idx);
+        }
+    }
+
+    for (let i = 0; i < question.options.length; i++) {
+        if (used.has(i)) continue;
+        const option = question.options[i];
+        if (typeof option === 'string') reordered.push(option);
+    }
+
+    return {
+        ...question,
+        options: reordered.length > 0 ? reordered : question.options,
+    };
+}
+
+function normalizeUserAnswer(
+    question: ExamQuestion,
+    rawAnswer: string | boolean[] | undefined | null
+): string | boolean[] | null {
+    if (rawAnswer === undefined || rawAnswer === null) return null;
+
+    const questionType = question.type || 'multiple_choice';
+
+    if (questionType === 'true_false') {
+        if (Array.isArray(rawAnswer)) return rawAnswer;
+        if (typeof rawAnswer === 'string') {
+            try {
+                const parsed = JSON.parse(rawAnswer);
+                return Array.isArray(parsed) ? parsed.map((v) => Boolean(v)) : [];
+            } catch {
+                return [];
+            }
+        }
+        return [];
+    }
+
+    if (questionType === 'essay') {
+        return typeof rawAnswer === 'string' ? rawAnswer : String(rawAnswer);
+    }
+
+    if (typeof rawAnswer === 'string') {
+        const letter = rawAnswer.trim().charAt(0).toUpperCase();
+        return ['A', 'B', 'C', 'D'].includes(letter) ? letter : rawAnswer;
+    }
+
+    return null;
+}
+
+function scoreEssayAnswer(
+    question: ExamQuestion,
+    rawAnswer: string | null | undefined
+): { pointsEarned: number; maxPoints: number; matchedKeywords: string[]; isCorrect: boolean } {
+    const maxPoints = typeof question.max_points === 'number' && question.max_points > 0 ? question.max_points : 1;
+    const answer = typeof rawAnswer === 'string' ? rawAnswer.trim() : '';
+    if (!answer) {
+        return { pointsEarned: 0, maxPoints, matchedKeywords: [], isCorrect: false };
+    }
+
+    const keywords = normalizeKeywordList(question.keywords);
+    if (keywords.length === 0) {
+        return { pointsEarned: maxPoints, maxPoints, matchedKeywords: [], isCorrect: true };
+    }
+
+    const normalizedAnswer = normalizeText(answer);
+    const matchedKeywords = keywords.filter((keyword) => {
+        const normalizedKeyword = normalizeText(keyword);
+        return normalizedKeyword.length > 0 && normalizedAnswer.includes(normalizedKeyword);
+    });
+
+    const ratio = matchedKeywords.length / keywords.length;
+    const pointsEarned = Math.round(maxPoints * ratio * 100) / 100;
+    return {
+        pointsEarned,
+        maxPoints,
+        matchedKeywords,
+        isCorrect: ratio >= ESSAY_CORRECT_THRESHOLD,
+    };
+}
 
 // Chấm điểm tự động - Hỗ trợ cả MCQ và True/False
 function gradeExam(
@@ -142,13 +364,17 @@ function gradeExam(
     analysis: ExamAttempt['analysis'];
     detailed_results: Array<{
         questionId: string;
-        userAnswer: string | boolean[];
-        correctAnswer: string | boolean[];
+        userAnswer: string | boolean[] | null;
+        correctAnswer: string | boolean[] | undefined;
         isCorrect: boolean;
         level: string;
+        pointsEarned: number;
+        maxPoints: number;
+        matchedKeywords?: string[];
+        trueFalseCorrect?: number;
+        trueFalseTotal?: number;
     }>;
 } {
-    // Khởi tạo phân tích theo mức độ
     const analysis = {
         remember: { correct: 0, total: 0 },
         understand: { correct: 0, total: 0 },
@@ -158,35 +384,68 @@ function gradeExam(
 
     const detailed_results: Array<{
         questionId: string;
-        userAnswer: string | boolean[];
-        correctAnswer: string | boolean[];
+        userAnswer: string | boolean[] | null;
+        correctAnswer: string | boolean[] | undefined;
         isCorrect: boolean;
         level: string;
+        pointsEarned: number;
+        maxPoints: number;
+        matchedKeywords?: string[];
+        trueFalseCorrect?: number;
+        trueFalseTotal?: number;
     }> = [];
 
     let correct_count = 0;
+    let totalPoints = 0;
+    let pointsEarnedTotal = 0;
 
     for (const q of questions) {
-        const userAnswer = answers[q.id];
+        const questionType = q.type || 'multiple_choice';
+        const normalizedAnswer = normalizeUserAnswer(q, answers[q.id] as any);
         let isCorrect = false;
+        let pointsEarned = 0;
+        let maxPoints = questionType === 'essay'
+            ? (typeof q.max_points === 'number' && q.max_points > 0 ? q.max_points : 1)
+            : 1;
+        let matchedKeywords: string[] | undefined;
+        let trueFalseCorrect: number | undefined;
+        let trueFalseTotal: number | undefined;
 
-        // Chú thích: Xử lý khác nhau cho MCQ vs True/False
-        if (q.type === 'true_false' && Array.isArray(q.answer)) {
-            // TRUE/FALSE: So sánh từng ý
-            const userTFAnswer = (userAnswer as boolean[]) || [false, false, false, false];
-            const correctTFAnswer = q.answer as boolean[];
-            // Đúng nếu tất cả 4 ý đều đúng
-            isCorrect = correctTFAnswer.every((correct, i) => correct === userTFAnswer[i]);
+        if (questionType === 'essay') {
+            const essayResult = scoreEssayAnswer(q, typeof normalizedAnswer === 'string' ? normalizedAnswer : '');
+            pointsEarned = essayResult.pointsEarned;
+            maxPoints = essayResult.maxPoints;
+            matchedKeywords = essayResult.matchedKeywords;
+            isCorrect = essayResult.isCorrect;
+        } else if (questionType === 'true_false') {
+            const userTF = Array.isArray(normalizedAnswer) ? normalizedAnswer : [];
+            const correctTF = Array.isArray(q.answer) ? q.answer : [];
+            trueFalseTotal = correctTF.length || 4;
+            trueFalseCorrect = correctTF.reduce(
+                (sum, correct, idx) => sum + (userTF[idx] === correct ? 1 : 0),
+                0
+            );
+            isCorrect = correctTF.length > 0 && trueFalseCorrect === correctTF.length;
+            pointsEarned = isCorrect ? maxPoints : 0;
         } else {
-            // MCQ: So sánh string
-            const userMCQAnswer = (userAnswer || '') as string;
-            const correctMCQAnswer = (q.answer || '') as string;
-            isCorrect = userMCQAnswer.toString().toUpperCase() === correctMCQAnswer.toString().toUpperCase();
+            let correctAnswer = '';
+            if (typeof q.answer === 'string') {
+                const trimmed = q.answer.trim();
+                const letter = trimmed.charAt(0).toUpperCase();
+                correctAnswer = ['A', 'B', 'C', 'D'].includes(letter) ? letter : trimmed.toUpperCase();
+            } else if (typeof q.answer === 'number') {
+                correctAnswer = ['A', 'B', 'C', 'D'][q.answer] || '';
+            }
+            const userMCQ = typeof normalizedAnswer === 'string' ? normalizedAnswer : '';
+            isCorrect = userMCQ !== '' && correctAnswer !== '' && userMCQ.toUpperCase() === correctAnswer.toUpperCase();
+            pointsEarned = isCorrect ? maxPoints : 0;
         }
+
+        totalPoints += maxPoints;
+        pointsEarnedTotal += pointsEarned;
 
         if (isCorrect) correct_count++;
 
-        // Cập nhật phân tích theo mức độ
         if (q.level && analysis[q.level]) {
             analysis[q.level].total++;
             if (isCorrect) analysis[q.level].correct++;
@@ -194,18 +453,22 @@ function gradeExam(
 
         detailed_results.push({
             questionId: q.id,
-            userAnswer: userAnswer || '',
+            userAnswer: normalizedAnswer ?? null,
             correctAnswer: q.answer,
             isCorrect,
             level: q.level,
+            pointsEarned,
+            maxPoints,
+            matchedKeywords,
+            trueFalseCorrect,
+            trueFalseTotal,
         });
     }
 
-    // Tính điểm thang 10
-    const score = (correct_count / questions.length) * 10;
+    const score = totalPoints > 0 ? (pointsEarnedTotal / totalPoints) * 10 : 0;
 
     return {
-        score: Math.round(score * 100) / 100, // Làm tròn 2 chữ số
+        score: Math.round(score * 100) / 100,
         correct_count,
         analysis,
         detailed_results,
@@ -399,54 +662,77 @@ export async function startAttempt(
         const attemptId = generateId();
         const now = Date.now();
 
-        const questions: ExamQuestion[] = JSON.parse(template.questions as string);
+                const questions: ExamQuestion[] = JSON.parse(template.questions as string);
 
-        // Shuffle câu hỏi
+        // Shuffle cau hoi (bao gom MCQ, D/S, tu luan)
         const shuffledQuestions = [...questions].sort(() => Math.random() - 0.5);
+        const optionOrder: Record<string, number[]> = {};
+        const shuffleMapping: Record<string, string> = {};
 
-        // Chú thích: Shuffle options cho mỗi câu hỏi (chống copy đáp án)
-        // Lưu mapping để chấm điểm đúng
-        interface ShuffledQuestion {
-            id: string;
-            content: string;
-            options: string[];
-            level: string;
-            chapter?: string;
-            // originalAnswer lưu để chấm điểm
-            originalAnswer: string;
-            // shuffleMap: mapping index mới -> index cũ
-            shuffleMap: number[];
-        }
+        const questionsForUser = shuffledQuestions.map((q) => {
+            const questionType = q.type || 'multiple_choice';
 
-        const shuffledQuestionsWithMapping: ShuffledQuestion[] = shuffledQuestions
-            .filter(q => q.type !== 'true_false')  // Chỉ shuffle MCQ
-            .map(q => {
-                // Tạo array indices [0, 1, 2, 3]
-                const indices = [0, 1, 2, 3];
-                // Shuffle indices
-                const shuffledIndices = [...indices].sort(() => Math.random() - 0.5);
-
-                // Áp dụng shuffle vào options
-                const shuffledOptions = shuffledIndices.map(i => (q.options || [])[i]);
-
-                // Tìm vị trí mới của đáp án đúng (chỉ cho MCQ)
-                const answerStr = typeof q.answer === 'string' ? q.answer : 'A';
-                const originalAnswerIndex = ['A', 'B', 'C', 'D'].indexOf(answerStr.toUpperCase());
-                const newAnswerIndex = shuffledIndices.indexOf(originalAnswerIndex);
-                const newAnswer = ['A', 'B', 'C', 'D'][newAnswerIndex];
-
+            if (questionType === 'true_false') {
                 return {
                     id: q.id,
+                    type: 'true_false',
                     content: q.content,
-                    options: shuffledOptions,
+                    statements: q.statements,
                     level: q.level,
                     chapter: q.chapter,
-                    originalAnswer: newAnswer, // Đáp án sau shuffle
-                    shuffleMap: shuffledIndices,
                 };
-            });
+            }
 
-        // Lưu mapping vào attempt để chấm điểm đúng
+            if (questionType === 'essay') {
+                return {
+                    id: q.id,
+                    type: 'essay',
+                    content: q.content,
+                    level: q.level,
+                    chapter: q.chapter,
+                    max_points: q.max_points ?? 1,
+                    rubric: q.rubric,
+                };
+            }
+
+            const indices = [0, 1, 2, 3];
+            const shuffledIndices = [...indices].sort(() => Math.random() - 0.5);
+            const shuffledOptions = shuffledIndices
+                .map((i) => (q.options || [])[i])
+                .filter((opt) => typeof opt === 'string') as string[];
+
+            optionOrder[q.id] = shuffledIndices;
+
+            let answerLetter = 'A';
+            if (typeof q.answer === 'number') {
+                answerLetter = ['A', 'B', 'C', 'D'][q.answer] || 'A';
+            } else if (typeof q.answer === 'string') {
+                const firstChar = q.answer.trim().charAt(0).toUpperCase();
+                answerLetter = ['A', 'B', 'C', 'D'].includes(firstChar) ? firstChar : 'A';
+            }
+
+            const originalAnswerIndex = ['A', 'B', 'C', 'D'].indexOf(answerLetter);
+            const newAnswerIndex = shuffledIndices.indexOf(originalAnswerIndex);
+            shuffleMapping[q.id] = ['A', 'B', 'C', 'D'][newAnswerIndex] || 'A';
+
+            return {
+                id: q.id,
+                type: 'multiple_choice',
+                content: q.content,
+                options: shuffledOptions,
+                level: q.level,
+                chapter: q.chapter,
+            };
+        });
+
+        const attemptMeta: AttemptMeta = {
+            questionOrder: shuffledQuestions.map((q) => q.id),
+            optionOrder,
+            shuffleMapping,
+        };
+        const attemptAnswers = buildAnswersPayload(attemptMeta, {});
+
+        // Luu mapping vao attempt de cham diem dung
         await env.DB.prepare(`
             INSERT INTO exam_attempts 
             (id, user_id, template_id, answers, total_questions, started_at, status)
@@ -455,22 +741,13 @@ export async function startAttempt(
             attemptId,
             user.sub,
             body.templateId,
-            JSON.stringify({ _shuffleMapping: shuffledQuestionsWithMapping.map(q => ({ id: q.id, answer: q.originalAnswer })) }),
+            JSON.stringify(attemptAnswers),
             template.total_questions,
             now,
             'in_progress'
         ).run();
 
-        // Trả về câu hỏi (KHÔNG có đáp án đúng)
-        const questionsForUser = shuffledQuestionsWithMapping.map(q => ({
-            id: q.id,
-            content: q.content,
-            options: q.options,
-            level: q.level,
-            chapter: q.chapter,
-            // KHÔNG trả về: answer, explanation, shuffleMap
-        }));
-
+        // Tra ve cau hoi (khong co dap an dung)
         return jsonResponse({
             success: true,
             attempt: {
@@ -513,10 +790,15 @@ export async function updateAttempt(
             return jsonResponse({ error: 'Bài làm đã nộp, không thể chỉnh sửa' }, 400, env.CORS_ORIGIN);
         }
 
-        // Update answers
+        const existingRaw = JSON.parse(attempt.answers || '{}');
+        const { meta, answers: existingAnswers } = extractAttemptMeta(existingRaw);
+        const mergedAnswers = { ...existingAnswers, ...(body.answers || {}) };
+        const payload = buildAnswersPayload(meta, mergedAnswers);
+
+        // Update answers (giu meta)
         await env.DB.prepare(
             'UPDATE exam_attempts SET answers = ? WHERE id = ?'
-        ).bind(JSON.stringify(body.answers), attemptId).run();
+        ).bind(JSON.stringify(payload), attemptId).run();
 
         return jsonResponse({ success: true }, 200, env.CORS_ORIGIN);
     } catch (error) {
@@ -558,32 +840,30 @@ export async function submitAttempt(
             return jsonResponse({ error: 'Đề thi không tồn tại' }, 404, env.CORS_ORIGIN);
         }
 
-        const questions: ExamQuestion[] = JSON.parse(template.questions);
+                const questions: ExamQuestion[] = JSON.parse(template.questions);
 
-        // Merge answers từ request với answers đã lưu
-        const savedAnswers = JSON.parse(attempt.answers || '{}');
+        const savedRaw = JSON.parse(attempt.answers || '{}');
+        const { meta, answers: savedAnswers } = extractAttemptMeta(savedRaw);
+        const finalAnswers = { ...savedAnswers, ...(body.answers || {}) };
 
-        // Chú thích: Lấy shuffle mapping nếu có (để chấm điểm đúng sau khi shuffle options)
-        const shuffleMapping = savedAnswers._shuffleMapping as Array<{ id: string; answer: string }> | undefined;
-        delete savedAnswers._shuffleMapping; // Xóa metadata khỏi answers
+        const shuffleMapping = meta.shuffleMapping || {};
+        const questionsForGrading = questions.map((q) => {
+            if ((q.type || 'multiple_choice') !== 'multiple_choice') return q;
+            if (shuffleMapping[q.id]) {
+                return { ...q, answer: shuffleMapping[q.id] };
+            }
+            return q;
+        });
 
-        const finalAnswers = { ...savedAnswers, ...body.answers };
-
-        // Chấm điểm với shuffle mapping
-        let gradeResult;
-        if (shuffleMapping && shuffleMapping.length > 0) {
-            // Tạo map id -> shuffled answer
-            const shuffledAnswerMap = new Map(shuffleMapping.map(m => [m.id, m.answer]));
-
-            // Build questions với shuffled answers
-            const questionsWithShuffledAnswers = questions.map(q => ({
-                ...q,
-                answer: shuffledAnswerMap.get(q.id) || q.answer, // Dùng shuffled answer nếu có
-            }));
-            gradeResult = gradeExam(questionsWithShuffledAnswers, finalAnswers);
-        } else {
-            gradeResult = gradeExam(questions, finalAnswers);
-        }
+        const gradeResult = gradeExam(questionsForGrading, finalAnswers);
+        const orderedQuestions = applyQuestionOrder(questions, meta.questionOrder)
+            .map((q) => applyOptionOrder(q, meta.optionOrder))
+            .map((q) => {
+                if ((q.type || 'multiple_choice') === 'multiple_choice' && shuffleMapping[q.id]) {
+                    return { ...q, answer: shuffleMapping[q.id] };
+                }
+                return q;
+            });
 
         const now = Date.now();
         const timeSpent = Math.floor((now - attempt.started_at) / 1000);
@@ -595,7 +875,7 @@ export async function submitAttempt(
                 time_spent_seconds = ?, status = ?, analysis = ?
             WHERE id = ?
         `).bind(
-            JSON.stringify(finalAnswers),
+            JSON.stringify(buildAnswersPayload(meta, finalAnswers)),
             gradeResult.score,
             gradeResult.correct_count,
             now,
@@ -605,38 +885,43 @@ export async function submitAttempt(
             attemptId
         ).run();
 
-        // Trả về kết quả (bao gồm đáp án đúng)
+                const resultById = new Map(gradeResult.detailed_results.map((r) => [r.questionId, r]));
+
+        // Tra ve ket qua (bao gom dap an dung)
         return jsonResponse({
             success: true,
             result: {
                 score: gradeResult.score,
                 correct_count: gradeResult.correct_count,
-                total_questions: questions.length,
+                total_questions: orderedQuestions.length,
                 time_spent_seconds: timeSpent,
                 analysis: gradeResult.analysis,
                 detailed_results: gradeResult.detailed_results,
-                // Trả về questions với explanation
-                questions_with_answers: questions.map(q => {
-                    let isCorrect = false;
-                    const userAns = finalAnswers[q.id];
-                    if (q.type === 'true_false' && Array.isArray(q.answer)) {
-                        const userTF = (userAns as boolean[]) || [false, false, false, false];
-                        isCorrect = q.answer.every((c, i) => c === userTF[i]);
-                    } else {
-                        const correctStr = typeof q.answer === 'string' ? q.answer : 'A';
-                        isCorrect = (userAns || '').toString().toUpperCase() === correctStr.toUpperCase();
-                    }
+                questions_with_answers: orderedQuestions.map((q) => {
+                    const detail = resultById.get(q.id);
+                    const hasUserAnswer = Object.prototype.hasOwnProperty.call(finalAnswers, q.id);
+                    const normalizedUserAnswer = hasUserAnswer ? normalizeUserAnswer(q, finalAnswers[q.id]) : null;
+                    const questionType = q.type || 'multiple_choice';
+
                     return {
                         id: q.id,
-                        type: q.type,
+                        type: questionType,
                         content: q.content,
                         options: q.options,
                         statements: q.statements,
                         answer: q.answer,
                         explanation: q.explanation,
                         level: q.level,
-                        userAnswer: userAns || null,
-                        isCorrect,
+                        max_points: q.max_points ?? detail?.maxPoints,
+                        keywords: q.keywords,
+                        sample_answer: q.sample_answer,
+                        rubric: q.rubric,
+                        userAnswer: normalizedUserAnswer,
+                        isCorrect: detail ? detail.isCorrect : false,
+                        essayScore: questionType === 'essay' ? detail?.pointsEarned ?? 0 : undefined,
+                        matchedKeywords: questionType === 'essay' ? detail?.matchedKeywords : undefined,
+                        trueFalseCorrect: questionType === 'true_false' ? detail?.trueFalseCorrect : undefined,
+                        trueFalseTotal: questionType === 'true_false' ? detail?.trueFalseTotal : undefined,
                     };
                 }),
             },
@@ -647,8 +932,6 @@ export async function submitAttempt(
     }
 }
 
-// GET /api/exam-online/attempts
-// Lịch sử làm bài của user
 export async function getAttempts(
     request: Request,
     user: JWTPayload,
@@ -702,8 +985,8 @@ export async function getAttempts(
     }
 }
 
-// GET /api/exam-online/attempts/:id
-// Chi tiết 1 bài làm (xem lại)
+// GET /api/exam-online/attempts
+// Lịch sử làm bài của user
 export async function getAttempt(
     attemptId: string,
     user: JWTPayload,
@@ -715,20 +998,39 @@ export async function getAttempt(
         ).bind(attemptId, user.sub).first() as any;
 
         if (!attempt) {
-            return jsonResponse({ error: 'Bài làm không tồn tại' }, 404, env.CORS_ORIGIN);
+            return jsonResponse({ error: 'Bai lam khong ton tai' }, 404, env.CORS_ORIGIN);
         }
 
-        // Lấy template
+        // Lay template
         const template = await env.DB.prepare(
             'SELECT * FROM exam_templates WHERE id = ?'
         ).bind(attempt.template_id).first() as any;
 
-        // Parse JSON
         const questions: ExamQuestion[] = JSON.parse(template.questions);
-        const answers = JSON.parse(attempt.answers || '{}');
+        const rawAnswers = JSON.parse(attempt.answers || '{}');
+        const { meta, answers } = extractAttemptMeta(rawAnswers);
+        const shuffleMapping = meta.shuffleMapping || {};
 
-        // Nếu đã nộp, trả về với đáp án
+        const orderedQuestions = applyQuestionOrder(questions, meta.questionOrder)
+            .map((q) => applyOptionOrder(q, meta.optionOrder))
+            .map((q) => {
+                if ((q.type || 'multiple_choice') === 'multiple_choice' && shuffleMapping[q.id]) {
+                    return { ...q, answer: shuffleMapping[q.id] };
+                }
+                return q;
+            });
+
         if (attempt.status === 'submitted') {
+            const questionsForGrading = questions.map((q) => {
+                if ((q.type || 'multiple_choice') !== 'multiple_choice') return q;
+                if (shuffleMapping[q.id]) {
+                    return { ...q, answer: shuffleMapping[q.id] };
+                }
+                return q;
+            });
+            const gradeResult = gradeExam(questionsForGrading, answers);
+            const resultById = new Map(gradeResult.detailed_results.map((r) => [r.questionId, r]));
+
             return jsonResponse({
                 attempt: {
                     id: attempt.id,
@@ -745,35 +1047,38 @@ export async function getAttempt(
                     submitted_at: attempt.submitted_at,
                     time_spent_seconds: attempt.time_spent_seconds,
                     status: attempt.status,
-                    analysis: attempt.analysis ? JSON.parse(attempt.analysis) : null,
+                    analysis: attempt.analysis ? JSON.parse(attempt.analysis) : gradeResult.analysis,
                 },
-                questions_with_answers: questions.map(q => {
-                    let isCorrect = false;
-                    const userAns = answers[q.id];
-                    if (q.type === 'true_false' && Array.isArray(q.answer)) {
-                        const userTF = (userAns as unknown as boolean[]) || [false, false, false, false];
-                        isCorrect = q.answer.every((c, i) => c === userTF[i]);
-                    } else {
-                        const correctStr = typeof q.answer === 'string' ? q.answer : 'A';
-                        isCorrect = ((userAns || '') as string).toUpperCase() === correctStr.toUpperCase();
-                    }
+                questions_with_answers: orderedQuestions.map((q) => {
+                    const detail = resultById.get(q.id);
+                    const hasUserAnswer = Object.prototype.hasOwnProperty.call(answers, q.id);
+                    const normalizedUserAnswer = hasUserAnswer ? normalizeUserAnswer(q, answers[q.id]) : null;
+                    const questionType = q.type || 'multiple_choice';
+
                     return {
                         id: q.id,
-                        type: q.type,
+                        type: questionType,
                         content: q.content,
                         options: q.options,
                         statements: q.statements,
                         answer: q.answer,
                         explanation: q.explanation,
                         level: q.level,
-                        userAnswer: userAns || null,
-                        isCorrect,
+                        max_points: q.max_points ?? detail?.maxPoints,
+                        keywords: q.keywords,
+                        sample_answer: q.sample_answer,
+                        rubric: q.rubric,
+                        userAnswer: normalizedUserAnswer,
+                        isCorrect: detail ? detail.isCorrect : false,
+                        essayScore: questionType === 'essay' ? detail?.pointsEarned ?? 0 : undefined,
+                        matchedKeywords: questionType === 'essay' ? detail?.matchedKeywords : undefined,
+                        trueFalseCorrect: questionType === 'true_false' ? detail?.trueFalseCorrect : undefined,
+                        trueFalseTotal: questionType === 'true_false' ? detail?.trueFalseTotal : undefined,
                     };
                 }),
             }, 200, env.CORS_ORIGIN);
         }
 
-        // Nếu đang làm, chỉ trả về câu hỏi (không có đáp án)
         return jsonResponse({
             attempt: {
                 id: attempt.id,
@@ -785,20 +1090,25 @@ export async function getAttempt(
                 status: attempt.status,
             },
             answers,
-            questions: questions.map(q => ({
+            questions: orderedQuestions.map((q) => ({
                 id: q.id,
+                type: q.type || 'multiple_choice',
                 content: q.content,
                 options: q.options,
+                statements: q.statements,
                 level: q.level,
+                chapter: q.chapter,
+                max_points: q.max_points,
+                rubric: q.rubric,
             })),
         }, 200, env.CORS_ORIGIN);
     } catch (error) {
         console.error('[exam-online] get attempt error:', error);
-        return jsonResponse({ error: 'Lỗi server' }, 500, env.CORS_ORIGIN);
+        return jsonResponse({ error: 'Loi server' }, 500, env.CORS_ORIGIN);
     }
 }
 
-// DELETE /api/exam-online/templates/:id
+// DELETE /api/exam-online/templates/:id// DELETE /api/exam-online/templates/:id
 // Xóa đề thi (chỉ owner)
 export async function deleteTemplate(
     templateId: string,
@@ -1347,39 +1657,100 @@ Trả về JSON array đúng format.`;
             questions = JSON.parse(jsonMatch[0]);
 
             // Validate và normalize
-            questions = questions.map((q: any, idx: number) => {
-                // Chú thích: Handle different answer formats from AI
-                // AI có thể trả về: "A", 0, "correct": 1, hoặc [true, false, true, false]
-                let normalizedAnswer: string | boolean[];
-                const isTrueFalse = q.type === 'true_false' || Array.isArray(q.statements);
+                        questions = questions.map((q: any, idx: number) => {
+                const rawOptions = Array.isArray(q.options) ? q.options : [];
+                const rawStatements = Array.isArray(q.statements) ? q.statements : [];
+                let statements: string[] | undefined;
+                let tfAnswer: boolean[] | undefined;
+
+                if (rawStatements.length > 0) {
+                    if (typeof rawStatements[0] === 'string') {
+                        statements = rawStatements as string[];
+                    } else {
+                        statements = rawStatements
+                            .map((s: any) => s.text || s.statement || '')
+                            .filter((s: string) => s.trim().length > 0);
+                        tfAnswer = rawStatements.map((s: any) => Boolean(s.isTrue ?? s.correct ?? s.answer));
+                    }
+                }
+
+                const hasOptions = rawOptions.length >= 2;
+                const isTrueFalse = q.type === 'true_false' || (statements && statements.length > 0);
+                const isEssay = q.type === 'essay' || q.question_type === 'essay' || (!hasOptions && !isTrueFalse);
+
+                if (isEssay) {
+                    const keywords = normalizeKeywordList(q.keywords || q.keyword || q.key);
+                    let sampleAnswer = '';
+                    if (typeof q.sample_answer === 'string') {
+                        sampleAnswer = q.sample_answer;
+                    } else if (typeof q.answer === 'string') {
+                        const firstChar = q.answer.trim().charAt(0).toUpperCase();
+                        if (!['A', 'B', 'C', 'D'].includes(firstChar)) {
+                            sampleAnswer = q.answer;
+                        }
+                    }
+
+                    const maxPoints = typeof q.max_points === 'number'
+                        ? q.max_points
+                        : (typeof q.points === 'number' ? q.points : 1);
+
+                    return {
+                        id: q.id || `q${idx + 1}`,
+                        type: 'essay',
+                        content: q.content || q.question || q.prompt || '',
+                        explanation: q.explanation || '',
+                        level: ['remember', 'understand', 'apply', 'analyze'].includes(q.level)
+                            ? q.level as ExamQuestion['level']
+                            : 'remember',
+                        source: q.source || undefined,
+                        max_points: maxPoints,
+                        keywords: keywords.length > 0 ? keywords : undefined,
+                        sample_answer: sampleAnswer || undefined,
+                        rubric: typeof q.rubric === 'string' ? q.rubric : undefined,
+                    };
+                }
 
                 if (isTrueFalse) {
-                    // True/False: answer is array of booleans
-                    normalizedAnswer = Array.isArray(q.correct) ? q.correct :
-                        Array.isArray(q.answer) ? q.answer :
-                            [false, false, false, false];
-                } else {
-                    // MCQ: answer is 'A', 'B', 'C', 'D' or index 0-3
-                    const rawAnswer = q.correct !== undefined ? q.correct : q.answer;
-                    if (typeof rawAnswer === 'number') {
-                        normalizedAnswer = ['A', 'B', 'C', 'D'][rawAnswer] || 'A';
-                    } else if (typeof rawAnswer === 'string') {
-                        // Chỉ lấy chữ cái đầu tiên nếu là "A. ..." format
-                        normalizedAnswer = rawAnswer.charAt(0).toUpperCase();
-                        if (!['A', 'B', 'C', 'D'].includes(normalizedAnswer)) {
-                            normalizedAnswer = 'A';
-                        }
-                    } else {
+                    const normalizedAnswer = Array.isArray(tfAnswer)
+                        ? tfAnswer
+                        : Array.isArray(q.correct)
+                            ? q.correct
+                            : Array.isArray(q.answer)
+                                ? q.answer
+                                : [false, false, false, false];
+
+                    return {
+                        id: q.id || `q${idx + 1}`,
+                        type: 'true_false',
+                        content: q.content || q.question || '',
+                        statements: statements || (Array.isArray(q.statements) ? q.statements : []),
+                        answer: normalizedAnswer,
+                        explanation: q.explanation || '',
+                        level: ['remember', 'understand', 'apply', 'analyze'].includes(q.level)
+                            ? q.level as ExamQuestion['level']
+                            : 'remember',
+                        source: q.source || undefined,
+                    };
+                }
+
+                const rawAnswer = q.correct !== undefined ? q.correct : q.answer;
+                let normalizedAnswer: string;
+                if (typeof rawAnswer === 'number') {
+                    normalizedAnswer = ['A', 'B', 'C', 'D'][rawAnswer] || 'A';
+                } else if (typeof rawAnswer === 'string') {
+                    normalizedAnswer = rawAnswer.charAt(0).toUpperCase();
+                    if (!['A', 'B', 'C', 'D'].includes(normalizedAnswer)) {
                         normalizedAnswer = 'A';
                     }
+                } else {
+                    normalizedAnswer = 'A';
                 }
 
                 return {
                     id: q.id || `q${idx + 1}`,
-                    type: isTrueFalse ? 'true_false' : 'multiple_choice',
+                    type: 'multiple_choice',
                     content: q.content || q.question || '',
-                    options: Array.isArray(q.options) ? q.options : [],
-                    statements: Array.isArray(q.statements) ? q.statements : undefined,
+                    options: rawOptions,
                     answer: normalizedAnswer,
                     explanation: q.explanation || '',
                     level: ['remember', 'understand', 'apply', 'analyze'].includes(q.level)
@@ -1468,4 +1839,9 @@ Trả về JSON array đúng format.`;
         }, 500, env.CORS_ORIGIN);
     }
 }
+
+
+
+
+
 

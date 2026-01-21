@@ -180,7 +180,8 @@ function QuickFilter({
                     { value: '', label: 'Tất cả' },
                     { value: '15min', label: '15 phút' },
                     { value: 'midterm', label: 'Giữa kì' },
-                    { value: 'final', label: 'Cuối kì' },
+                    { value: 'final', label: 'Cuoi ki' },
+                    { value: 'thpt', label: 'THPT 2025' },
                 ].map((t) => (
                     <button
                         key={t.value}
@@ -528,10 +529,10 @@ export default function ExamPage() {
                                     onChange={(e) => setAiParams(p => ({ ...p, exam_type: e.target.value as any }))}
                                     className="input-field w-full"
                                 >
-                                    <option value="15min">Kiểm tra 15 phút (15 câu)</option>
-                                    <option value="midterm">Giữa kì (30 câu)</option>
-                                    <option value="final">Cuối kì (40 câu)</option>
-                                    <option value="thpt">THPT Quốc gia (40 câu)</option>
+                                    <option value="15min">Kiem tra 15 phut (10 cau)</option>
+                                    <option value="midterm">Giua ki (21 cau)</option>
+                                    <option value="final">Cuoi ki (26 cau)</option>
+                                    <option value="thpt">THPT 2025 (28 cau)</option>
                                 </select>
                             </div>
 
@@ -627,6 +628,15 @@ export default function ExamPage() {
                             {previewData.questions.map((q, idx) => {
                                 // Chú thích: Phân biệt loại câu hỏi MCQ và True/False
                                 const isTrueFalse = q.type === 'true_false';
+                                const isEssay = q.type === 'essay';
+                                const keywordList = Array.isArray(q.keywords)
+                                    ? q.keywords
+                                    : typeof q.keywords === 'string'
+                                        ? q.keywords
+                                            .split(/[,:;\n]+/)
+                                            .map((item) => item.trim())
+                                            .filter(Boolean)
+                                        : [];
 
                                 return (
                                     <div key={q.id} className="border border-slate-200 dark:border-slate-700 rounded-xl p-4">
@@ -644,6 +654,11 @@ export default function ExamPage() {
                                                         Đ/S
                                                     </span>
                                                 )}
+                                                {isEssay && (
+                                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-200 font-medium">
+                                                        TL
+                                                    </span>
+                                                )}
                                             </div>
 
                                             <div className="flex-1">
@@ -651,7 +666,24 @@ export default function ExamPage() {
                                                 <p className="text-slate-900 dark:text-white font-medium mb-3">{q.content}</p>
 
                                                 {/* Chú thích: Render khác nhau cho MCQ và True/False */}
-                                                {isTrueFalse && q.statements ? (
+                                                {isEssay ? (
+                                                    // === ESSAY QUESTION ===
+                                                    <div className="space-y-2 text-sm">
+                                                        <div className="text-slate-600 dark:text-slate-300">
+                                                            Tu luan - {(q.max_points ?? 1)} diem
+                                                        </div>
+                                                        {keywordList.length > 0 && (
+                                                            <div className="text-slate-500 dark:text-slate-400">
+                                                                Tu khoa: {keywordList.join(', ')}
+                                                            </div>
+                                                        )}
+                                                        {q.sample_answer && (
+                                                            <div className="text-slate-500 dark:text-slate-400">
+                                                                Goi y dap an: {q.sample_answer}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : isTrueFalse && q.statements ? (
                                                     // === TRUE/FALSE QUESTION ===
                                                     <div className="space-y-2">
                                                         {q.statements.map((stmt, stmtIdx) => {
@@ -733,3 +765,8 @@ export default function ExamPage() {
         </div>
     );
 }
+
+
+
+
+
