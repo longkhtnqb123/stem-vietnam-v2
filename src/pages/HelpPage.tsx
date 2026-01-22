@@ -1,24 +1,9 @@
-import { useState } from 'react';
-import {
-    GraduationCap,
-    Users,
-    MessageCircle,
-    BookOpen,
-    Trophy,
-    Settings,
-    Sparkles,
-    BarChart3,
-    Brain,
-    Search,
-    School,
-    PlusCircle
-} from 'lucide-react';
+﻿import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 type TabType = 'student' | 'teacher';
 
 interface GuideSection {
-    icon: React.ReactNode;
     title: string;
     description: string;
     steps: string[];
@@ -28,7 +13,6 @@ interface GuideSection {
 
 const STUDENT_GUIDES: GuideSection[] = [
     {
-        icon: <MessageCircle size={18} />,
         title: 'Chat AI',
         description: 'Hoi dap va giai bai tap voi AI.',
         steps: [
@@ -40,7 +24,6 @@ const STUDENT_GUIDES: GuideSection[] = [
         linkText: 'Mo Chat AI',
     },
     {
-        icon: <School size={18} />,
         title: 'Lop hoc',
         description: 'Tham gia lop hoc va lam bai tap.',
         steps: [
@@ -52,7 +35,6 @@ const STUDENT_GUIDES: GuideSection[] = [
         linkText: 'Vao lop',
     },
     {
-        icon: <Trophy size={18} />,
         title: 'Thi online',
         description: 'Lam bai thi truc tuyen va xem ket qua.',
         steps: [
@@ -64,7 +46,6 @@ const STUDENT_GUIDES: GuideSection[] = [
         linkText: 'Lam bai thi',
     },
     {
-        icon: <BookOpen size={18} />,
         title: 'Thu vien',
         description: 'Xem tai lieu, SGK va de mau.',
         steps: [
@@ -76,7 +57,6 @@ const STUDENT_GUIDES: GuideSection[] = [
         linkText: 'Mo thu vien',
     },
     {
-        icon: <Settings size={18} />,
         title: 'Cai dat',
         description: 'Tuy chinh AI va giao dien.',
         steps: [
@@ -91,7 +71,6 @@ const STUDENT_GUIDES: GuideSection[] = [
 
 const TEACHER_GUIDES: GuideSection[] = [
     {
-        icon: <Sparkles size={18} />,
         title: 'Tao de thi AI',
         description: 'Tao de thi nhanh theo ma tran.',
         steps: [
@@ -103,7 +82,6 @@ const TEACHER_GUIDES: GuideSection[] = [
         linkText: 'Tao de thi',
     },
     {
-        icon: <School size={18} />,
         title: 'Quan ly lop hoc',
         description: 'Tao lop, moi hoc sinh, giao bai tap.',
         steps: [
@@ -115,7 +93,6 @@ const TEACHER_GUIDES: GuideSection[] = [
         linkText: 'Quan ly lop',
     },
     {
-        icon: <BarChart3 size={18} />,
         title: 'Thong ke',
         description: 'Xem diem va tien do cua hoc sinh.',
         steps: [
@@ -126,7 +103,6 @@ const TEACHER_GUIDES: GuideSection[] = [
         linkText: 'Xem thong ke',
     },
     {
-        icon: <PlusCircle size={18} />,
         title: 'Tao de thu cong',
         description: 'Tao de thi tu cau hoi san co.',
         steps: [
@@ -138,7 +114,6 @@ const TEACHER_GUIDES: GuideSection[] = [
         linkText: 'Tao de thu cong',
     },
     {
-        icon: <Brain size={18} />,
         title: 'RAG tu SGK',
         description: 'AI tao cau hoi theo SGK.',
         steps: [
@@ -147,7 +122,6 @@ const TEACHER_GUIDES: GuideSection[] = [
         ],
     },
     {
-        icon: <Search size={18} />,
         title: 'Chat AI ho tro soan bai',
         description: 'Su dung Chat AI de soan bai giang.',
         steps: [
@@ -176,42 +150,51 @@ export default function HelpPage() {
                             onClick={() => setActiveTab('student')}
                             className={activeTab === 'student' ? 'lms-button' : 'lms-button-secondary'}
                         >
-                            <GraduationCap size={16} /> Hoc sinh
+                            Hoc sinh
                         </button>
                         <button
                             onClick={() => setActiveTab('teacher')}
                             className={activeTab === 'teacher' ? 'lms-button' : 'lms-button-secondary'}
                         >
-                            <Users size={16} /> Giao vien
+                            Giao vien
                         </button>
                     </div>
                 </div>
             </section>
 
             <section className="lms-grid lms-grid-2">
-                {guides.map((guide) => (
-                    <article key={guide.title} className="lms-card">
-                        <div className="lms-row" style={{ justifyContent: 'space-between' }}>
-                            <div className="lms-row">
-                                {guide.icon}
-                                <div>
-                                    <div className="lms-card-title">{guide.title}</div>
-                                    <div className="lms-card-subtitle">{guide.description}</div>
+                {guides.map((guide) => {
+                    const tag = guide.title
+                        .split(' ')
+                        .map(word => word[0])
+                        .join('')
+                        .slice(0, 3)
+                        .toUpperCase();
+
+                    return (
+                        <article key={guide.title} className="lms-card">
+                            <div className="lms-row" style={{ justifyContent: 'space-between' }}>
+                                <div className="lms-row">
+                                    <span className="lms-guide-tag">{tag}</span>
+                                    <div>
+                                        <div className="lms-card-title">{guide.title}</div>
+                                        <div className="lms-card-subtitle">{guide.description}</div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <ul className="lms-section">
-                            {guide.steps.map((step, idx) => (
-                                <li key={idx} className="lms-note">- {step}</li>
-                            ))}
-                        </ul>
-                        {guide.link && guide.linkText && (
-                            <Link to={guide.link} className="lms-button-secondary">
-                                {guide.linkText}
-                            </Link>
-                        )}
-                    </article>
-                ))}
+                            <ul className="lms-section">
+                                {guide.steps.map((step, idx) => (
+                                    <li key={idx} className="lms-note">- {step}</li>
+                                ))}
+                            </ul>
+                            {guide.link && guide.linkText && (
+                                <Link to={guide.link} className="lms-button-secondary">
+                                    {guide.linkText}
+                                </Link>
+                            )}
+                        </article>
+                    );
+                })}
             </section>
         </div>
     );

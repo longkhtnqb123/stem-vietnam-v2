@@ -104,35 +104,44 @@ export default function TeacherDashboard() {
     const { overview, templates, topStudents } = data;
 
     return (
-        <div className="lms-page">
-            <section className="lms-card">
+        <div className="lms-page lms-dashboard">
+            <section className="lms-hero-card">
+                <div>
+                    <div className="lms-hero-kicker">Giao vien</div>
+                    <h2 className="lms-hero-title">Quan ly lop hoc cua ban</h2>
+                    <p className="lms-hero-subtitle">Theo doi ket qua va tao de thi moi</p>
+                </div>
+                <div className="lms-hero-actions">
+                    <Link to="/exam" className="lms-hero-button">Tao de thi</Link>
+                    <Link to="/classes" className="lms-hero-ghost">Quan ly lop</Link>
+                </div>
+            </section>
+
+            <section className="lms-stat-grid">
+                <div className="lms-stat-card">
+                    <div className="lms-stat-label">De thi</div>
+                    <div className="lms-stat-value">{overview.totalTemplates}</div>
+                </div>
+                <div className="lms-stat-card">
+                    <div className="lms-stat-label">Luot lam</div>
+                    <div className="lms-stat-value">{overview.totalAttempts}</div>
+                </div>
+                <div className="lms-stat-card">
+                    <div className="lms-stat-label">Trung binh</div>
+                    <div className="lms-stat-value">{overview.averageScore.toFixed(1)}</div>
+                </div>
+                <div className="lms-stat-card">
+                    <div className="lms-stat-label">Ti le dat</div>
+                    <div className="lms-stat-value">{Math.round(overview.passRate)}%</div>
+                </div>
+            </section>
+
+            <section className="lms-table-card">
                 <div className="lms-card-header">
                     <div>
-                        <div className="lms-card-title">Teacher Dashboard</div>
-                        <div className="lms-card-subtitle">Tong quan lop hoc va de thi</div>
+                        <div className="lms-card-title">De thi gan day</div>
+                        <div className="lms-card-subtitle">Cac bo de da tao</div>
                     </div>
-                    <Link to="/exam" className="lms-button">Tao de thi</Link>
-                </div>
-            </section>
-
-            <section className="lms-grid lms-grid-3">
-                <div className="lms-card">
-                    <div className="lms-card-title">De thi</div>
-                    <div className="lms-note">{overview.totalTemplates}</div>
-                </div>
-                <div className="lms-card">
-                    <div className="lms-card-title">Luot lam bai</div>
-                    <div className="lms-note">{overview.totalAttempts}</div>
-                </div>
-                <div className="lms-card">
-                    <div className="lms-card-title">Diem trung binh</div>
-                    <div className="lms-note">{overview.averageScore.toFixed(1)}</div>
-                </div>
-            </section>
-
-            <section className="lms-card">
-                <div className="lms-card-header">
-                    <div className="lms-card-title">De thi gan day</div>
                 </div>
                 {templates.length === 0 ? (
                     <div className="lms-empty">Chua co de thi</div>
@@ -160,9 +169,12 @@ export default function TeacherDashboard() {
                 )}
             </section>
 
-            <section className="lms-card">
+            <section className="lms-table-card">
                 <div className="lms-card-header">
-                    <div className="lms-card-title">Top hoc sinh</div>
+                    <div>
+                        <div className="lms-card-title">Top hoc sinh</div>
+                        <div className="lms-card-subtitle">Thanh tich noi bat</div>
+                    </div>
                 </div>
                 {topStudents.length === 0 ? (
                     <div className="lms-empty">Chua co du lieu</div>

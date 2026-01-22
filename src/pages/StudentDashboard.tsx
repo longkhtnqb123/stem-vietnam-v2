@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen } from 'lucide-react';
 import { useAuthStore } from '../lib/auth';
 
 const API_URL = (import.meta.env.VITE_API_URL || 'https://stem-vietnam-api.stu725114073.workers.dev').replace(/\/$/, '');
@@ -89,37 +88,48 @@ export default function StudentDashboard() {
     const { overview, bloomAnalysis, recommendations, recentAttempts } = data;
 
     return (
-        <div className="lms-page">
-            <section className="lms-card">
-                <div className="lms-card-header">
-                    <div>
-                        <div className="lms-card-title">Xin chao, {user?.name}</div>
-                        <div className="lms-card-subtitle">Tong quan tien do hoc tap</div>
-                    </div>
-                    <Link to="/exam" className="lms-button">
-                        <BookOpen size={16} /> Lam bai thi
+        <div className="lms-page lms-dashboard">
+            <section className="lms-hero-card">
+                <div>
+                    <div className="lms-hero-kicker">Hoc sinh</div>
+                    <h2 className="lms-hero-title">Xin chao, {user?.name}</h2>
+                    <p className="lms-hero-subtitle">Tong quan tien do hoc tap hom nay</p>
+                </div>
+                <div className="lms-hero-actions">
+                    <Link to="/exam" className="lms-hero-button">
+                        Lam bai thi
+                    </Link>
+                    <Link to="/practice" className="lms-hero-ghost">
+                        On tap nhanh
                     </Link>
                 </div>
             </section>
 
-            <section className="lms-grid lms-grid-3">
-                <div className="lms-card">
-                    <div className="lms-card-title">Bai thi da lam</div>
-                    <div className="lms-note">{overview.totalAttempts} bai</div>
+            <section className="lms-stat-grid">
+                <div className="lms-stat-card">
+                    <div className="lms-stat-label">Bai thi</div>
+                    <div className="lms-stat-value">{overview.totalAttempts} bai</div>
                 </div>
-                <div className="lms-card">
-                    <div className="lms-card-title">Diem trung binh</div>
-                    <div className="lms-note">{overview.averageScore.toFixed(1)}/10</div>
+                <div className="lms-stat-card">
+                    <div className="lms-stat-label">Trung binh</div>
+                    <div className="lms-stat-value">{overview.averageScore.toFixed(1)}/10</div>
                 </div>
-                <div className="lms-card">
-                    <div className="lms-card-title">Ti le dat</div>
-                    <div className="lms-note">{Math.round(overview.passRate)}%</div>
+                <div className="lms-stat-card">
+                    <div className="lms-stat-label">Ti le dat</div>
+                    <div className="lms-stat-value">{Math.round(overview.passRate)}%</div>
+                </div>
+                <div className="lms-stat-card">
+                    <div className="lms-stat-label">Streak</div>
+                    <div className="lms-stat-value">{overview.streak} ngay</div>
                 </div>
             </section>
 
-            <section className="lms-card">
+            <section className="lms-table-card">
                 <div className="lms-card-header">
-                    <div className="lms-card-title">Gan day</div>
+                    <div>
+                        <div className="lms-card-title">Gan day</div>
+                        <div className="lms-card-subtitle">Bai thi vua hoan thanh</div>
+                    </div>
                 </div>
                 {recentAttempts.length === 0 ? (
                     <div className="lms-empty">Chua co bai thi</div>
@@ -148,7 +158,7 @@ export default function StudentDashboard() {
             </section>
 
             <section className="lms-grid lms-grid-2">
-                <div className="lms-card">
+                <div className="lms-table-card">
                     <div className="lms-card-title">Phan tich muc do</div>
                     <div className="lms-section">
                         {bloomAnalysis.map((item) => (
@@ -159,7 +169,7 @@ export default function StudentDashboard() {
                         ))}
                     </div>
                 </div>
-                <div className="lms-card">
+                <div className="lms-table-card">
                     <div className="lms-card-title">Goi y on tap</div>
                     {recommendations.length === 0 ? (
                         <div className="lms-note">Chua co goi y.</div>

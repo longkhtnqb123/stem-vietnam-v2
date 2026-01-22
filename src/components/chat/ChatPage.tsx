@@ -1,7 +1,6 @@
 // Chú thích: Chat Page - Gemini-style UI với Sidebar và File Upload
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Sparkles, BrainCircuit, Clock, ArrowDown, Cloud, CloudOff, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import ChatSidebar from './ChatSidebar';
 import { addMessage } from '../../lib/conversationApi';
 import ChatInput from './ChatInput';
@@ -521,20 +520,21 @@ export default function ChatPage() {
                     <div className="lms-chat-header">
                         <button
                             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className="lms-icon-button"
+                            className="lms-text-button"
                             title={isSidebarOpen ? 'Dong danh sach' : 'Mo danh sach'}
                         >
-                            {isSidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
+                            {isSidebarOpen ? 'An danh sach' : 'Hien danh sach'}
                         </button>
-                        <div className="lms-chat-brand">
-                            <Sparkles size={16} />
-                        </div>
+                        <div className="lms-chat-brand">AI</div>
                         <div>
-                            <div className="lms-row" style={{ gap: 6 }}>
+                            <div className="lms-row" style={{ gap: 8 }}>
                                 <div className="lms-chat-title">StemBot - Tro ly hoc tap</div>
                                 {user?.id && (
-                                    <span title={isSynced ? 'Da dong bo' : 'Offline'}>
-                                        {isSynced ? <Cloud size={14} /> : <CloudOff size={14} />}
+                                    <span
+                                        className={`lms-chat-status ${isSynced ? 'is-online' : 'is-offline'}`}
+                                        title={isSynced ? 'Da dong bo' : 'Offline'}
+                                    >
+                                        {isSynced ? 'Dong bo' : 'Offline'}
                                     </span>
                                 )}
                             </div>
@@ -560,9 +560,7 @@ export default function ChatPage() {
                     >
                         {messages.length === 0 ? (
                             <div className="lms-chat-empty">
-                                <div className="lms-chat-brand">
-                                    <Sparkles size={20} />
-                                </div>
+                                <div className="lms-chat-brand">AI</div>
                                 <h2 className="lms-chat-title">Xin chao! Toi la STEM AI</h2>
                                 <p className="lms-note" style={{ maxWidth: 360 }}>
                                     Toi co the giup ban voi moi cau hoi. Hay bat dau bang mot cau hoi bat ky.
@@ -588,7 +586,7 @@ export default function ChatPage() {
                                 {isLoading && (
                                     <div className="lms-message">
                                         <div className="lms-message-avatar is-assistant">
-                                            <BrainCircuit size={16} />
+                                            AI
                                         </div>
                                         <div className="lms-message-body">
                                             <div className="lms-message-bubble lms-message-bubble is-assistant">
@@ -630,7 +628,7 @@ export default function ChatPage() {
                                 className="lms-chat-scroll"
                                 title="Cuon xuong cuoi"
                             >
-                                <ArrowDown size={18} />
+                                Cuon
                             </button>
                         )}
                     </div>

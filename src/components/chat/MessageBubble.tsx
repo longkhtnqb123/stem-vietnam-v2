@@ -1,6 +1,5 @@
 // Chú thích: Message Bubble Component - Hiển thị tin nhắn với Markdown + LaTeX + Mermaid
 import { useState, useEffect, useRef } from 'react';
-import { User, Sparkles, BookOpen, ExternalLink, ThumbsUp, ThumbsDown, Volume2, Square } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -58,10 +57,10 @@ function SpeakerButton({ text }: { text: string }) {
     return (
         <button
             onClick={speak}
-            className={isSpeaking ? 'lms-icon-button is-accent' : 'lms-icon-button'}
+            className={isSpeaking ? 'lms-text-button is-active' : 'lms-text-button'}
             title={isSpeaking ? "Dung doc" : "Doc to"}
         >
-            {isSpeaking ? <Square size={14} fill="currentColor" /> : <Volume2 size={14} />}
+            {isSpeaking ? 'Dung' : 'Doc'}
         </button>
     );
 }
@@ -197,7 +196,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
     return (
         <div className={`lms-message ${isUser ? 'is-user' : ''}`}>
             <div className={`lms-message-avatar ${isUser ? '' : 'is-assistant'}`}>
-                {isUser ? <User size={16} /> : <Sparkles size={16} />}
+                {isUser ? 'BAN' : 'AI'}
             </div>
 
             <div className="lms-message-body" style={{ textAlign: isUser ? 'right' : 'left' }}>
@@ -232,8 +231,8 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                 {!isUser && message.sourceChunks && message.sourceChunks.length > 0 && (
                     <div className="lms-message-sources">
                         <div className="lms-row" style={{ gap: 6, marginBottom: 6 }}>
-                            <BookOpen size={12} />
-                            <span className="lms-note">Nguon tham khao</span>
+                            <span className="lms-badge">Nguon</span>
+                            <span className="lms-note">Tai lieu tham khao</span>
                         </div>
                         <div className="lms-section" style={{ gap: 6 }}>
                             {message.sourceChunks.slice(0, 3).map((chunk, idx) => (
@@ -245,7 +244,6 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                                     className="lms-link"
                                 >
                                     <span>[{idx + 1}] {chunk.document.title}</span>
-                                    <ExternalLink size={12} />
                                 </a>
                             ))}
                         </div>
@@ -264,17 +262,17 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                             <>
                                 <button
                                     onClick={() => sendFeedback(true)}
-                                    className="lms-icon-button"
+                                    className="lms-text-button"
                                     title="Huu ich"
                                 >
-                                    <ThumbsUp size={14} />
+                                    Huu ich
                                 </button>
                                 <button
                                     onClick={() => sendFeedback(false)}
-                                    className="lms-icon-button"
+                                    className="lms-text-button"
                                     title="Chua huu ich"
                                 >
-                                    <ThumbsDown size={14} />
+                                    Chua huu ich
                                 </button>
                             </>
                         )}

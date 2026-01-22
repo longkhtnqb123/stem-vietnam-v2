@@ -1,17 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    BookOpen,
-    Clock,
-    Trophy,
-    History,
-    ChevronRight,
-    Play,
-    Loader2,
-    Sparkles,
-    X,
-} from 'lucide-react';
-import {
     getExamTemplates,
     getExamAttempts,
     startExamAttempt,
@@ -49,15 +38,15 @@ function ExamCard({
             </div>
 
             <div className="lms-row lms-note">
-                <span className="lms-row"><BookOpen size={14} /> {template.total_questions} cau</span>
-                <span className="lms-row"><Clock size={14} /> {template.duration_minutes} phut</span>
+                <span>{template.total_questions} cau</span>
+                <span>{template.duration_minutes} phut</span>
                 <span>{getDifficultyLabel(template.difficulty)}</span>
             </div>
 
             <div className="lms-row" style={{ justifyContent: 'space-between', marginTop: 12 }}>
                 <span className="lms-note">{template.times_taken} luot lam</span>
                 <button onClick={onStart} disabled={isLoading} className="lms-button">
-                    {isLoading ? <Loader2 size={16} /> : <Play size={16} />}
+                    {isLoading ? <div className="lms-spinner" /> : null}
                     <span>Lam bai</span>
                 </button>
             </div>
@@ -84,7 +73,7 @@ function AttemptCard({
                     </div>
                     <div className="lms-note">{new Date(attempt.started_at).toLocaleDateString('vi-VN')}</div>
                 </div>
-                <ChevronRight size={18} />
+                <span className="lms-note">Xem</span>
             </div>
         </button>
     );
@@ -269,7 +258,6 @@ export default function ExamPage() {
                     </div>
                     {isAuthenticated && (
                         <button onClick={() => setShowAIModal(true)} className="lms-button">
-                            <Sparkles size={16} />
                             <span>Tao de AI</span>
                         </button>
                     )}
@@ -297,11 +285,9 @@ export default function ExamPage() {
                             </div>
                         ) : hasNoTemplates ? (
                             <div className="lms-empty">
-                                <BookOpen size={28} />
                                 <p className="lms-note">Chua co de thi</p>
                                 {isAuthenticated && (
                                     <button onClick={() => setShowAIModal(true)} className="lms-button">
-                                        <Sparkles size={16} />
                                         <span>Tao de AI</span>
                                     </button>
                                 )}
@@ -329,7 +315,6 @@ export default function ExamPage() {
 
                         {!isAuthenticated ? (
                             <div className="lms-empty">
-                                <History size={24} />
                                 <p className="lms-note">Dang nhap de xem lich su</p>
                                 <button onClick={() => navigate('/login')} className="lms-button-secondary">
                                     Dang nhap
@@ -337,7 +322,6 @@ export default function ExamPage() {
                             </div>
                         ) : attempts.length === 0 ? (
                             <div className="lms-empty">
-                                <History size={24} />
                                 <p className="lms-note">Chua co bai thi</p>
                             </div>
                         ) : (
@@ -361,7 +345,7 @@ export default function ExamPage() {
                         <div className="lms-modal-header">
                             <div className="lms-card-title">Tao de thi bang AI</div>
                             <button onClick={() => setShowAIModal(false)} className="lms-button-ghost">
-                                <X size={18} />
+                                Dong
                             </button>
                         </div>
 
@@ -451,7 +435,7 @@ export default function ExamPage() {
                                 Huy
                             </button>
                             <button onClick={handleGenerateAI} disabled={generating} className="lms-button">
-                                {generating ? <Loader2 size={16} /> : <Sparkles size={16} />}
+                                {generating ? <div className="lms-spinner" /> : null}
                                 <span>Tao de</span>
                             </button>
                         </div>
@@ -470,7 +454,7 @@ export default function ExamPage() {
                                 </div>
                             </div>
                             <button onClick={() => setPreviewData(null)} className="lms-button-ghost">
-                                <X size={18} />
+                                Dong
                             </button>
                         </div>
 
@@ -548,7 +532,7 @@ export default function ExamPage() {
                                 disabled={savingTemplate}
                                 className="lms-button"
                             >
-                                {savingTemplate ? <Loader2 size={16} /> : <span>Luu de thi</span>}
+                                {savingTemplate ? <div className="lms-spinner" /> : <span>Luu de thi</span>}
                             </button>
                         </div>
                     </div>

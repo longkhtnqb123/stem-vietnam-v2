@@ -1,35 +1,22 @@
 import React from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import {
-    MessageCircle,
-    GraduationCap,
-    Library,
-    Menu,
-    X,
-    LogOut,
-    Settings,
-    Trophy,
-    HelpCircle,
-    ChevronLeft,
-    ChevronRight,
-} from 'lucide-react';
 import { useAuthStore } from '../../lib/auth';
 
 interface NavItem {
     path: string;
-    icon: React.ComponentType<{ size?: number; className?: string }>;
     label: string;
+    hint?: string;
     roles?: string[];
     badge?: string;
 }
 
 const navItems: NavItem[] = [
-    { path: '/chat', icon: MessageCircle, label: 'Chat AI' },
-    { path: '/exam', icon: Trophy, label: 'Thi Online', badge: 'Hot' },
-    { path: '/practice', icon: GraduationCap, label: 'On Tap', badge: 'New' },
-    { path: '/library', icon: Library, label: 'Thu Vien' },
-    { path: '/settings', icon: Settings, label: 'Cai Dat' },
-    { path: '/help', icon: HelpCircle, label: 'Huong Dan' },
+    { path: '/chat', label: 'Chat AI', hint: 'Hoi dap nhanh' },
+    { path: '/exam', label: 'Thi Online', badge: 'Hot', hint: 'De thi AI' },
+    { path: '/practice', label: 'On Tap', badge: 'New', hint: 'Luyen tap' },
+    { path: '/library', label: 'Thu Vien', hint: 'Tai lieu' },
+    { path: '/settings', label: 'Cai Dat', hint: 'Ca nhan hoa' },
+    { path: '/help', label: 'Huong Dan', hint: 'Tro giup' },
 ];
 
 export default function MainLayout() {
@@ -76,16 +63,19 @@ export default function MainLayout() {
 
                 <nav>
                     <ul className="lms-nav">
-                        {filteredNavItems.map(({ path, icon: Icon, label, badge }) => (
+                        {filteredNavItems.map(({ path, label, hint, badge }, index) => (
                             <li key={path}>
                                 <NavLink
                                     to={path}
                                     onClick={() => setSidebarOpen(false)}
                                     className={({ isActive }) => `lms-nav-link ${isActive ? 'active' : ''}`}
                                 >
-                                    <Icon size={18} />
-                                    <span className="lms-nav-label">{label}</span>
-                                    {badge && <span className="lms-pill">{badge}</span>}
+                                    <span className="lms-nav-index">{String(index + 1).padStart(2, '0')}</span>
+                                    <span className="lms-nav-text">
+                                        <span className="lms-nav-label">{label}</span>
+                                        {hint && <span className="lms-nav-hint">{hint}</span>}
+                                    </span>
+                                    {badge && <span className="lms-nav-badge">{badge}</span>}
                                 </NavLink>
                             </li>
                         ))}
@@ -104,12 +94,10 @@ export default function MainLayout() {
                     )}
 
                     <button className="lms-button-ghost" onClick={toggleCollapse}>
-                        {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
                         <span>{collapsed ? 'Mo' : 'Thu gon'}</span>
                     </button>
 
                     <button className="lms-button-ghost" onClick={handleLogout}>
-                        <LogOut size={18} />
                         <span>Dang xuat</span>
                     </button>
                 </div>
@@ -124,12 +112,12 @@ export default function MainLayout() {
                             className="lms-button-ghost lms-mobile-toggle"
                             onClick={() => setSidebarOpen(!sidebarOpen)}
                         >
-                            {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
+                            {sidebarOpen ? 'Dong' : 'Menu'}
                         </button>
                         <div className="lms-topbar-title">{pageTitle}</div>
                     </div>
                     <div className="lms-topbar-actions">
-                        <button className="lms-button-secondary">New</button>
+                        <button className="lms-button-secondary">Tao nhanh</button>
                     </div>
                 </header>
 

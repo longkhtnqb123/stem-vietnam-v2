@@ -1,4 +1,4 @@
-// Add global declaration for SpeechRecognition
+﻿// Add global declaration for SpeechRecognition
 declare global {
     interface Window {
         SpeechRecognition: any;
@@ -7,7 +7,6 @@ declare global {
 }
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Send, Paperclip, X, Image, FileText, Film, Music, File, Mic, MicOff } from 'lucide-react';
 import type { FileAttachment } from '../../types/chat';
 
 interface ChatInputProps {
@@ -16,7 +15,6 @@ interface ChatInputProps {
     placeholder?: string;
 }
 
-// Chú thích: Hàm phân loại file type
 function getFileType(file: File): FileAttachment['type'] {
     if (file.type.startsWith('image/')) return 'image';
     if (file.type.startsWith('video/')) return 'video';
@@ -25,15 +23,16 @@ function getFileType(file: File): FileAttachment['type'] {
     return 'other';
 }
 
-// Chú thích: Icon theo file type
-function FileIcon({ type }: { type: FileAttachment['type'] }) {
-    switch (type) {
-        case 'image': return <Image size={16} className="lms-file-icon is-image" />;
-        case 'video': return <Film size={16} className="lms-file-icon is-video" />;
-        case 'audio': return <Music size={16} className="lms-file-icon is-audio" />;
-        case 'document': return <FileText size={16} className="lms-file-icon is-document" />;
-        default: return <File size={16} className="lms-file-icon is-other" />;
-    }
+function FileTag({ type }: { type: FileAttachment['type'] }) {
+    const labelMap: Record<FileAttachment['type'], string> = {
+        image: 'IMG',
+        video: 'VID',
+        audio: 'AUD',
+        document: 'DOC',
+        other: 'FILE',
+    };
+
+    return <span className={`lms-file-tag is-${type}`}>{labelMap[type]}</span>;
 }
 
 export default function ChatInput({ onSend, isLoading, placeholder = "Nhap tin nhan..." }: ChatInputProps) {
@@ -45,7 +44,6 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhap tin n
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const recognitionRef = useRef<any>(null);
 
-    // Chú thích: Initialize Speech Recognition
     useEffect(() => {
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -80,11 +78,7 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhap tin n
             };
 
             recognitionRef.current.onend = () => {
-                // Auto-restart if still listening (optional, but good for long dictation)
-                // For now, we just stop state
                 if (isListening) {
-                    // request restart? 
-                    // for UX, usually better to let user manually toggle unless specifically "always listening"
                     setIsListening(false);
                 }
             };
@@ -93,7 +87,7 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhap tin n
 
     const toggleListening = () => {
         if (!recognitionRef.current) {
-            alert('Trình duyệt của bạn không hỗ trợ nhận diện giọng nói (Web Speech API). Vui lòng dùng Chrome/Edge.');
+            alert('Trinh duyet cua ban khong ho tro nhan dien giong noi. Vui long dung Chrome/Edge.');
             return;
         }
 
@@ -106,7 +100,6 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhap tin n
         }
     };
 
-    // Chú thích: Xử lý file selection
     const handleFiles = useCallback((selectedFiles: FileList | null) => {
         if (!selectedFiles) return;
 
@@ -117,7 +110,6 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhap tin n
                 type: getFileType(file),
             };
 
-            // Chú thích: Tạo preview cho images
             if (attachment.type === 'image') {
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -134,7 +126,6 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhap tin n
         setFiles(prev => [...prev, ...newFiles]);
     }, []);
 
-    // Chú thích: Drag & Drop handlers
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(true);
@@ -151,16 +142,13 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhap tin n
         handleFiles(e.dataTransfer.files);
     };
 
-    // Chú thích: Remove file
     const removeFile = (id: string) => {
         setFiles(prev => prev.filter(f => f.id !== id));
     };
 
-    // Chú thích: Submit
     const handleSubmit = () => {
         if ((!input.trim() && files.length === 0) || isLoading) return;
 
-        // Stop listening if sending
         if (isListening && recognitionRef.current) {
             recognitionRef.current.stop();
             setIsListening(false);
@@ -171,7 +159,6 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhap tin n
         setFiles([]);
     };
 
-    // Chú thích: Auto-resize textarea
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setInput(e.target.value);
         if (textareaRef.current) {
@@ -198,17 +185,17 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhap tin n
                             {file.preview ? (
                                 <img src={file.preview} alt="" />
                             ) : (
-                                <FileIcon type={file.type} />
+                                <FileTag type={file.type} />
                             )}
                             <span className="lms-note" style={{ maxWidth: 160, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                 {file.file.name}
                             </span>
                             <button
                                 onClick={() => removeFile(file.id)}
-                                className="lms-icon-button is-danger"
+                                className="lms-text-button"
                                 aria-label="Remove file"
                             >
-                                <X size={14} />
+                                X
                             </button>
                         </div>
                     ))}
@@ -226,18 +213,18 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhap tin n
                 />
                 <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="lms-icon-button"
+                    className="lms-text-button"
                     title="Dinh kem file"
                 >
-                    <Paperclip size={18} />
+                    File
                 </button>
 
                 <button
                     onClick={toggleListening}
-                    className={`lms-icon-button ${isListening ? 'is-active' : ''}`}
+                    className={`lms-text-button ${isListening ? 'is-active' : ''}`}
                     title={isListening ? 'Dung ghi am' : 'Nhap bang giong noi'}
                 >
-                    {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                    {isListening ? 'Dung' : 'Mic'}
                 </button>
 
                 <textarea
@@ -259,13 +246,12 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhap tin n
                 <button
                     onClick={handleSubmit}
                     disabled={(!input.trim() && files.length === 0) || isLoading}
-                    className="lms-icon-button is-primary"
+                    className="lms-text-button is-primary"
                     aria-label="Send"
                 >
-                    <Send size={18} />
+                    Gui
                 </button>
             </div>
         </div>
     );
 }
-

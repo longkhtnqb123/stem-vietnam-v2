@@ -1,6 +1,5 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../lib/auth';
-import { LogOut } from 'lucide-react';
 
 export default function ImmersiveLayout() {
     const { user, logout } = useAuthStore();
@@ -23,7 +22,6 @@ export default function ImmersiveLayout() {
                         </div>
                     )}
                     <button className="lms-button-ghost" onClick={handleLogout}>
-                        <LogOut size={16} />
                         <span>Dang xuat</span>
                     </button>
                 </div>

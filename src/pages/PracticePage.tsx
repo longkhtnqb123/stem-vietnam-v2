@@ -1,20 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    BookOpen,
-    Lightbulb,
-    CheckCircle2,
-    XCircle,
-    ChevronRight,
-    ChevronLeft,
-    Loader2,
-    Sparkles,
-    History,
-    RefreshCw,
-    Eye,
-    Target,
-} from 'lucide-react';
-import {
     generateExamWithAI,
     type AIGenerateParams,
     type ExamQuestion,
@@ -49,7 +35,6 @@ function HintButton({
     return (
         <div className="lms-section">
             <button onClick={onToggle} className="lms-button-ghost">
-                <Lightbulb size={16} />
                 <span>{isVisible ? 'An goi y' : 'Xem goi y'}</span>
             </button>
             {isVisible && (
@@ -114,18 +99,12 @@ function QuestionCard({
                             key={idx}
                             onClick={() => !showAnswer && onSelectAnswer(letter)}
                             disabled={showAnswer}
-                            className={optionClass}
-                        >
-                            <span>{letter}. {opt}</span>
-                            {showAnswer && isCorrectAnswer && (
-                                <CheckCircle2 size={16} />
-                            )}
-                            {showAnswer && isSelected && !isCorrect && (
-                                <XCircle size={16} />
-                            )}
-                        </button>
-                    );
-                })}
+                        className={optionClass}
+                    >
+                        <span>{letter}. {opt}</span>
+                    </button>
+                );
+            })}
             </div>
 
             {!hasAnswered && !showAnswer && (
@@ -138,7 +117,7 @@ function QuestionCard({
 
             {!showAnswer && !hasAnswered && (
                 <button onClick={onShowAnswer} className="lms-button-ghost">
-                    <Eye size={16} /> Xem dap an
+                    Xem dap an
                 </button>
             )}
 
@@ -188,7 +167,6 @@ function TopicSelector({
         <div className="lms-card">
             <div className="lms-card-header">
                 <div className="lms-card-title">Chon noi dung on tap</div>
-                <Target size={16} />
             </div>
 
             <div className="lms-grid lms-grid-2">
@@ -240,7 +218,7 @@ function TopicSelector({
             </div>
 
             <button onClick={onStart} disabled={isGenerating} className="lms-button">
-                {isGenerating ? <Loader2 size={16} /> : <Sparkles size={16} />}
+                {isGenerating ? <div className="lms-spinner" /> : null}
                 <span>Bat dau on tap (10 cau)</span>
             </button>
         </div>
@@ -397,7 +375,6 @@ export default function PracticePage() {
                         <div className="lms-card-title">On tap</div>
                         <div className="lms-card-subtitle">Luyen tap nhanh voi AI</div>
                     </div>
-                    <BookOpen size={18} />
                 </div>
             </section>
 
@@ -418,7 +395,6 @@ export default function PracticePage() {
                         <div className="lms-card">
                             <div className="lms-card-header">
                                 <div className="lms-card-title">Lich su on tap</div>
-                                <History size={16} />
                             </div>
                             <div className="lms-grid">
                                 {history.slice(0, 5).map((h) => (
@@ -467,23 +443,23 @@ export default function PracticePage() {
                             disabled={session.currentIndex === 0}
                             className="lms-button-secondary"
                         >
-                            <ChevronLeft size={16} /> Cau truoc
+                            Cau truoc
                         </button>
 
                         {session.currentIndex < session.questions.length - 1 ? (
                             <button onClick={goNext} className="lms-button">
-                                Cau sau <ChevronRight size={16} />
+                                Cau sau
                             </button>
                         ) : (
                             <button onClick={finishSession} className="lms-button">
-                                <CheckCircle2 size={16} /> Hoan thanh
+                                Hoan thanh
                             </button>
                         )}
                     </div>
 
                     <div className="lms-row" style={{ justifyContent: 'center' }}>
                         <button onClick={restartSession} className="lms-button-ghost">
-                            <RefreshCw size={16} /> Lam lai
+                            Lam lai
                         </button>
                         <button onClick={() => setSession(null)} className="lms-button-ghost">
                             Thoat

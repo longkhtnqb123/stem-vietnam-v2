@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { Library, Upload, Trash2, BookOpen, Plus, CheckCircle2, AlertCircle, Download, Link as LinkIcon } from 'lucide-react';
 import type { Document } from '../../types';
 import { DEFAULT_LIBRARY, BOOK_PUBLISHERS, checkDocumentExists } from '../../data/library/defaultBooks';
 import { useAppStore } from '../../stores/appStore';
@@ -193,7 +192,7 @@ export default function LibraryPage() {
                         <div className="lms-card-subtitle">Tai lieu SGK va chuyen de cho AI</div>
                     </div>
                     <button onClick={() => setShowUpload(true)} className="lms-button">
-                        <Plus size={16} /> Them tai lieu
+                        Them tai lieu
                     </button>
                 </div>
             </section>
@@ -268,9 +267,9 @@ export default function LibraryPage() {
                                         <td>
                                             {isDefault ? (
                                                 hasFile ? (
-                                                    <span className="lms-note"><CheckCircle2 size={14} /> San sang</span>
+                                                    <span className="lms-note">San sang</span>
                                                 ) : (
-                                                    <span className="lms-note"><AlertCircle size={14} /> Thieu file</span>
+                                                    <span className="lms-note">Thieu file</span>
                                                 )
                                             ) : (
                                                 <span className="lms-note">Ca nhan</span>
@@ -280,17 +279,17 @@ export default function LibraryPage() {
                                             <div className="lms-row">
                                                 {doc.fileUrl && (
                                                     <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="lms-button-ghost">
-                                                        <LinkIcon size={14} /> Mo
+                                                        Mo
                                                     </a>
                                                 )}
                                                 {doc.fileUrl && (
                                                     <a href={doc.fileUrl} className="lms-button-ghost" download>
-                                                        <Download size={14} /> Tai
+                                                        Tai
                                                     </a>
                                                 )}
                                                 {!isDefault && (
                                                     <button onClick={() => handleDelete(doc.id)} className="lms-button-ghost">
-                                                        <Trash2 size={14} /> Xoa
+                                                        Xoa
                                                     </button>
                                                 )}
                                             </div>
@@ -358,14 +357,14 @@ export default function LibraryPage() {
                                         onClick={() => setUploadForm(prev => ({ ...prev, inputType: 'file' }))}
                                         className={uploadForm.inputType === 'file' ? 'lms-button' : 'lms-button-secondary'}
                                     >
-                                        <Upload size={14} /> File
+                                        File
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setUploadForm(prev => ({ ...prev, inputType: 'url' }))}
                                         className={uploadForm.inputType === 'url' ? 'lms-button' : 'lms-button-secondary'}
                                     >
-                                        <LinkIcon size={14} /> URL
+                                        URL
                                     </button>
                                 </div>
                             </div>
@@ -396,7 +395,7 @@ export default function LibraryPage() {
                                 Huy
                             </button>
                             <button onClick={handleUpload} disabled={isUploading} className="lms-button">
-                                {isUploading ? <Loader2 size={16} /> : <Plus size={16} />}
+                                {isUploading ? <div className="lms-spinner" /> : null}
                                 <span>Upload</span>
                             </button>
                         </div>

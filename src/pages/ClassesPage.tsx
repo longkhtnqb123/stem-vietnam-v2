@@ -1,7 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useAuthStore } from '../lib/auth';
 import { classApi, type Class } from '../lib/classApi';
-import { Plus, LogIn } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function ClassesPage() {
@@ -90,11 +89,11 @@ export default function ClassesPage() {
                     </div>
                     {user?.role === 'teacher' ? (
                         <button onClick={() => setShowCreateModal(true)} className="lms-button">
-                            <Plus size={16} /> Tao lop moi
+                            Tao lop moi
                         </button>
                     ) : (
                         <button onClick={() => setShowJoinModal(true)} className="lms-button">
-                            <LogIn size={16} /> Tham gia lop
+                            Tham gia lop
                         </button>
                     )}
                 </div>

@@ -3,7 +3,6 @@ import { useParams, Link } from 'react-router-dom';
 import { classApi, type ClassDetailResponse } from '../lib/classApi';
 import { examOnlineApi } from '../lib/examOnlineApi';
 import type { ExamTemplate } from '../lib/examOnlineApi';
-import { Copy, Trash2 } from 'lucide-react';
 
 export default function ClassDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -107,7 +106,7 @@ export default function ClassDetailPage() {
                     </div>
                     {is_teacher && (
                         <button onClick={handleDeleteClass} className="lms-button-ghost">
-                            <Trash2 size={16} /> Xoa lop
+                            Xoa lop
                         </button>
                     )}
                 </div>
@@ -116,7 +115,7 @@ export default function ClassDetailPage() {
                     <span className="lms-pill">{assignments.length} bai tap</span>
                     {is_teacher && (
                         <button onClick={copyJoinCode} className="lms-button-secondary">
-                            <Copy size={14} /> Ma tham gia: {cls.join_code}
+                            Ma tham gia: {cls.join_code}
                         </button>
                     )}
                 </div>

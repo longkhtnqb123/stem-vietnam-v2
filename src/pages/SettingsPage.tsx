@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Settings, Cpu, Key, Palette, BarChart3, Shield } from 'lucide-react';
 import { useSettings } from '../hooks/useSettings';
 import ModelSelector from '../components/settings/ModelSelector';
 import ApiManagement from '../components/settings/ApiManagement';
@@ -23,11 +22,11 @@ export default function SettingsPage() {
     };
 
     const allTabs = [
-        { id: 'models' as TabType, label: 'AI Models', icon: Cpu, requiresDev: true },
-        { id: 'api-keys' as TabType, label: 'API Keys', icon: Key, requiresDev: true },
-        { id: 'preferences' as TabType, label: 'Giao dien', icon: Palette, requiresDev: false },
-        { id: 'usage' as TabType, label: 'Thong ke', icon: BarChart3, requiresDev: false },
-        { id: 'security' as TabType, label: 'Bao mat', icon: Shield, requiresDev: false },
+        { id: 'models' as TabType, label: 'AI Models', requiresDev: true },
+        { id: 'api-keys' as TabType, label: 'API Keys', requiresDev: true },
+        { id: 'preferences' as TabType, label: 'Giao dien', requiresDev: false },
+        { id: 'usage' as TabType, label: 'Thong ke', requiresDev: false },
+        { id: 'security' as TabType, label: 'Bao mat', requiresDev: false },
     ];
 
     const tabs = allTabs.filter(tab => !tab.requiresDev || isDevMode);
@@ -51,21 +50,19 @@ export default function SettingsPage() {
                         <div className="lms-card-title">Cai dat</div>
                         <div className="lms-card-subtitle">Quan ly tai khoan va tuy chinh giao dien</div>
                     </div>
-                    <Settings size={20} />
                 </div>
             </section>
 
             <section className="lms-card">
                 <div className="lms-row">
                     {tabs.map((tab) => {
-                        const Icon = tab.icon;
                         return (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={activeTab === tab.id ? 'lms-button' : 'lms-button-secondary'}
                             >
-                                <Icon size={16} /> {tab.label}
+                                {tab.label}
                             </button>
                         );
                     })}
