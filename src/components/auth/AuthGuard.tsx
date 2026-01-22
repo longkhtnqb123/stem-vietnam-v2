@@ -1,7 +1,6 @@
 // Chú thích: Auth Guard - Bắt buộc đăng nhập với popup thông báo
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogIn, UserPlus } from 'lucide-react';
 import { useAuthStore } from '../../lib/auth';
 
 interface AuthGuardProps {
@@ -68,14 +67,12 @@ export default function AuthGuard({ children }: AuthGuardProps) {
                                     onClick={() => navigate('/login')}
                                     className="lms-button"
                                 >
-                                    <LogIn size={18} />
                                     Dang nhap
                                 </button>
                                 <button
                                     onClick={() => navigate('/register')}
                                     className="lms-button-secondary"
                                 >
-                                    <UserPlus size={18} />
                                     Tao tai khoan moi
                                 </button>
                                 <button

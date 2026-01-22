@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, Sparkles, BookOpen, Trophy, MessageCircle, Settings } from 'lucide-react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 interface TourStep {
     title: string;
     description: string;
-    icon: React.ReactNode;
+    tag: string;
     targetPath?: string;
 }
 
@@ -13,30 +12,30 @@ const TOUR_STEPS: TourStep[] = [
     {
         title: 'Chao mung den STEM Vietnam',
         description: 'Huong dan nhanh de ban lam quen voi he thong.',
-        icon: <Sparkles size={20} />,
+        tag: 'NEW',
     },
     {
         title: 'Chat AI',
         description: 'Hoi dap va giai bai tap voi AI.',
-        icon: <MessageCircle size={20} />,
+        tag: 'AI',
         targetPath: '/chat',
     },
     {
         title: 'Thu vien',
         description: 'Tra cuu SGK va tai lieu hoc tap.',
-        icon: <BookOpen size={20} />,
+        tag: 'DOC',
         targetPath: '/library',
     },
     {
         title: 'Thi online',
         description: 'Lam bai thi va xem ket qua.',
-        icon: <Trophy size={20} />,
+        tag: 'EX',
         targetPath: '/exam',
     },
     {
         title: 'Cai dat',
         description: 'Tuy chinh AI va giao dien.',
-        icon: <Settings size={20} />,
+        tag: 'CFG',
         targetPath: '/settings',
     },
 ];
@@ -91,12 +90,12 @@ export default function TourGuide({ onComplete, isOpen }: TourGuideProps) {
                 <div className="lms-modal-header">
                     <div className="lms-card-title">Huong dan nhanh</div>
                     <button onClick={handleSkip} className="lms-button-ghost">
-                        <X size={16} />
+                        Dong
                     </button>
                 </div>
                 <div className="lms-modal-body lms-section">
                     <div className="lms-row">
-                        {step.icon}
+                        <span className="lms-guide-tag">{step.tag}</span>
                         <div>
                             <div className="lms-card-title">{step.title}</div>
                             <div className="lms-note">{step.description}</div>
@@ -110,11 +109,10 @@ export default function TourGuide({ onComplete, isOpen }: TourGuideProps) {
                 </div>
                 <div className="lms-modal-footer">
                     <button onClick={handlePrev} disabled={isFirstStep} className="lms-button-secondary">
-                        <ChevronLeft size={16} /> Truoc
+                        Truoc
                     </button>
                     <button onClick={handleNext} className="lms-button">
                         {isLastStep ? 'Bat dau' : 'Tiep'}
-                        {!isLastStep && <ChevronRight size={16} />}
                     </button>
                 </div>
             </div>

@@ -3,7 +3,6 @@ import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from 'tiptap-markdown';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
-import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Undo, Redo } from 'lucide-react';
 import { useEffect } from 'react';
 
 interface RichTextEditorProps {
@@ -25,7 +24,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
                 className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 ${editor.isActive('bold') ? 'bg-gray-200 dark:bg-slate-700 text-blue-600' : 'text-gray-600 dark:text-gray-300'}`}
                 title="Bold"
             >
-                <Bold size={18} />
+                B
             </button>
             <button
                 onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -33,14 +32,14 @@ const MenuBar = ({ editor }: { editor: any }) => {
                 className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 ${editor.isActive('italic') ? 'bg-gray-200 dark:bg-slate-700 text-blue-600' : 'text-gray-600 dark:text-gray-300'}`}
                 title="Italic"
             >
-                <Italic size={18} />
+                I
             </button>
             <button
                 onClick={() => editor.chain().focus().toggleUnderline().run()}
                 className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 ${editor.isActive('underline') ? 'bg-gray-200 dark:bg-slate-700 text-blue-600' : 'text-gray-600 dark:text-gray-300'}`}
                 title="Underline"
             >
-                <UnderlineIcon size={18} />
+                U
             </button>
 
             <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1 self-center" />
@@ -50,21 +49,21 @@ const MenuBar = ({ editor }: { editor: any }) => {
                 className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 ${editor.isActive({ textAlign: 'left' }) ? 'bg-gray-200 dark:bg-slate-700 text-blue-600' : 'text-gray-600 dark:text-gray-300'}`}
                 title="Align Left"
             >
-                <AlignLeft size={18} />
+                L
             </button>
             <button
                 onClick={() => editor.chain().focus().setTextAlign('center').run()}
                 className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 ${editor.isActive({ textAlign: 'center' }) ? 'bg-gray-200 dark:bg-slate-700 text-blue-600' : 'text-gray-600 dark:text-gray-300'}`}
                 title="Align Center"
             >
-                <AlignCenter size={18} />
+                C
             </button>
             <button
                 onClick={() => editor.chain().focus().setTextAlign('right').run()}
                 className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 ${editor.isActive({ textAlign: 'right' }) ? 'bg-gray-200 dark:bg-slate-700 text-blue-600' : 'text-gray-600 dark:text-gray-300'}`}
                 title="Align Right"
             >
-                <AlignRight size={18} />
+                R
             </button>
 
             <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1 self-center" />
@@ -74,14 +73,14 @@ const MenuBar = ({ editor }: { editor: any }) => {
                 className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 ${editor.isActive('bulletList') ? 'bg-gray-200 dark:bg-slate-700 text-blue-600' : 'text-gray-600 dark:text-gray-300'}`}
                 title="Bullet List"
             >
-                <List size={18} />
+                •
             </button>
             <button
                 onClick={() => editor.chain().focus().toggleOrderedList().run()}
                 className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 ${editor.isActive('orderedList') ? 'bg-gray-200 dark:bg-slate-700 text-blue-600' : 'text-gray-600 dark:text-gray-300'}`}
                 title="Ordered List"
             >
-                <ListOrdered size={18} />
+                1.
             </button>
 
             <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1 self-center" />
@@ -92,7 +91,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
                 className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-300 disabled:opacity-50"
                 title="Undo"
             >
-                <Undo size={18} />
+                Undo
             </button>
             <button
                 onClick={() => editor.chain().focus().redo().run()}
@@ -100,7 +99,7 @@ const MenuBar = ({ editor }: { editor: any }) => {
                 className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-300 disabled:opacity-50"
                 title="Redo"
             >
-                <Redo size={18} />
+                Redo
             </button>
         </div>
     );

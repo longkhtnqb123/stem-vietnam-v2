@@ -1,6 +1,5 @@
-// ModelSelector Component - Select AI models from OpenRouter
+﻿// ModelSelector Component - Select AI models from OpenRouter
 import { useState, useEffect } from 'react';
-import { RefreshCw, CheckCircle, Search, Zap, DollarSign } from 'lucide-react';
 import { useAuthStore } from '../../lib/auth';
 import { useAppStore } from '../../stores/appStore';
 import { getAvailableModels, refreshModels, type OpenRouterModel, type UserSettings } from '../../lib/settingsApi';
@@ -20,7 +19,6 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
     const [previewModelId, setPreviewModelId] = useState<string | null>(null);
     const { showNotification } = useAppStore();
 
-    // Load models on mount
     useEffect(() => {
         loadModels();
     }, []);
@@ -53,7 +51,6 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
         }
     };
 
-    // Sync preview with current setting on category change
     useEffect(() => {
         setPreviewModelId(selectedCategory === 'chat' ? settings.chatModel : settings.examModel);
     }, [selectedCategory, settings]);
@@ -68,14 +65,13 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
                 ? { chatModel: model.id }
                 : { examModel: model.id };
             await onUpdate(updates);
-            showNotification('success', `Đang sử dụng model ${model.name}...`);
+            showNotification('success', `Dang su dung model ${model.name}.`);
         } catch (err) {
             console.error('[ModelSelector] update error:', err);
-            showNotification('error', 'Lỗi khi lưu model');
+            showNotification('error', 'Loi khi luu model.');
         }
     };
 
-    // Filter models
     const filteredModels = models.filter(m => {
         const isFree = m.id.includes(':free') || (
             parseFloat(m.pricing.prompt) === 0 && parseFloat(m.pricing.completion) === 0
@@ -93,132 +89,10 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
         return matchesFilter && matchesSearch;
     });
 
-    // Group by provider
     const providers = Array.from(new Set(filteredModels.map(m => m.id.split('/')[0])));
-
     const currentModel = selectedCategory === 'chat' ? settings.chatModel : settings.examModel;
 
     return (
-        <div className="space-y-6">
-            {/* Category Tabs */}
-            <div className="flex items-center gap-4 border-b border-slate-200 dark:border-slate-700">
-                <button
-                    onClick={() => setSelectedCategory('chat')}
-                    className={`pb-3 px-4 font-medium transition-colors relative ${selectedCategory === 'chat'
-                        ? 'text-primary-600 dark:text-primary-400'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                        }`}
-                >
-                    Chat Model
-                    {selectedCategory === 'chat' && (
-                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600" />
-                    )}
-                </button>
-                <button
-                    onClick={() => setSelectedCategory('exam')}
-                    className={`pb-3 px-4 font-medium transition-colors relative ${selectedCategory === 'exam'
-                        ? 'text-primary-600 dark:text-primary-400'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                        }`}
-                >
-                    Exam Generation Model
-                    {selectedCategory === 'exam' && (
-                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600" />
-                    )}
-                </button>
-            </div>
-
-            {/* Controls */}
-            <div className="flex items-center gap-3">
-                {/* Search */}
-                <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input
-                        type="text"
-                        placeholder="Search models..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    />
-                </div>
-
-                {/* Filter */}
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => setFilter('all')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'all'
-                            ? 'bg-primary-500 text-white'
-                            : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
-                            }`}
-                    >
-                        All ({models.length})
-                    </button>
-                    <button
-                        onClick={() => setFilter('free')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'free'
-                            ? 'bg-emerald-500 text-white'
-                            : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
-                            }`}
-                    >
-                        Free
-                    </button>
-                    <button
-                        onClick={() => setFilter('paid')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'paid'
-                            ? 'bg-amber-500 text-white'
-                            : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
-                            }`}
-                    >
-                        Paid
-                    </button>
-                </div>
-
-                {/* Refresh Button */}
-                <button
-                    onClick={handleRefresh}
-                    disabled={isLoading}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors disabled:opacity-50"
-                >
-                    <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
-                    Refresh
-                </button>
-            </div>
-
-            {/* Models List */}
-            {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                    <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400">
-                        <RefreshCw className="animate-spin" size={20} />
-                        <span>Loading models...</span>
-                    </div>
-                </div>
-            ) : providers.length > 0 ? (
-                <div className="space-y-6">
-                    {providers.map(provider => {
-                        const providerModels = filteredModels.filter(m => m.id.startsWith(provider + '/'));
-
-                        return (
-                            <div key={provider} className="space-y-3">
-                                {/* Provider Header */}
-                                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-700/50">
-                                    <Zap size={16} className="text-primary-500" />
-                                    <span className="font-semibold text-slate-900 dark:text-white capitalize">
-                                        {provider}
-                                    </span>
-                                    <span className="text-sm text-slate-500 dark:text-slate-400">
-                                        ({providerModels.length})
-                                    </span>
-                                </div>
-
-                                {/* Models Grid */}
-                                <div className="grid grid-cols-1 gap-2">
-                                    {providerModels.map(model => {
-                                        const isFree = model.id.includes(':free') || (
-                                            parseFloat(model.pricing.prompt) === 0 && parseFloat(model.pricing.completion) === 0
-                                        );
-                                        const isSelected = previewModelId === model.id;
-
-                                        return (
         <div className="lms-section">
             <div className="lms-row">
                 <button
@@ -235,17 +109,15 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
                 </button>
             </div>
 
-            <div className="lms-row" style={{ alignItems: 'center' }}>
-                <div className="lms-input-group" style={{ flex: 1, minWidth: 240 }}>
-                    <Search size={16} />
-                    <input
-                        type="text"
-                        placeholder="Search models..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="lms-input"
-                    />
-                </div>
+            <div className="lms-row" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                <input
+                    type="text"
+                    placeholder="Tim kiem model..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="lms-input"
+                    style={{ minWidth: 220, flex: 1 }}
+                />
 
                 <div className="lms-row">
                     <button
@@ -273,8 +145,7 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
                     disabled={isLoading}
                     className="lms-button-secondary"
                 >
-                    <RefreshCw size={16} className={isLoading ? 'lms-spin' : ''} />
-                    Refresh
+                    {isLoading ? 'Dang tai...' : 'Refresh'}
                 </button>
             </div>
 
@@ -303,6 +174,7 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
                                             parseFloat(model.pricing.prompt) === 0 && parseFloat(model.pricing.completion) === 0
                                         );
                                         const isSelected = previewModelId === model.id;
+                                        const isCurrent = model.id === currentModel;
 
                                         return (
                                             <button
@@ -310,7 +182,7 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
                                                 onClick={() => handlePreviewModel(model.id)}
                                                 className={`lms-list-item ${isSelected ? 'is-active' : ''}`}
                                             >
-                                                <div className="lms-row" style={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                                                <div className="lms-row" style={{ alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                                                     <div style={{ minWidth: 0 }}>
                                                         <div style={{ fontWeight: 600 }}>{model.name}</div>
                                                         {model.description && (
@@ -322,7 +194,7 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
                                                             Context: {model.context_length.toLocaleString()} tokens
                                                         </div>
 
-                                                        {model.id === previewModelId && model.id !== currentModel && (
+                                                        {isSelected && !isCurrent && (
                                                             <div style={{ marginTop: 10 }}>
                                                                 <button
                                                                     onClick={(e) => {
@@ -331,12 +203,11 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
                                                                     }}
                                                                     className="lms-button"
                                                                 >
-                                                                    <CheckCircle size={16} />
-                                                                    Save model
+                                                                    Luu model
                                                                 </button>
                                                             </div>
                                                         )}
-                                                        {model.id === currentModel && (
+                                                        {isCurrent && (
                                                             <div style={{ marginTop: 8 }}>
                                                                 <span className="lms-badge">Dang su dung</span>
                                                             </div>
@@ -344,11 +215,11 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
                                                     </div>
 
                                                     <div className="lms-section" style={{ alignItems: 'flex-end' }}>
-                                                        <span className="lms-badge">
+                                                        <span className="lms-pill">
                                                             {isFree ? 'Free' : 'Pro'}
                                                         </span>
                                                         {isSelected && (
-                                                            <CheckCircle size={16} style={{ color: 'var(--lms-accent)' }} />
+                                                            <span className="lms-note">Dang xem</span>
                                                         )}
                                                     </div>
                                                 </div>
@@ -362,11 +233,9 @@ export default function ModelSelector({ settings, onUpdate }: ModelSelectorProps
                 </div>
             ) : (
                 <div className="lms-empty">
-                    <Search size={32} />
-                    <p className="lms-note">No models found</p>
+                    <p className="lms-note">Khong tim thay model.</p>
                 </div>
             )}
         </div>
     );
 }
-

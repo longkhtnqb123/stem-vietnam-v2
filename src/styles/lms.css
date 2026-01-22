@@ -1064,6 +1064,7 @@ img {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
   transition: background 0.2s ease, color 0.2s ease, border 0.2s ease;
 }
 

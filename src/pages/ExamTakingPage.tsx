@@ -1,17 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
-    Clock,
-    ChevronLeft,
-    ChevronRight,
-    Flag,
-    Send,
-    AlertTriangle,
-    CheckCircle2,
-    XCircle,
-    Loader2,
-} from 'lucide-react';
-import {
     getExamAttempt,
     saveAttemptProgress,
     submitExamAttempt,
@@ -94,7 +83,7 @@ function QuestionDisplay({
                     {isEssay && <span className="lms-badge">Tu luan</span>}
                 </div>
                 <button className="lms-button-ghost" onClick={onToggleFlag}>
-                    <Flag size={14} /> {isFlagged ? 'Danh dau' : 'Danh dau'}
+                    {isFlagged ? 'Bo danh dau' : 'Danh dau'}
                 </button>
             </div>
 
@@ -187,12 +176,6 @@ function QuestionDisplay({
                             >
                                 <div className="lms-row" style={{ justifyContent: 'space-between' }}>
                                     <span>{opt}. {optionText}</span>
-                                    {showResult && (question.answer === opt || question.answer === idx) && (
-                                        <CheckCircle2 size={16} />
-                                    )}
-                                    {showResult && isSelected && question.answer !== opt && question.answer !== idx && (
-                                        <XCircle size={16} />
-                                    )}
                                 </div>
                             </button>
                         );
@@ -239,7 +222,7 @@ function SubmitModal({
                     </div>
                     {unanswered > 0 && (
                         <div className="lms-alert">
-                            <AlertTriangle size={16} /> Con {unanswered} cau chua tra loi
+                            Con {unanswered} cau chua tra loi
                         </div>
                     )}
                     {flaggedCount > 0 && (
@@ -251,7 +234,7 @@ function SubmitModal({
                         Lam tiep
                     </button>
                     <button onClick={onConfirm} disabled={isSubmitting} className="lms-button">
-                        {isSubmitting ? <Loader2 size={16} /> : <Send size={16} />}
+                        {isSubmitting ? <div className="lms-spinner" /> : null}
                         <span>Nop bai</span>
                     </button>
                 </div>
@@ -426,7 +409,7 @@ export default function ExamTakingPage() {
                     <div className="lms-row">
                         {!result && (
                             <div className="lms-pill">
-                                <Clock size={16} /> {timer.formattedTime}
+                                {timer.formattedTime}
                             </div>
                         )}
                         {result && (
@@ -460,15 +443,15 @@ export default function ExamTakingPage() {
 
                     <div className="lms-row" style={{ justifyContent: 'space-between' }}>
                         <button onClick={handlePrev} disabled={currentIndex === 0} className="lms-button-secondary">
-                            <ChevronLeft size={16} /> Cau truoc
+                            Cau truoc
                         </button>
                         {currentIndex === questions.length - 1 && !result ? (
                             <button onClick={() => handleSubmit()} className="lms-button">
-                                <Send size={16} /> Nop bai
+                                Nop bai
                             </button>
                         ) : (
                             <button onClick={handleNext} disabled={currentIndex === questions.length - 1} className="lms-button">
-                                Cau sau <ChevronRight size={16} />
+                                Cau sau
                             </button>
                         )}
                     </div>
@@ -514,7 +497,7 @@ export default function ExamTakingPage() {
 
                     {!result && (
                         <button onClick={() => handleSubmit()} className="lms-button">
-                            <Send size={16} /> Nop bai ({answeredCount}/{questions.length})
+                            Nop bai ({answeredCount}/{questions.length})
                         </button>
                     )}
                 </aside>

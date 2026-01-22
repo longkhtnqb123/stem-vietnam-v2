@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Download, X } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
     prompt: () => Promise<void>;
@@ -58,7 +57,7 @@ export default function PWAInstallPrompt() {
                 <div className="lms-modal-header">
                     <div className="lms-card-title">Cai dat ung dung</div>
                     <button onClick={handleDismiss} className="lms-button-ghost">
-                        <X size={16} />
+                        Dong
                     </button>
                 </div>
                 <div className="lms-modal-body lms-section">
@@ -69,7 +68,7 @@ export default function PWAInstallPrompt() {
                         De sau
                     </button>
                     <button onClick={handleInstall} className="lms-button">
-                        <Download size={16} /> Cai dat
+                        Cai dat
                     </button>
                 </div>
             </div>

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Settings, X } from 'lucide-react';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useAuthStore } from '../../lib/auth';
 
@@ -38,12 +37,11 @@ export default function ApiKeyWarning() {
                 <div className="lms-modal-header">
                     <div className="lms-card-title">Cau hinh API Key</div>
                     <button onClick={handleDismiss} className="lms-button-ghost" aria-label="Dong">
-                        <X size={18} />
+                        Dong
                     </button>
                 </div>
                 <div className="lms-modal-body lms-section">
                     <div className="lms-alert">
-                        <AlertTriangle size={16} />
                         <span>Ban chua cau hinh API key cho AI.</span>
                     </div>
                     <p className="lms-note">
@@ -55,7 +53,6 @@ export default function ApiKeyWarning() {
                         De sau
                     </button>
                     <button onClick={handleGoToSettings} className="lms-button">
-                        <Settings size={16} />
                         <span>Di toi Cai dat</span>
                     </button>
                 </div>

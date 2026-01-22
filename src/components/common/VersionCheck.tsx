@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, X } from 'lucide-react';
 
 interface VersionInfo {
     buildTime: number;
@@ -86,11 +85,10 @@ export default function VersionCheck() {
             <div className="lms-card" style={{ maxWidth: 360 }}>
                 <div className="lms-row" style={{ alignItems: 'flex-start' }}>
                     <div className="lms-badge">
-                        <RefreshCw size={16} />
                         Cap nhat moi
                     </div>
                     <button onClick={() => setShowUpdate(false)} className="lms-button-ghost">
-                        <X size={14} />
+                        Dong
                     </button>
                 </div>
                 <p className="lms-note">
