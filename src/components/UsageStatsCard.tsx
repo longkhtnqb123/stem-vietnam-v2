@@ -1,6 +1,5 @@
-// Chú thích: UsageStatsCard - Component hiển thị thống kê sử dụng AI
+﻿// UsageStatsCard - Component hien thi thong ke su dung AI
 import { useState, useEffect } from 'react';
-import { BarChart3, Zap, Clock, TrendingUp, Cpu } from 'lucide-react';
 
 const API_URL = (import.meta.env.VITE_API_URL || 'https://stem-vietnam-api.stu725114073.workers.dev').replace(/\/$/, '');
 
@@ -35,24 +34,21 @@ interface UsageStatsCardProps {
     token: string;
 }
 
-// Chú thích: Helper format số lớn
 function formatNumber(num: number): string {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toString();
 }
 
-// Chú thích: Helper format tên action
 function formatActionType(action: string): string {
     const map: Record<string, string> = {
-        'chat': '💬 Chat AI',
-        'exam_generate': '📝 Tạo đề thi',
-        'rag_search': '📚 Tìm kiếm SGK',
+        'chat': 'Chat AI',
+        'exam_generate': 'Tao de thi',
+        'rag_search': 'Tim SGK',
     };
     return map[action] || action;
 }
 
-// Chú thích: Helper format tên model
 function formatModelName(model: string): string {
     if (model.includes('gemini')) return 'Gemini Flash';
     if (model.includes('deepseek')) return 'DeepSeek R1';
@@ -76,7 +72,7 @@ export default function UsageStatsCard({ token }: UsageStatsCardProps) {
                 });
 
                 if (!res.ok) {
-                    throw new Error('Không thể tải thống kê');
+                    throw new Error('Khong the tai thong ke');
                 }
 
                 const data = await res.json();
@@ -107,8 +103,8 @@ export default function UsageStatsCard({ token }: UsageStatsCardProps) {
         return (
             <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm">
                 <div className="text-center text-slate-500 py-4">
-                    <BarChart3 className="mx-auto mb-2 opacity-50" size={40} />
-                    <p>Chưa có dữ liệu sử dụng AI</p>
+                    <span className="lms-guide-tag">STAT</span>
+                    <p>Chua co du lieu su dung AI</p>
                 </div>
             </div>
         );
@@ -119,55 +115,40 @@ export default function UsageStatsCard({ token }: UsageStatsCardProps) {
 
     return (
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm">
-            {/* Header */}
             <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                <Cpu size={20} className="text-indigo-500" />
-                Thống kê sử dụng AI
+                <span className="lms-guide-tag">AI</span>
+                Thong ke su dung AI
             </h2>
 
-            {/* Summary Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-3 text-white">
-                    <div className="flex items-center gap-1.5 mb-1">
-                        <Zap size={14} className="opacity-80" />
-                        <span className="text-xs opacity-80">Tổng tokens</span>
-                    </div>
+                <div className="bg-gradient-to-br from-emerald-600 to-teal-500 rounded-xl p-3 text-white">
+                    <div className="text-xs opacity-80">Tong tokens</div>
                     <p className="text-xl font-bold">{formatNumber(summary.totalTokens)}</p>
                 </div>
-                <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-3 text-white">
-                    <div className="flex items-center gap-1.5 mb-1">
-                        <BarChart3 size={14} className="opacity-80" />
-                        <span className="text-xs opacity-80">Số lần gọi</span>
-                    </div>
+                <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl p-3 text-white">
+                    <div className="text-xs opacity-80">So lan goi</div>
                     <p className="text-xl font-bold">{summary.totalCalls}</p>
                 </div>
-                <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl p-3 text-white">
-                    <div className="flex items-center gap-1.5 mb-1">
-                        <TrendingUp size={14} className="opacity-80" />
-                        <span className="text-xs opacity-80">Input</span>
-                    </div>
+                <div className="bg-gradient-to-br from-teal-500 to-emerald-500 rounded-xl p-3 text-white">
+                    <div className="text-xs opacity-80">Input</div>
                     <p className="text-xl font-bold">{formatNumber(summary.totalTokensIn)}</p>
                 </div>
-                <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-3 text-white">
-                    <div className="flex items-center gap-1.5 mb-1">
-                        <Clock size={14} className="opacity-80" />
-                        <span className="text-xs opacity-80">Độ trễ TB</span>
-                    </div>
+                <div className="bg-gradient-to-br from-emerald-500 to-lime-500 rounded-xl p-3 text-white">
+                    <div className="text-xs opacity-80">Do tre TB</div>
                     <p className="text-xl font-bold">{summary.avgLatency}ms</p>
                 </div>
             </div>
 
-            {/* Daily Chart */}
             {daily.length > 0 && (
                 <div className="mb-6">
                     <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
-                        Token 7 ngày gần nhất
+                        Token 7 ngay gan nhat
                     </h3>
                     <div className="flex items-end justify-between gap-1 h-20">
                         {daily.slice(0, 7).reverse().map((d, idx) => (
                             <div key={idx} className="flex-1 flex flex-col items-center">
                                 <div
-                                    className="w-full bg-gradient-to-t from-indigo-500 to-purple-400 rounded-t-sm transition-all"
+                                    className="w-full bg-gradient-to-t from-emerald-500 to-amber-400 rounded-t-sm transition-all"
                                     style={{ height: `${(d.tokens / maxDailyTokens) * 100}%`, minHeight: d.tokens > 0 ? '8px' : '2px' }}
                                     title={`${d.tokens} tokens`}
                                 />
@@ -180,13 +161,11 @@ export default function UsageStatsCard({ token }: UsageStatsCardProps) {
                 </div>
             )}
 
-            {/* Breakdown */}
             <div className="grid md:grid-cols-2 gap-4">
-                {/* By Action */}
                 {byAction.length > 0 && (
                     <div>
                         <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Theo tính năng
+                            Theo tinh nang
                         </h3>
                         <div className="space-y-2">
                             {byAction.slice(0, 3).map((a, idx) => (
@@ -195,7 +174,7 @@ export default function UsageStatsCard({ token }: UsageStatsCardProps) {
                                         {formatActionType(a.actionType)}
                                     </span>
                                     <span className="font-medium text-slate-900 dark:text-white">
-                                        {a.calls} lần
+                                        {a.calls} lan
                                     </span>
                                 </div>
                             ))}
@@ -203,7 +182,6 @@ export default function UsageStatsCard({ token }: UsageStatsCardProps) {
                     </div>
                 )}
 
-                {/* By Model */}
                 {byModel.length > 0 && (
                     <div>
                         <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -213,7 +191,7 @@ export default function UsageStatsCard({ token }: UsageStatsCardProps) {
                             {byModel.slice(0, 3).map((m, idx) => (
                                 <div key={idx} className="flex items-center justify-between text-sm">
                                     <span className="text-slate-600 dark:text-slate-400">
-                                        🤖 {formatModelName(m.model)}
+                                        {formatModelName(m.model)}
                                     </span>
                                     <span className="font-medium text-slate-900 dark:text-white">
                                         {formatNumber(m.tokensIn + m.tokensOut)} tok
