@@ -121,19 +121,19 @@ export default function UsageStatsCard({ token }: UsageStatsCardProps) {
             </h2>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                <div className="bg-gradient-to-br from-emerald-600 to-teal-500 rounded-xl p-3 text-white">
+                <div className="bg-gradient-to-br from-primary-600 to-primary-400 rounded-xl p-3 text-white">
                     <div className="text-xs opacity-80">Tong tokens</div>
                     <p className="text-xl font-bold">{formatNumber(summary.totalTokens)}</p>
                 </div>
-                <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl p-3 text-white">
+                <div className="bg-gradient-to-br from-secondary-500 to-secondary-400 rounded-xl p-3 text-white">
                     <div className="text-xs opacity-80">So lan goi</div>
                     <p className="text-xl font-bold">{summary.totalCalls}</p>
                 </div>
-                <div className="bg-gradient-to-br from-teal-500 to-emerald-500 rounded-xl p-3 text-white">
+                <div className="bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl p-3 text-white">
                     <div className="text-xs opacity-80">Input</div>
                     <p className="text-xl font-bold">{formatNumber(summary.totalTokensIn)}</p>
                 </div>
-                <div className="bg-gradient-to-br from-emerald-500 to-lime-500 rounded-xl p-3 text-white">
+                <div className="bg-gradient-to-br from-primary-500 to-secondary-300 rounded-xl p-3 text-white">
                     <div className="text-xs opacity-80">Do tre TB</div>
                     <p className="text-xl font-bold">{summary.avgLatency}ms</p>
                 </div>
@@ -148,7 +148,7 @@ export default function UsageStatsCard({ token }: UsageStatsCardProps) {
                         {daily.slice(0, 7).reverse().map((d, idx) => (
                             <div key={idx} className="flex-1 flex flex-col items-center">
                                 <div
-                                    className="w-full bg-gradient-to-t from-emerald-500 to-amber-400 rounded-t-sm transition-all"
+                                    className="w-full bg-gradient-to-t from-primary-500 to-secondary-400 rounded-t-sm transition-all"
                                     style={{ height: `${(d.tokens / maxDailyTokens) * 100}%`, minHeight: d.tokens > 0 ? '8px' : '2px' }}
                                     title={`${d.tokens} tokens`}
                                 />

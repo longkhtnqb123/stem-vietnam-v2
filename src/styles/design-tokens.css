@@ -11,46 +11,46 @@
   /* ============================================ */
   /* PRIMARY COLORS - Emerald (thay thế Blue)    */
   /* ============================================ */
-  --color-primary-50: #ecfdf5;
-  --color-primary-100: #d1fae5;
-  --color-primary-200: #a7f3d0;
-  --color-primary-300: #6ee7b7;
-  --color-primary-400: #34d399;
-  --color-primary-500: #10b981;
-  --color-primary-600: #059669;
-  --color-primary-700: #047857;
-  --color-primary-800: #065f46;
-  --color-primary-900: #064e3b;
-  --color-primary-950: #022c22;
+  --color-primary-50: #edf7f5;
+  --color-primary-100: #d4efe9;
+  --color-primary-200: #a8e0d7;
+  --color-primary-300: #74cdbf;
+  --color-primary-400: #3fb6a6;
+  --color-primary-500: #0f6b5c;
+  --color-primary-600: #0b5d52;
+  --color-primary-700: #094c44;
+  --color-primary-800: #083c36;
+  --color-primary-900: #062f2b;
+  --color-primary-950: #04201d;
 
   /* ============================================ */
   /* SECONDARY COLORS - Teal/Cyan                */
   /* ============================================ */
-  --color-secondary-50: #ecfeff;
-  --color-secondary-100: #cffafe;
-  --color-secondary-200: #a5f3fc;
-  --color-secondary-300: #67e8f9;
-  --color-secondary-400: #22d3ee;
-  --color-secondary-500: #06b6d4;
-  --color-secondary-600: #0891b2;
-  --color-secondary-700: #0e7490;
-  --color-secondary-800: #155e75;
-  --color-secondary-900: #164e63;
+  --color-secondary-50: #fff6ed;
+  --color-secondary-100: #fde8d1;
+  --color-secondary-200: #f9d1a2;
+  --color-secondary-300: #f2b66e;
+  --color-secondary-400: #e39a3d;
+  --color-secondary-500: #c27a2f;
+  --color-secondary-600: #a46124;
+  --color-secondary-700: #864a1d;
+  --color-secondary-800: #6b3917;
+  --color-secondary-900: #562c12;
 
   /* ============================================ */
   /* ACCENT COLORS - Amber (highlights)          */
   /* ============================================ */
-  --color-accent-400: #fbbf24;
-  --color-accent-500: #f59e0b;
-  --color-accent-600: #d97706;
+  --color-accent-400: #f2b66e;
+  --color-accent-500: #e39a3d;
+  --color-accent-600: #c27a2f;
 
   /* ============================================ */
   /* GRADIENTS                                    */
   /* ============================================ */
-  --gradient-primary: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
-  --gradient-primary-hover: linear-gradient(135deg, #059669 0%, #0891b2 100%);
-  --gradient-accent: linear-gradient(135deg, #10b981 0%, #f59e0b 100%);
-  --gradient-dark: linear-gradient(135deg, #064e3b 0%, #0f172a 100%);
+  --gradient-primary: linear-gradient(135deg, #0f6b5c 0%, #c27a2f 100%);
+  --gradient-primary-hover: linear-gradient(135deg, #0b5d52 0%, #a46124 100%);
+  --gradient-accent: linear-gradient(135deg, #0f6b5c 0%, #e39a3d 100%);
+  --gradient-dark: linear-gradient(135deg, #083c36 0%, #1f2328 100%);
 
   /* ============================================ */
   /* TYPOGRAPHY                                   */
@@ -90,7 +90,7 @@
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
-  --shadow-glow: 0 0 30px -5px rgb(16 185 129 / 0.3);
+  --shadow-glow: 0 0 30px -5px rgb(15 107 92 / 0.3);
 
   /* ============================================ */
   /* BORDER RADIUS                                */

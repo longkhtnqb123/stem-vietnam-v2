@@ -35,7 +35,7 @@ export function XPBar({ currentXP, level, progressToNextLevel, xpToNextLevel }: 
                 </div>
                 <div className="h-3 bg-white/20 rounded-full overflow-hidden">
                     <div
-                        className="h-full bg-gradient-to-r from-amber-400 to-amber-300 rounded-full transition-all duration-500"
+                        className="h-full bg-gradient-to-r from-secondary-400 to-secondary-300 rounded-full transition-all duration-500"
                         style={{ width: `${progressToNextLevel}%` }}
                     />
                 </div>
@@ -51,10 +51,10 @@ interface StreakCounterProps {
 export function StreakCounter({ streak }: StreakCounterProps) {
     const isHot = streak >= 7;
     return (
-        <div className={`bento-card flex items-center gap-4 ${isHot ? 'border-amber-300 dark:border-amber-800' : ''}`}>
+        <div className={`bento-card flex items-center gap-4 ${isHot ? 'border-secondary-300 dark:border-secondary-800' : ''}`}>
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${isHot
-                ? 'bg-gradient-to-br from-amber-500 to-orange-500 animate-pulse'
-                : 'bg-gradient-to-br from-amber-400 to-amber-500'
+                ? 'bg-gradient-to-br from-secondary-500 to-secondary-400 animate-pulse'
+                : 'bg-gradient-to-br from-secondary-400 to-secondary-500'
                 }`}>
                 <span className="text-xs font-bold text-white">STK</span>
             </div>
@@ -64,7 +64,7 @@ export function StreakCounter({ streak }: StreakCounterProps) {
                     {streak} <span className="text-lg">ngay</span>
                 </p>
                 {streak >= 7 && (
-                    <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+                    <p className="text-xs text-secondary-700 dark:text-secondary-400 font-medium">
                         Ban dang tien bo, tiep tuc phat huy.
                     </p>
                 )}
