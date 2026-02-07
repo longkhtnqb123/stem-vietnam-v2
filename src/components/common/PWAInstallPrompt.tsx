@@ -55,20 +55,20 @@ export default function PWAInstallPrompt() {
         <div className="lms-modal" style={{ alignItems: 'flex-end' }}>
             <div className="lms-modal-panel" style={{ maxWidth: 480 }}>
                 <div className="lms-modal-header">
-                    <div className="lms-card-title">Cai dat ung dung</div>
+                    <div className="lms-card-title">Cài đặt ứng dụng</div>
                     <button onClick={handleDismiss} className="lms-button-ghost">
-                        Dong
+                        Đóng
                     </button>
                 </div>
                 <div className="lms-modal-body lms-section">
-                    <p className="lms-note">Cai dat de su dung nhanh va on dinh hon.</p>
+                    <p className="lms-note">Cài đặt để sử dụng nhanh và ổn định hơn.</p>
                 </div>
                 <div className="lms-modal-footer">
                     <button onClick={handleDismiss} className="lms-button-secondary">
-                        De sau
+                        Để sau
                     </button>
                     <button onClick={handleInstall} className="lms-button">
-                        Cai dat
+                        Cài đặt
                     </button>
                 </div>
             </div>

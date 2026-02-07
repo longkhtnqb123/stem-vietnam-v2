@@ -65,7 +65,7 @@ export default function ResearchDashboard() {
     if (user?.role !== 'admin') {
         return (
             <div className="lms-page">
-                <div className="lms-empty">Ban khong co quyen truy cap.</div>
+                <div className="lms-empty">Bạn không có quyền truy cập.</div>
             </div>
         );
     }
@@ -75,7 +75,7 @@ export default function ResearchDashboard() {
             <div className="lms-page">
                 <div className="lms-empty">
                     <div className="lms-spinner" />
-                    <p className="lms-note">Dang tai thong ke...</p>
+                    <p className="lms-note">Đang tải thống kê...</p>
                 </div>
             </div>
         );
@@ -84,7 +84,7 @@ export default function ResearchDashboard() {
     if (!stats) {
         return (
             <div className="lms-page">
-                <div className="lms-empty">Khong co du lieu</div>
+                <div className="lms-empty">Không có dữ liệu</div>
             </div>
         );
     }
@@ -95,7 +95,7 @@ export default function ResearchDashboard() {
                 <div className="lms-card-header">
                     <div>
                         <div className="lms-card-title">Research Dashboard</div>
-                        <div className="lms-card-subtitle">Thong ke he thong</div>
+                        <div className="lms-card-subtitle">Thống kê hệ thống</div>
                     </div>
                 </div>
                 <div className="lms-row">
@@ -116,22 +116,22 @@ export default function ResearchDashboard() {
 
             <section className="lms-grid lms-grid-3">
                 <div className="lms-card">
-                    <div className="lms-card-title">Nguoi dung</div>
+                    <div className="lms-card-title">Người dùng</div>
                     <div className="lms-note">{stats.users.total_users}</div>
                 </div>
                 <div className="lms-card">
-                    <div className="lms-card-title">Luot lam bai</div>
+                    <div className="lms-card-title">Lượt làm bài</div>
                     <div className="lms-note">{stats.exams.total_attempts}</div>
                 </div>
                 <div className="lms-card">
-                    <div className="lms-card-title">Diem trung binh</div>
+                    <div className="lms-card-title">Điểm trung bình</div>
                     <div className="lms-note">{stats.exams.avg_score.toFixed(1)}</div>
                 </div>
             </section>
 
             <section className="lms-card">
                 <div className="lms-card-header">
-                    <div className="lms-card-title">Su kien</div>
+                    <div className="lms-card-title">Sự kiện</div>
                     <div className="lms-row">
                         <button onClick={() => handleExport('events')} className="lms-button" disabled={exporting}>
                             <Download size={16} /> Export
@@ -139,14 +139,14 @@ export default function ResearchDashboard() {
                     </div>
                 </div>
                 {stats.events.length === 0 ? (
-                    <div className="lms-empty">Khong co su kien</div>
+                    <div className="lms-empty">Không có sự kiện</div>
                 ) : (
                     <table className="lms-table">
                         <thead>
                             <tr>
-                                <th>Loai</th>
-                                <th>So luot</th>
-                                <th>Nguoi dung</th>
+                                <th>Loại</th>
+                                <th>Số lượt</th>
+                                <th>Người dùng</th>
                             </tr>
                         </thead>
                         <tbody>

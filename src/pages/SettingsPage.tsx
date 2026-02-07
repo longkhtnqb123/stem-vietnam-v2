@@ -17,16 +17,16 @@ export default function SettingsPage() {
         const newCount = devModeCount + 1;
         setDevModeCount(newCount);
         if (newCount === 7) {
-            console.log('Developer Mode Unlocked!');
+            console.log('Chế độ nhà phát triển đã được mở khóa!');
         }
     };
 
     const allTabs = [
-        { id: 'models' as TabType, label: 'AI Models', requiresDev: true },
-        { id: 'api-keys' as TabType, label: 'API Keys', requiresDev: true },
-        { id: 'preferences' as TabType, label: 'Giao dien', requiresDev: false },
-        { id: 'usage' as TabType, label: 'Thong ke', requiresDev: false },
-        { id: 'security' as TabType, label: 'Bao mat', requiresDev: false },
+        { id: 'models' as TabType, label: 'Mô hình AI', requiresDev: true },
+        { id: 'api-keys' as TabType, label: 'Khóa API', requiresDev: true },
+        { id: 'preferences' as TabType, label: 'Giao diện', requiresDev: false },
+        { id: 'usage' as TabType, label: 'Thống kê', requiresDev: false },
+        { id: 'security' as TabType, label: 'Bảo mật', requiresDev: false },
     ];
 
     const tabs = allTabs.filter(tab => !tab.requiresDev || isDevMode);
@@ -36,7 +36,7 @@ export default function SettingsPage() {
             <div className="lms-page">
                 <div className="lms-empty">
                     <div className="lms-spinner" />
-                    <p className="lms-note">Dang tai cai dat...</p>
+                    <p className="lms-note">Đang tải cài đặt...</p>
                 </div>
             </div>
         );
@@ -47,8 +47,8 @@ export default function SettingsPage() {
             <section className="lms-card" onClick={handleDevModeClick}>
                 <div className="lms-card-header">
                     <div>
-                        <div className="lms-card-title">Cai dat</div>
-                        <div className="lms-card-subtitle">Quan ly tai khoan va tuy chinh giao dien</div>
+                        <div className="lms-card-title">Cài đặt</div>
+                        <div className="lms-card-subtitle">Quản lý tài khoản và tùy chỉnh giao diện</div>
                     </div>
                 </div>
             </section>
@@ -81,51 +81,51 @@ export default function SettingsPage() {
                 {activeTab === 'preferences' && settings && (
                     <div className="lms-form">
                         <div className="lms-section">
-                            <label className="lms-label">Theme</label>
+                            <label className="lms-label">Giao diện (Theme)</label>
                             <select
                                 value={settings.theme}
                                 onChange={(e) => updateSettings({ ...settings, theme: e.target.value as any })}
                                 className="lms-select"
                             >
-                                <option value="light">Sang</option>
-                                <option value="dark">Toi</option>
-                                <option value="sepia">Sepia</option>
-                                <option value="auto">Tu dong</option>
+                                <option value="light">Sáng</option>
+                                <option value="dark">Tối</option>
+                                <option value="sepia">Sepia (Dịu mắt)</option>
+                                <option value="auto">Tự động theo hệ thống</option>
                             </select>
                         </div>
 
                         <div className="lms-section">
-                            <label className="lms-label">Ngon ngu</label>
+                            <label className="lms-label">Ngôn ngữ</label>
                             <select
                                 value={settings.language}
                                 onChange={(e) => updateSettings({ ...settings, language: e.target.value as 'vi' | 'en' })}
                                 className="lms-select"
                             >
-                                <option value="vi">Tieng Viet</option>
+                                <option value="vi">Tiếng Việt</option>
                                 <option value="en">English</option>
                             </select>
                         </div>
 
                         <div className="lms-section">
-                            <label className="lms-label">Su dung backend proxy</label>
+                            <label className="lms-label">Sử dụng backend proxy</label>
                             <div className="lms-row">
                                 <input
                                     type="checkbox"
                                     checked={settings.useBackendProxy}
                                     onChange={(e) => updateSettings({ ...settings, useBackendProxy: e.target.checked })}
                                 />
-                                <span className="lms-note">Dung server de goi AI neu chua co API key</span>
+                                <span className="lms-note">Dùng server để gọi AI nếu chưa có API key</span>
                             </div>
                         </div>
                     </div>
                 )}
 
                 {activeTab === 'usage' && (
-                    <div className="lms-empty">Thong ke se cap nhat sau.</div>
+                    <div className="lms-empty">Thống kê sẽ cập nhật sau.</div>
                 )}
 
                 {activeTab === 'security' && (
-                    <div className="lms-empty">Bao mat se cap nhat sau.</div>
+                    <div className="lms-empty">Bảo mật sẽ cập nhật sau.</div>
                 )}
             </section>
         </div>

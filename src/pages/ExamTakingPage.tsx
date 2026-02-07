@@ -78,12 +78,12 @@ function QuestionDisplay({
         <div className="lms-card">
             <div className="lms-row" style={{ justifyContent: 'space-between' }}>
                 <div className="lms-row">
-                    <span className="lms-pill">Cau {index + 1}/{total}</span>
-                    {isTrueFalse && <span className="lms-badge">D/S</span>}
-                    {isEssay && <span className="lms-badge">Tu luan</span>}
+                    <span className="lms-pill">Câu {index + 1}/{total}</span>
+                    {isTrueFalse && <span className="lms-badge">Đ/S</span>}
+                    {isEssay && <span className="lms-badge">Tự luận</span>}
                 </div>
                 <button className="lms-button-ghost" onClick={onToggleFlag}>
-                    {isFlagged ? 'Bo danh dau' : 'Danh dau'}
+                    {isFlagged ? 'Bỏ đánh dấu' : 'Đánh dấu'}
                 </button>
             </div>
 
@@ -97,21 +97,21 @@ function QuestionDisplay({
                         value={typeof selectedAnswer === 'string' ? selectedAnswer : ''}
                         onChange={(e) => !showResult && onSelectAnswer(e.target.value)}
                         disabled={showResult}
-                        placeholder="Nhap cau tra loi cua ban"
+                        placeholder="Nhập câu trả lời của bạn"
                         className="lms-textarea"
                     />
 
                     {showResult && (
                         <div className="lms-card" style={{ marginTop: 12 }}>
                             <div className="lms-row" style={{ justifyContent: 'space-between' }}>
-                                <span className="lms-note">Diem</span>
+                                <span className="lms-note">Điểm</span>
                                 <strong>{(question.essayScore ?? 0).toFixed(2)}/{question.max_points ?? 1}</strong>
                             </div>
                             {question.matchedKeywords && question.matchedKeywords.length > 0 && (
-                                <p className="lms-note">Tu khoa: {question.matchedKeywords.join(', ')}</p>
+                                <p className="lms-note">Từ khóa: {question.matchedKeywords.join(', ')}</p>
                             )}
                             {question.sample_answer && (
-                                <p className="lms-note">Goi y: {question.sample_answer}</p>
+                                <p className="lms-note">Gợi ý: {question.sample_answer}</p>
                             )}
                         </div>
                     )}
@@ -133,7 +133,7 @@ function QuestionDisplay({
                                         disabled={showResult}
                                         className={userValue === true ? 'lms-button' : 'lms-button-secondary'}
                                     >
-                                        Dung
+                                        Đúng
                                     </button>
                                     <button
                                         onClick={() => !showResult && handleTrueFalseToggle(stmtIdx, false)}
@@ -144,7 +144,7 @@ function QuestionDisplay({
                                     </button>
                                     {showResult && (
                                         <span className="lms-note">
-                                            {isCorrect ? 'Dung' : isWrong ? `Dap an: ${correctValue ? 'Dung' : 'Sai'}` : ''}
+                                            {isCorrect ? 'Đúng' : isWrong ? `Đáp án: ${correctValue ? 'Đúng' : 'Sai'}` : ''}
                                         </span>
                                     )}
                                 </div>
@@ -185,7 +185,7 @@ function QuestionDisplay({
 
             {showResult && question.explanation && (
                 <div className="lms-alert" style={{ marginTop: 16 }}>
-                    <strong>Giai thich:</strong> {question.explanation}
+                    <strong>Giải thích:</strong> {question.explanation}
                 </div>
             )}
         </div>
@@ -213,29 +213,29 @@ function SubmitModal({
         <div className="lms-modal">
             <div className="lms-modal-panel" style={{ maxWidth: 520 }}>
                 <div className="lms-modal-header">
-                    <div className="lms-card-title">Xac nhan nop bai</div>
+                    <div className="lms-card-title">Xác nhận nộp bài</div>
                 </div>
                 <div className="lms-modal-body lms-section">
                     <div className="lms-row" style={{ justifyContent: 'space-between' }}>
-                        <span className="lms-note">Da lam</span>
+                        <span className="lms-note">Đã làm</span>
                         <strong>{answeredCount}/{totalCount}</strong>
                     </div>
                     {unanswered > 0 && (
                         <div className="lms-alert">
-                            Con {unanswered} cau chua tra loi
+                            Còn {unanswered} câu chưa trả lời
                         </div>
                     )}
                     {flaggedCount > 0 && (
-                        <div className="lms-note">{flaggedCount} cau dang danh dau</div>
+                        <div className="lms-note">{flaggedCount} câu đang đánh dấu</div>
                     )}
                 </div>
                 <div className="lms-modal-footer">
                     <button onClick={onCancel} disabled={isSubmitting} className="lms-button-secondary">
-                        Lam tiep
+                        Làm tiếp
                     </button>
                     <button onClick={onConfirm} disabled={isSubmitting} className="lms-button">
                         {isSubmitting ? <div className="lms-spinner" /> : null}
-                        <span>Nop bai</span>
+                        <span>Nộp bài</span>
                     </button>
                 </div>
             </div>
@@ -392,7 +392,7 @@ export default function ExamTakingPage() {
             <div className="lms-page">
                 <div className="lms-empty">
                     <div className="lms-spinner" />
-                    <p className="lms-note">Dang tai bai thi...</p>
+                    <p className="lms-note">Đang tải bài thi...</p>
                 </div>
             </div>
         );
@@ -403,8 +403,8 @@ export default function ExamTakingPage() {
             <div className="lms-card">
                 <div className="lms-row" style={{ justifyContent: 'space-between' }}>
                     <div>
-                        <div className="lms-card-title">{attempt?.title || 'Lam bai thi'}</div>
-                        <div className="lms-note">{attempt?.total_questions} cau - {attempt?.duration_minutes} phut</div>
+                        <div className="lms-card-title">{attempt?.title || 'Làm bài thi'}</div>
+                        <div className="lms-note">{attempt?.total_questions} câu - {attempt?.duration_minutes} phút</div>
                     </div>
                     <div className="lms-row">
                         {!result && (
@@ -413,7 +413,7 @@ export default function ExamTakingPage() {
                             </div>
                         )}
                         {result && (
-                            <div className="lms-pill">Diem: {result.score.toFixed(1)}/10</div>
+                            <div className="lms-pill">Điểm: {result.score.toFixed(1)}/10</div>
                         )}
                     </div>
                 </div>
@@ -443,15 +443,15 @@ export default function ExamTakingPage() {
 
                     <div className="lms-row" style={{ justifyContent: 'space-between' }}>
                         <button onClick={handlePrev} disabled={currentIndex === 0} className="lms-button-secondary">
-                            Cau truoc
+                            Câu trước
                         </button>
                         {currentIndex === questions.length - 1 && !result ? (
                             <button onClick={() => handleSubmit()} className="lms-button">
-                                Nop bai
+                                Nộp bài
                             </button>
                         ) : (
                             <button onClick={handleNext} disabled={currentIndex === questions.length - 1} className="lms-button">
-                                Cau sau
+                                Câu sau
                             </button>
                         )}
                     </div>
@@ -459,7 +459,7 @@ export default function ExamTakingPage() {
 
                 <aside className="lms-section">
                     <div className="lms-card">
-                        <div className="lms-card-title">Danh sach cau</div>
+                        <div className="lms-card-title">Danh sách câu</div>
                         <QuestionNav
                             questions={questions}
                             answers={answers}
@@ -468,36 +468,36 @@ export default function ExamTakingPage() {
                             onSelect={setCurrentIndex}
                         />
                         <div className="lms-note" style={{ marginTop: 8 }}>
-                            Da lam: {answeredCount}/{questions.length}
+                            Đã làm: {answeredCount}/{questions.length}
                         </div>
                     </div>
 
                     {result && (
                         <div className="lms-card">
-                            <div className="lms-card-title">Ket qua</div>
+                            <div className="lms-card-title">Kết quả</div>
                             <div className="lms-section">
                                 <div className="lms-row" style={{ justifyContent: 'space-between' }}>
-                                    <span className="lms-note">Diem</span>
+                                    <span className="lms-note">Điểm</span>
                                     <strong>{result.score.toFixed(1)}/10</strong>
                                 </div>
                                 <div className="lms-row" style={{ justifyContent: 'space-between' }}>
-                                    <span className="lms-note">Dung</span>
+                                    <span className="lms-note">Đúng</span>
                                     <strong>{result.correct_count}/{result.total_questions}</strong>
                                 </div>
                                 <div className="lms-row" style={{ justifyContent: 'space-between' }}>
-                                    <span className="lms-note">Thoi gian</span>
+                                    <span className="lms-note">Thời gian</span>
                                     <strong>{formatTime(result.time_spent_seconds)}</strong>
                                 </div>
                             </div>
                             <button onClick={() => navigate('/exam')} className="lms-button-secondary">
-                                Ve trang chu
+                                Về trang chủ
                             </button>
                         </div>
                     )}
 
                     {!result && (
                         <button onClick={() => handleSubmit()} className="lms-button">
-                            Nop bai ({answeredCount}/{questions.length})
+                            Nộp bài ({answeredCount}/{questions.length})
                         </button>
                     )}
                 </aside>
@@ -516,4 +516,3 @@ export default function ExamTakingPage() {
         </div>
     );
 }
-

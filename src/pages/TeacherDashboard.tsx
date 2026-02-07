@@ -49,7 +49,7 @@ export default function TeacherDashboard() {
 
                 if (!res.ok) {
                     const errData = await res.json();
-                    throw new Error(errData.error || 'Loi tai du lieu');
+                    throw new Error(errData.error || 'Lỗi tải dữ liệu');
                 }
 
                 const json = await res.json();
@@ -68,8 +68,8 @@ export default function TeacherDashboard() {
         return (
             <div className="lms-page">
                 <div className="lms-empty">
-                    <p className="lms-note">Ban khong co quyen truy cap.</p>
-                    <Link to="/chat" className="lms-button-secondary">Ve Chat</Link>
+                    <p className="lms-note">Bạn không có quyền truy cập.</p>
+                    <Link to="/chat" className="lms-button-secondary">Về Chat</Link>
                 </div>
             </div>
         );
@@ -80,7 +80,7 @@ export default function TeacherDashboard() {
             <div className="lms-page">
                 <div className="lms-empty">
                     <div className="lms-spinner" />
-                    <p className="lms-note">Dang tai dashboard...</p>
+                    <p className="lms-note">Đang tải bảng điều khiển...</p>
                 </div>
             </div>
         );
@@ -90,9 +90,9 @@ export default function TeacherDashboard() {
         return (
             <div className="lms-page">
                 <div className="lms-empty">
-                    <p className="lms-note">Loi: {error}</p>
+                    <p className="lms-note">Lỗi: {error}</p>
                     <button onClick={() => window.location.reload()} className="lms-button-secondary">
-                        Thu lai
+                        Thử lại
                     </button>
                 </div>
             </div>
@@ -107,31 +107,31 @@ export default function TeacherDashboard() {
         <div className="lms-page lms-dashboard">
             <section className="lms-hero-card">
                 <div>
-                    <div className="lms-hero-kicker">Giao vien</div>
-                    <h2 className="lms-hero-title">Quan ly lop hoc cua ban</h2>
-                    <p className="lms-hero-subtitle">Theo doi ket qua va tao de thi moi</p>
+                    <div className="lms-hero-kicker">Giáo viên</div>
+                    <h2 className="lms-hero-title">Quản lý lớp học của bạn</h2>
+                    <p className="lms-hero-subtitle">Theo dõi kết quả và tạo đề thi mới</p>
                 </div>
                 <div className="lms-hero-actions">
-                    <Link to="/exam" className="lms-hero-button">Tao de thi</Link>
-                    <Link to="/classes" className="lms-hero-ghost">Quan ly lop</Link>
+                    <Link to="/exam" className="lms-hero-button">Tạo đề thi</Link>
+                    <Link to="/classes" className="lms-hero-ghost">Quản lý lớp</Link>
                 </div>
             </section>
 
             <section className="lms-stat-grid">
                 <div className="lms-stat-card">
-                    <div className="lms-stat-label">De thi</div>
+                    <div className="lms-stat-label">Đề thi</div>
                     <div className="lms-stat-value">{overview.totalTemplates}</div>
                 </div>
                 <div className="lms-stat-card">
-                    <div className="lms-stat-label">Luot lam</div>
+                    <div className="lms-stat-label">Lượt làm</div>
                     <div className="lms-stat-value">{overview.totalAttempts}</div>
                 </div>
                 <div className="lms-stat-card">
-                    <div className="lms-stat-label">Trung binh</div>
+                    <div className="lms-stat-label">Trung bình</div>
                     <div className="lms-stat-value">{overview.averageScore.toFixed(1)}</div>
                 </div>
                 <div className="lms-stat-card">
-                    <div className="lms-stat-label">Ti le dat</div>
+                    <div className="lms-stat-label">Tỉ lệ đạt</div>
                     <div className="lms-stat-value">{Math.round(overview.passRate)}%</div>
                 </div>
             </section>
@@ -139,20 +139,20 @@ export default function TeacherDashboard() {
             <section className="lms-table-card">
                 <div className="lms-card-header">
                     <div>
-                        <div className="lms-card-title">De thi gan day</div>
-                        <div className="lms-card-subtitle">Cac bo de da tao</div>
+                        <div className="lms-card-title">Đề thi gần đây</div>
+                        <div className="lms-card-subtitle">Các bộ đề đã tạo</div>
                     </div>
                 </div>
                 {templates.length === 0 ? (
-                    <div className="lms-empty">Chua co de thi</div>
+                    <div className="lms-empty">Chưa có đề thi</div>
                 ) : (
                     <table className="lms-table">
                         <thead>
                             <tr>
-                                <th>Tieu de</th>
-                                <th>Lop</th>
-                                <th>So cau</th>
-                                <th>Luot lam</th>
+                                <th>Tiêu đề</th>
+                                <th>Lớp</th>
+                                <th>Số câu</th>
+                                <th>Lượt làm</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -172,27 +172,27 @@ export default function TeacherDashboard() {
             <section className="lms-table-card">
                 <div className="lms-card-header">
                     <div>
-                        <div className="lms-card-title">Top hoc sinh</div>
-                        <div className="lms-card-subtitle">Thanh tich noi bat</div>
+                        <div className="lms-card-title">Top học sinh</div>
+                        <div className="lms-card-subtitle">Thành tích nổi bật</div>
                     </div>
                 </div>
                 {topStudents.length === 0 ? (
-                    <div className="lms-empty">Chua co du lieu</div>
+                    <div className="lms-empty">Chưa có dữ liệu</div>
                 ) : (
                     <table className="lms-table">
                         <thead>
                             <tr>
-                                <th>Hang</th>
-                                <th>Hoc sinh</th>
-                                <th>Diem</th>
-                                <th>De thi</th>
+                                <th>Hạng</th>
+                                <th>Học sinh</th>
+                                <th>Điểm</th>
+                                <th>Đề thi</th>
                             </tr>
                         </thead>
                         <tbody>
                             {topStudents.slice(0, 6).map((student) => (
                                 <tr key={student.rank}>
                                     <td>{student.rank}</td>
-                                    <td>{student.name || student.email || 'Hoc sinh'}</td>
+                                    <td>{student.name || student.email || 'Học sinh'}</td>
                                     <td>{student.score.toFixed(1)}</td>
                                     <td>{student.templateTitle}</td>
                                 </tr>

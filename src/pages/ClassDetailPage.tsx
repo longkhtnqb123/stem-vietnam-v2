@@ -62,7 +62,7 @@ export default function ClassDetailPage() {
     };
 
     const handleDeleteClass = async () => {
-        if (!window.confirm('Ban chac chan muon xoa lop nay?')) return;
+        if (!window.confirm('Bạn chắc chắn muốn xóa lớp này?')) return;
         try {
             await classApi.deleteClass(id!);
             window.location.href = '/classes';
@@ -74,21 +74,21 @@ export default function ClassDetailPage() {
     const copyJoinCode = () => {
         if (data?.class.join_code) {
             navigator.clipboard.writeText(data.class.join_code);
-            alert('Da sao chep ma tham gia');
+            alert('Đã sao chép mã tham gia');
         }
     };
 
     if (loading) {
         return (
             <div className="lms-page">
-                <div className="lms-empty">Dang tai...</div>
+                <div className="lms-empty">Đang tải...</div>
             </div>
         );
     }
     if (error || !data) {
         return (
             <div className="lms-page">
-                <div className="lms-empty">{error || 'Khong tim thay lop hoc'}</div>
+                <div className="lms-empty">{error || 'Không tìm thấy lớp học'}</div>
             </div>
         );
     }
@@ -101,21 +101,21 @@ export default function ClassDetailPage() {
                 <div className="lms-card-header">
                     <div>
                         <div className="lms-card-title">{cls.name}</div>
-                        <div className="lms-card-subtitle">{cls.description || 'Chua co mo ta'}</div>
+                        <div className="lms-card-subtitle">{cls.description || 'Chưa có mô tả'}</div>
                         {!is_teacher && <div className="lms-note">GV: {cls.teacher_name}</div>}
                     </div>
                     {is_teacher && (
                         <button onClick={handleDeleteClass} className="lms-button-ghost">
-                            Xoa lop
+                            Xóa lớp
                         </button>
                     )}
                 </div>
                 <div className="lms-row">
-                    <span className="lms-pill">{members.length} thanh vien</span>
-                    <span className="lms-pill">{assignments.length} bai tap</span>
+                    <span className="lms-pill">{members.length} thành viên</span>
+                    <span className="lms-pill">{assignments.length} bài tập</span>
                     {is_teacher && (
                         <button onClick={copyJoinCode} className="lms-button-secondary">
-                            Ma tham gia: {cls.join_code}
+                            Mã tham gia: {cls.join_code}
                         </button>
                     )}
                 </div>
@@ -127,17 +127,17 @@ export default function ClassDetailPage() {
                         onClick={() => setActiveTab('assignments')}
                         className={activeTab === 'assignments' ? 'lms-button' : 'lms-button-secondary'}
                     >
-                        Bai tap
+                        Bài tập
                     </button>
                     <button
                         onClick={() => setActiveTab('members')}
                         className={activeTab === 'members' ? 'lms-button' : 'lms-button-secondary'}
                     >
-                        Thanh vien
+                        Thành viên
                     </button>
                     {is_teacher && activeTab === 'assignments' && (
                         <button onClick={() => setShowAssignModal(true)} className="lms-button">
-                            Giao bai tap
+                            Giao bài tập
                         </button>
                     )}
                 </div>
@@ -146,15 +146,15 @@ export default function ClassDetailPage() {
             {activeTab === 'assignments' ? (
                 <section className="lms-card">
                     {assignments.length === 0 ? (
-                        <div className="lms-empty">Chua co bai tap</div>
+                        <div className="lms-empty">Chưa có bài tập</div>
                     ) : (
                         <table className="lms-table">
                             <thead>
                                 <tr>
-                                    <th>Bai tap</th>
-                                    <th>So cau</th>
-                                    <th>Luot lam</th>
-                                    <th>Thao tac</th>
+                                    <th>Bài tập</th>
+                                    <th>Số câu</th>
+                                    <th>Lượt làm</th>
+                                    <th>Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -165,7 +165,7 @@ export default function ClassDetailPage() {
                                         <td>{a.attempts_count}</td>
                                         <td>
                                             <Link to="/exam" className="lms-button-ghost">
-                                                Mo de thi
+                                                Mở đề thi
                                             </Link>
                                         </td>
                                     </tr>
@@ -177,14 +177,14 @@ export default function ClassDetailPage() {
             ) : (
                 <section className="lms-card">
                     {members.length === 0 ? (
-                        <div className="lms-empty">Chua co thanh vien</div>
+                        <div className="lms-empty">Chưa có thành viên</div>
                     ) : (
                         <table className="lms-table">
                             <thead>
                                 <tr>
-                                    <th>Hoc sinh</th>
+                                    <th>Học sinh</th>
                                     <th>Email</th>
-                                    <th>Vai tro</th>
+                                    <th>Vai trò</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -205,20 +205,20 @@ export default function ClassDetailPage() {
                 <div className="lms-modal">
                     <div className="lms-modal-panel" style={{ maxWidth: 560 }}>
                         <div className="lms-modal-header">
-                            <div className="lms-card-title">Giao bai tap</div>
+                            <div className="lms-card-title">Giao bài tập</div>
                             <button onClick={() => setShowAssignModal(false)} className="lms-button-ghost">
-                                Dong
+                                Đóng
                             </button>
                         </div>
                         <form onSubmit={handleAssign} className="lms-modal-body lms-form">
                             <div className="lms-section">
-                                <label className="lms-label">Chon de thi</label>
+                                <label className="lms-label">Chọn đề thi</label>
                                 <select
                                     value={selectedTemplate}
                                     onChange={(e) => setSelectedTemplate(e.target.value)}
                                     className="lms-select"
                                 >
-                                    <option value="">-- Chon de thi --</option>
+                                    <option value="">-- Chọn đề thi --</option>
                                     {templates.map((t) => (
                                         <option key={t.id} value={t.id}>{t.title}</option>
                                     ))}
@@ -226,10 +226,10 @@ export default function ClassDetailPage() {
                             </div>
                             <div className="lms-modal-footer">
                                 <button type="button" onClick={() => setShowAssignModal(false)} className="lms-button-secondary">
-                                    Huy
+                                    Hủy
                                 </button>
                                 <button type="submit" disabled={!selectedTemplate || assignLoading} className="lms-button">
-                                    {assignLoading ? 'Dang giao...' : 'Giao bai tap'}
+                                    {assignLoading ? 'Đang giao...' : 'Giao bài tập'}
                                 </button>
                             </div>
                         </form>

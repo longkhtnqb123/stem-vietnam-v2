@@ -47,7 +47,7 @@ export default function ChatSidebar({
                     className="lms-button"
                     style={{ width: '100%' }}
                 >
-                    Tao cuoc tro chuyen
+                    Tạo cuộc trò chuyện
                 </button>
             </div>
 
@@ -56,7 +56,7 @@ export default function ChatSidebar({
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Tim kiem..."
+                    placeholder="Tìm kiếm..."
                     className="lms-input"
                 />
             </div>
@@ -64,7 +64,7 @@ export default function ChatSidebar({
             <div className="lms-chat-list">
                 {filteredConversations.length === 0 ? (
                     <div className="lms-note" style={{ textAlign: 'center', padding: '12px 0' }}>
-                        {searchQuery ? 'Khong tim thay ket qua' : 'Chua co cuoc tro chuyen nao'}
+                        {searchQuery ? 'Không tìm thấy kết quả' : 'Chưa có cuộc trò chuyện nào'}
                     </div>
                 ) : (
                     <div className="lms-list">
@@ -98,7 +98,7 @@ export default function ChatSidebar({
             </div>
 
             <div className="lms-chat-sidebar-footer">
-                {conversations.length} cuoc tro chuyen
+                {conversations.length} cuộc trò chuyện
             </div>
         </div>
     );

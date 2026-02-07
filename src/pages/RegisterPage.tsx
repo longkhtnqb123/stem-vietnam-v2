@@ -36,21 +36,21 @@ export default function RegisterPage() {
                 <div className="lms-auth-shell">
                     <section className="lms-auth-hero">
                         <span className="lms-auth-kicker">STEM Vietnam</span>
-                        <h1 className="lms-auth-heading">San sang vao lop hoc.</h1>
+                        <h1 className="lms-auth-heading">Sẵn sàng vào lớp học.</h1>
                         <p className="lms-auth-copy">
-                            Tai khoan cua ban da duoc tao. He thong se chuyen ve trang chu trong giay lat.
+                            Tài khoản của bạn đã được tạo. Hệ thống sẽ chuyển về trang chủ trong giây lát.
                         </p>
                         <div className="lms-auth-chips">
-                            <span className="lms-auth-chip">Ho so hoc tap</span>
-                            <span className="lms-auth-chip">De thi mau</span>
+                            <span className="lms-auth-chip">Hồ sơ học tập</span>
+                            <span className="lms-auth-chip">Đề thi mẫu</span>
                             <span className="lms-auth-chip">Chat AI</span>
                         </div>
                     </section>
                     <section className="lms-auth-panel">
                         <div className="lms-auth-header" style={{ textAlign: 'center' }}>
                             <div className="lms-user-avatar" style={{ margin: '0 auto' }}>OK</div>
-                            <h2 className="lms-auth-title">Dang ky thanh cong</h2>
-                            <p className="lms-auth-subtitle">Dang chuyen den trang chu...</p>
+                            <h2 className="lms-auth-title">Đăng ký thành công</h2>
+                            <p className="lms-auth-subtitle">Đang chuyển đến trang chủ...</p>
                         </div>
                     </section>
                 </div>
@@ -63,26 +63,26 @@ export default function RegisterPage() {
             <div className="lms-auth-shell">
                 <section className="lms-auth-hero">
                     <span className="lms-auth-kicker">STEM Vietnam</span>
-                    <h1 className="lms-auth-heading">Bat dau hanh trinh cong nghe.</h1>
+                    <h1 className="lms-auth-heading">Bắt đầu hành trình công nghệ.</h1>
                     <p className="lms-auth-copy">
-                        Tao tai khoan de luu tien do, nhan tai lieu va theo doi ket qua bai thi.
+                        Tạo tài khoản để lưu tiến độ, nhận tài liệu và theo dõi kết quả bài thi.
                     </p>
                     <div className="lms-auth-chips">
-                        <span className="lms-auth-chip">Lop hoc linh hoat</span>
-                        <span className="lms-auth-chip">Bao cao ca nhan</span>
-                        <span className="lms-auth-chip">De thi tu dong</span>
+                        <span className="lms-auth-chip">Lớp học linh hoạt</span>
+                        <span className="lms-auth-chip">Báo cáo cá nhân</span>
+                        <span className="lms-auth-chip">Đề thi tự động</span>
                     </div>
                     <div className="lms-auth-tile">
-                        <strong>Thong tin can co</strong>
-                        <span>Chuan bi email va mat khau toi thieu 6 ky tu.</span>
+                        <strong>Thông tin cần có</strong>
+                        <span>Chuẩn bị email và mật khẩu tối thiểu 6 ký tự.</span>
                     </div>
                 </section>
 
                 <section className="lms-auth-panel">
                     <div className="lms-auth-header">
                         <div className="lms-user-avatar">SV</div>
-                        <h1 className="lms-auth-title">Tao tai khoan</h1>
-                        <p className="lms-auth-subtitle">Tham gia he thong hoc tap</p>
+                        <h1 className="lms-auth-title">Tạo tài khoản</h1>
+                        <p className="lms-auth-subtitle">Tham gia hệ thống học tập</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="lms-auth-form">
@@ -93,27 +93,27 @@ export default function RegisterPage() {
                         )}
 
                         <div className="lms-section">
-                            <label className="lms-label">Vai tro</label>
+                            <label className="lms-label">Vai trò</label>
                             <div className="lms-auth-row">
                                 <button
                                     type="button"
                                     onClick={() => setRole('student')}
                                     className={`lms-auth-choice ${role === 'student' ? 'is-active' : ''}`}
                                 >
-                                    Hoc sinh
+                                    Học sinh
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setRole('teacher')}
                                     className={`lms-auth-choice ${role === 'teacher' ? 'is-active' : ''}`}
                                 >
-                                    Giao vien
+                                    Giáo viên
                                 </button>
                             </div>
                         </div>
 
                         <div className="lms-section">
-                            <label className="lms-label">Ho va ten</label>
+                            <label className="lms-label">Họ và tên</label>
                             <input
                                 type="text"
                                 value={name}
@@ -137,13 +137,13 @@ export default function RegisterPage() {
                         </div>
 
                         <div className="lms-section">
-                            <label className="lms-label">Mat khau</label>
+                            <label className="lms-label">Mật khẩu</label>
                             <div className="lms-auth-row">
                                 <input
                                     type={showPassword ? 'text' : 'password'}
                                     value={password}
                                     onChange={(e) => { setPassword(e.target.value); clearError(); }}
-                                    placeholder="Toi thieu 6 ky tu"
+                                    placeholder="Tối thiểu 6 ký tự"
                                     className="lms-input"
                                     required
                                     minLength={6}
@@ -152,25 +152,25 @@ export default function RegisterPage() {
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
                                     className="lms-auth-toggle"
-                                    aria-label={showPassword ? 'An mat khau' : 'Hien mat khau'}
+                                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                                 >
-                                    {showPassword ? 'An' : 'Hien'}
+                                    {showPassword ? 'Ẩn' : 'Hiện'}
                                 </button>
                             </div>
                         </div>
 
                         <div className="lms-section">
-                            <label className="lms-label">Xac nhan mat khau</label>
+                            <label className="lms-label">Xác nhận mật khẩu</label>
                             <input
                                 type={showPassword ? 'text' : 'password'}
                                 value={confirmPassword}
                                 onChange={(e) => { setConfirmPassword(e.target.value); clearError(); }}
-                                placeholder="Nhap lai mat khau"
+                                placeholder="Nhập lại mật khẩu"
                                 className="lms-input"
                                 required
                             />
-                            {passwordMatch && <span className="lms-note">Mat khau khop</span>}
-                            {passwordMismatch && <span className="lms-note" style={{ color: 'var(--lms-danger)' }}>Mat khau khong khop</span>}
+                            {passwordMatch && <span className="lms-note">Mật khẩu khớp</span>}
+                            {passwordMismatch && <span className="lms-note" style={{ color: 'var(--lms-danger)' }}>Mật khẩu không khớp</span>}
                         </div>
 
                         <button
@@ -179,14 +179,14 @@ export default function RegisterPage() {
                             className="lms-auth-submit"
                         >
                             {isLoading ? <div className="lms-spinner" /> : null}
-                            <span>Dang ky</span>
+                            <span>Đăng ký</span>
                         </button>
                     </form>
 
                     <div className="lms-auth-footer">
-                        Da co tai khoan?{' '}
+                        Đã có tài khoản?{' '}
                         <Link to="/login" className="lms-badge">
-                            Dang nhap
+                            Đăng nhập
                         </Link>
                     </div>
                 </section>

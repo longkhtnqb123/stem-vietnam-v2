@@ -99,12 +99,12 @@ function QuestionCard({
                             key={idx}
                             onClick={() => !showAnswer && onSelectAnswer(letter)}
                             disabled={showAnswer}
-                        className={optionClass}
-                    >
-                        <span>{letter}. {opt}</span>
-                    </button>
-                );
-            })}
+                            className={optionClass}
+                        >
+                            <span>{letter}. {opt}</span>
+                        </button>
+                    );
+                })}
             </div>
 
             {!hasAnswered && !showAnswer && (
@@ -134,6 +134,8 @@ function QuestionCard({
     );
 }
 
+
+
 function TopicSelector({
     grade,
     setGrade,
@@ -154,24 +156,24 @@ function TopicSelector({
     isGenerating: boolean;
 }) {
     const topics = [
-        { value: '', label: 'Ngau nhien' },
-        { value: 'thiet_ke_ky_thuat', label: 'Thiet ke ky thuat' },
-        { value: 'co_khi', label: 'Co khi' },
-        { value: 'dien_tu', label: 'Dien - Dien tu' },
-        { value: 'tin_hoc', label: 'Tin hoc ung dung' },
-        { value: 'cong_nghe_thuc_pham', label: 'Cong nghe thuc pham' },
-        { value: 'lam_vuon', label: 'Lam vuon' },
+        { value: '', label: 'Ngẫu nhiên' },
+        { value: 'thiet_ke_ky_thuat', label: 'Thiết kế kỹ thuật' },
+        { value: 'co_khi', label: 'Cơ khí' },
+        { value: 'dien_tu', label: 'Điện - Điện tử' },
+        { value: 'tin_hoc', label: 'Tin học ứng dụng' },
+        { value: 'cong_nghe_thuc_pham', label: 'Công nghệ thực phẩm' },
+        { value: 'lam_vuon', label: 'Làm vườn' },
     ];
 
     return (
         <div className="lms-card">
             <div className="lms-card-header">
-                <div className="lms-card-title">Chon noi dung on tap</div>
+                <div className="lms-card-title">Chọn nội dung ôn tập</div>
             </div>
 
             <div className="lms-grid lms-grid-2">
                 <div className="lms-section">
-                    <label className="lms-label">Lop</label>
+                    <label className="lms-label">Lớp</label>
                     <div className="lms-row">
                         {['10', '11', '12'].map(g => (
                             <button
@@ -179,32 +181,32 @@ function TopicSelector({
                                 onClick={() => setGrade(g)}
                                 className={grade === g ? 'lms-button' : 'lms-button-secondary'}
                             >
-                                Lop {g}
+                                Lớp {g}
                             </button>
                         ))}
                     </div>
                 </div>
 
                 <div className="lms-section">
-                    <label className="lms-label">Dinh huong</label>
+                    <label className="lms-label">Định hướng</label>
                     <div className="lms-row">
                         <button
                             onClick={() => setBranch('cong_nghiep')}
                             className={branch === 'cong_nghiep' ? 'lms-button' : 'lms-button-secondary'}
                         >
-                            Cong nghiep
+                            Công nghiệp
                         </button>
                         <button
                             onClick={() => setBranch('nong_nghiep')}
                             className={branch === 'nong_nghiep' ? 'lms-button' : 'lms-button-secondary'}
                         >
-                            Nong nghiep
+                            Nông nghiệp
                         </button>
                     </div>
                 </div>
 
                 <div className="lms-section">
-                    <label className="lms-label">Chu de</label>
+                    <label className="lms-label">Chủ đề</label>
                     <select
                         value={topic}
                         onChange={(e) => setTopic(e.target.value)}
@@ -219,7 +221,7 @@ function TopicSelector({
 
             <button onClick={onStart} disabled={isGenerating} className="lms-button">
                 {isGenerating ? <div className="lms-spinner" /> : null}
-                <span>Bat dau on tap (10 cau)</span>
+                <span>Bắt đầu ôn tập (10 câu)</span>
             </button>
         </div>
     );
@@ -283,13 +285,13 @@ export default function PracticePage() {
                 currentIndex: 0,
                 completed: false,
                 grade,
-                topic: topic || 'Ngau nhien',
+                topic: topic || 'Ngẫu nhiên',
                 created_at: Date.now(),
             };
 
             setSession(newSession);
         } catch (error: any) {
-            alert(error.message || 'Loi tao cau hoi. Vui long thu lai.');
+            alert(error.message || 'Lỗi tạo câu hỏi. Vui lòng thử lại.');
         } finally {
             setIsGenerating(false);
         }
@@ -372,8 +374,8 @@ export default function PracticePage() {
             <section className="lms-card">
                 <div className="lms-card-header">
                     <div>
-                        <div className="lms-card-title">On tap</div>
-                        <div className="lms-card-subtitle">Luyen tap nhanh voi AI</div>
+                        <div className="lms-card-title">Ôn tập</div>
+                        <div className="lms-card-subtitle">Luyện tập nhanh với AI</div>
                     </div>
                 </div>
             </section>
@@ -394,14 +396,14 @@ export default function PracticePage() {
                     {history.length > 0 && (
                         <div className="lms-card">
                             <div className="lms-card-header">
-                                <div className="lms-card-title">Lich su on tap</div>
+                                <div className="lms-card-title">Lịch sử ôn tập</div>
                             </div>
                             <div className="lms-grid">
                                 {history.slice(0, 5).map((h) => (
                                     <div key={h.id} className="lms-card">
                                         <div className="lms-row" style={{ justifyContent: 'space-between' }}>
                                             <div>
-                                                <strong>Lop {h.grade} - {h.topic}</strong>
+                                                <strong>Lớp {h.grade} - {h.topic}</strong>
                                                 <div className="lms-note">
                                                     {new Date(h.created_at).toLocaleDateString('vi-VN')}
                                                 </div>
@@ -420,8 +422,8 @@ export default function PracticePage() {
                 <>
                     <div className="lms-card">
                         <div className="lms-row" style={{ justifyContent: 'space-between' }}>
-                            <span className="lms-note">Da lam: {answeredCount}/{session.questions.length} cau</span>
-                            <span className="lms-note">Lop {session.grade} - {session.topic}</span>
+                            <span className="lms-note">Đã làm: {answeredCount}/{session.questions.length} câu</span>
+                            <span className="lms-note">Lớp {session.grade} - {session.topic}</span>
                         </div>
                     </div>
 
@@ -443,26 +445,26 @@ export default function PracticePage() {
                             disabled={session.currentIndex === 0}
                             className="lms-button-secondary"
                         >
-                            Cau truoc
+                            Câu trước
                         </button>
 
                         {session.currentIndex < session.questions.length - 1 ? (
                             <button onClick={goNext} className="lms-button">
-                                Cau sau
+                                Câu sau
                             </button>
                         ) : (
                             <button onClick={finishSession} className="lms-button">
-                                Hoan thanh
+                                Hoàn thành
                             </button>
                         )}
                     </div>
 
                     <div className="lms-row" style={{ justifyContent: 'center' }}>
                         <button onClick={restartSession} className="lms-button-ghost">
-                            Lam lai
+                            Làm lại
                         </button>
                         <button onClick={() => setSession(null)} className="lms-button-ghost">
-                            Thoat
+                            Thoát
                         </button>
                     </div>
                 </>

@@ -69,7 +69,7 @@ export default function ClassesPage() {
             <div className="lms-page">
                 <div className="lms-empty">
                     <div className="lms-spinner" />
-                    <p className="lms-note">Dang tai lop hoc...</p>
+                    <p className="lms-note">Đang tải lớp học...</p>
                 </div>
             </div>
         );
@@ -80,20 +80,20 @@ export default function ClassesPage() {
             <section className="lms-card">
                 <div className="lms-card-header">
                     <div>
-                        <div className="lms-card-title">Lop hoc</div>
+                        <div className="lms-card-title">Lớp học</div>
                         <div className="lms-card-subtitle">
                             {user?.role === 'teacher'
-                                ? 'Quan ly lop hoc va giao bai tap.'
-                                : 'Tham gia lop hoc de nhan bai tap.'}
+                                ? 'Quản lý lớp học và giao bài tập.'
+                                : 'Tham gia lớp học để nhận bài tập.'}
                         </div>
                     </div>
                     {user?.role === 'teacher' ? (
                         <button onClick={() => setShowCreateModal(true)} className="lms-button">
-                            Tao lop moi
+                            Tạo lớp mới
                         </button>
                     ) : (
                         <button onClick={() => setShowJoinModal(true)} className="lms-button">
-                            Tham gia lop
+                            Tham gia lớp
                         </button>
                     )}
                 </div>
@@ -102,14 +102,14 @@ export default function ClassesPage() {
             {error && <div className="lms-alert">{error}</div>}
 
             {classes.length === 0 ? (
-                <div className="lms-empty">Chua co lop hoc</div>
+                <div className="lms-empty">Chưa có lớp học</div>
             ) : (
                 <div className="lms-grid lms-grid-2">
                     {classes.map((cls) => (
                         <Link key={cls.id} to={`/classes/${cls.id}`} className="lms-card">
                             <div className="lms-card-title">{cls.name}</div>
-                            <div className="lms-card-subtitle">{cls.description || 'Chua co mo ta'}</div>
-                            <div className="lms-note">Ma tham gia: {cls.join_code}</div>
+                            <div className="lms-card-subtitle">{cls.description || 'Chưa có mô tả'}</div>
+                            <div className="lms-note">Mã tham gia: {cls.join_code}</div>
                         </Link>
                     ))}
                 </div>
@@ -119,14 +119,14 @@ export default function ClassesPage() {
                 <div className="lms-modal">
                     <div className="lms-modal-panel" style={{ maxWidth: 560 }}>
                         <div className="lms-modal-header">
-                            <div className="lms-card-title">Tao lop moi</div>
+                            <div className="lms-card-title">Tạo lớp mới</div>
                             <button onClick={() => setShowCreateModal(false)} className="lms-button-ghost">
-                                Dong
+                                Đóng
                             </button>
                         </div>
                         <form onSubmit={handleCreateClass} className="lms-modal-body lms-form">
                             <div className="lms-section">
-                                <label className="lms-label">Ten lop</label>
+                                <label className="lms-label">Tên lớp</label>
                                 <input
                                     value={newClassName}
                                     onChange={(e) => setNewClassName(e.target.value)}
@@ -135,7 +135,7 @@ export default function ClassesPage() {
                                 />
                             </div>
                             <div className="lms-section">
-                                <label className="lms-label">Mo ta</label>
+                                <label className="lms-label">Mô tả</label>
                                 <textarea
                                     value={newClassDesc}
                                     onChange={(e) => setNewClassDesc(e.target.value)}
@@ -144,10 +144,10 @@ export default function ClassesPage() {
                             </div>
                             <div className="lms-modal-footer">
                                 <button type="button" onClick={() => setShowCreateModal(false)} className="lms-button-secondary">
-                                    Huy
+                                    Hủy
                                 </button>
                                 <button type="submit" disabled={actionLoading} className="lms-button">
-                                    {actionLoading ? 'Dang tao...' : 'Tao lop'}
+                                    {actionLoading ? 'Đang tạo...' : 'Tạo lớp'}
                                 </button>
                             </div>
                         </form>
@@ -159,14 +159,14 @@ export default function ClassesPage() {
                 <div className="lms-modal">
                     <div className="lms-modal-panel" style={{ maxWidth: 560 }}>
                         <div className="lms-modal-header">
-                            <div className="lms-card-title">Tham gia lop</div>
+                            <div className="lms-card-title">Tham gia lớp</div>
                             <button onClick={() => setShowJoinModal(false)} className="lms-button-ghost">
-                                Dong
+                                Đóng
                             </button>
                         </div>
                         <form onSubmit={handleJoinClass} className="lms-modal-body lms-form">
                             <div className="lms-section">
-                                <label className="lms-label">Ma tham gia</label>
+                                <label className="lms-label">Mã tham gia</label>
                                 <input
                                     value={joinCode}
                                     onChange={(e) => setJoinCode(e.target.value)}
@@ -176,10 +176,10 @@ export default function ClassesPage() {
                             </div>
                             <div className="lms-modal-footer">
                                 <button type="button" onClick={() => setShowJoinModal(false)} className="lms-button-secondary">
-                                    Huy
+                                    Hủy
                                 </button>
                                 <button type="submit" disabled={actionLoading} className="lms-button">
-                                    {actionLoading ? 'Dang tham gia...' : 'Tham gia'}
+                                    {actionLoading ? 'Đang tham gia...' : 'Tham gia'}
                                 </button>
                             </div>
                         </form>

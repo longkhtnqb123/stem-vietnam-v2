@@ -11,12 +11,12 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-    { path: '/chat', label: 'Chat AI', hint: 'Hoi dap nhanh' },
-    { path: '/exam', label: 'Thi Online', badge: 'Hot', hint: 'De thi AI' },
-    { path: '/practice', label: 'On Tap', badge: 'New', hint: 'Luyen tap' },
-    { path: '/library', label: 'Thu Vien', hint: 'Tai lieu' },
-    { path: '/settings', label: 'Cai Dat', hint: 'Ca nhan hoa' },
-    { path: '/help', label: 'Huong Dan', hint: 'Tro giup' },
+    { path: '/chat', label: 'Chat AI', hint: 'Hỏi đáp nhanh' },
+    { path: '/exam', label: 'Thi Online', badge: 'Hot', hint: 'Đề thi AI' },
+    { path: '/practice', label: 'Ôn Tập', badge: 'Mới', hint: 'Luyện tập' },
+    { path: '/library', label: 'Thư Viện', hint: 'Tài liệu' },
+    { path: '/settings', label: 'Cài Đặt', hint: 'Cá nhân hóa' },
+    { path: '/help', label: 'Hướng Dẫn', hint: 'Trợ giúp' },
 ];
 
 export default function MainLayout() {
@@ -94,11 +94,11 @@ export default function MainLayout() {
                     )}
 
                     <button className="lms-button-ghost" onClick={toggleCollapse}>
-                        <span>{collapsed ? 'Mo' : 'Thu gon'}</span>
+                        <span>{collapsed ? 'Mở' : 'Thu gọn'}</span>
                     </button>
 
                     <button className="lms-button-ghost" onClick={handleLogout}>
-                        <span>Dang xuat</span>
+                        <span>Đăng xuất</span>
                     </button>
                 </div>
             </aside>
@@ -112,18 +112,15 @@ export default function MainLayout() {
                             className="lms-button-ghost lms-mobile-toggle"
                             onClick={() => setSidebarOpen(!sidebarOpen)}
                         >
-                            {sidebarOpen ? 'Dong' : 'Menu'}
+                            {sidebarOpen ? 'Đóng' : 'Menu'}
                         </button>
                         <div className="lms-topbar-title">{pageTitle}</div>
                     </div>
                     <div className="lms-topbar-actions">
-                        <button className="lms-button-secondary">Tao nhanh</button>
+                        <button className="lms-button-secondary">Tạo nhanh</button>
                     </div>
                 </header>
-
-                <main className="lms-content">
-                    <Outlet />
-                </main>
+                <Outlet />
             </div>
         </div>
     );

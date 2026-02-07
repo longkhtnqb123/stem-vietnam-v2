@@ -44,7 +44,7 @@ export default function StudentDashboard() {
 
                 if (!res.ok) {
                     const errData = await res.json();
-                    throw new Error(errData.error || 'Loi tai du lieu');
+                    throw new Error(errData.error || 'Lỗi tải dữ liệu');
                 }
 
                 const json = await res.json();
@@ -64,7 +64,7 @@ export default function StudentDashboard() {
             <div className="lms-page">
                 <div className="lms-empty">
                     <div className="lms-spinner" />
-                    <p className="lms-note">Dang tai dashboard...</p>
+                    <p className="lms-note">Đang tải bảng điều khiển...</p>
                 </div>
             </div>
         );
@@ -74,9 +74,9 @@ export default function StudentDashboard() {
         return (
             <div className="lms-page">
                 <div className="lms-empty">
-                    <p className="lms-note">Loi: {error}</p>
+                    <p className="lms-note">Lỗi: {error}</p>
                     <button onClick={() => window.location.reload()} className="lms-button-secondary">
-                        Thu lai
+                        Thử lại
                     </button>
                 </div>
             </div>
@@ -91,56 +91,56 @@ export default function StudentDashboard() {
         <div className="lms-page lms-dashboard">
             <section className="lms-hero-card">
                 <div>
-                    <div className="lms-hero-kicker">Hoc sinh</div>
-                    <h2 className="lms-hero-title">Xin chao, {user?.name}</h2>
-                    <p className="lms-hero-subtitle">Tong quan tien do hoc tap hom nay</p>
+                    <div className="lms-hero-kicker">Học sinh</div>
+                    <h2 className="lms-hero-title">Xin chào, {user?.name}</h2>
+                    <p className="lms-hero-subtitle">Tổng quan tiến độ học tập hôm nay</p>
                 </div>
                 <div className="lms-hero-actions">
                     <Link to="/exam" className="lms-hero-button">
-                        Lam bai thi
+                        Làm bài thi
                     </Link>
                     <Link to="/practice" className="lms-hero-ghost">
-                        On tap nhanh
+                        Ôn tập nhanh
                     </Link>
                 </div>
             </section>
 
             <section className="lms-stat-grid">
                 <div className="lms-stat-card">
-                    <div className="lms-stat-label">Bai thi</div>
-                    <div className="lms-stat-value">{overview.totalAttempts} bai</div>
+                    <div className="lms-stat-label">Bài thi</div>
+                    <div className="lms-stat-value">{overview.totalAttempts} bài</div>
                 </div>
                 <div className="lms-stat-card">
-                    <div className="lms-stat-label">Trung binh</div>
+                    <div className="lms-stat-label">Trung bình</div>
                     <div className="lms-stat-value">{overview.averageScore.toFixed(1)}/10</div>
                 </div>
                 <div className="lms-stat-card">
-                    <div className="lms-stat-label">Ti le dat</div>
+                    <div className="lms-stat-label">Tỉ lệ đạt</div>
                     <div className="lms-stat-value">{Math.round(overview.passRate)}%</div>
                 </div>
                 <div className="lms-stat-card">
                     <div className="lms-stat-label">Streak</div>
-                    <div className="lms-stat-value">{overview.streak} ngay</div>
+                    <div className="lms-stat-value">{overview.streak} ngày</div>
                 </div>
             </section>
 
             <section className="lms-table-card">
                 <div className="lms-card-header">
                     <div>
-                        <div className="lms-card-title">Gan day</div>
-                        <div className="lms-card-subtitle">Bai thi vua hoan thanh</div>
+                        <div className="lms-card-title">Gần đây</div>
+                        <div className="lms-card-subtitle">Bài thi vừa hoàn thành</div>
                     </div>
                 </div>
                 {recentAttempts.length === 0 ? (
-                    <div className="lms-empty">Chua co bai thi</div>
+                    <div className="lms-empty">Chưa có bài thi</div>
                 ) : (
                     <table className="lms-table">
                         <thead>
                             <tr>
-                                <th>De thi</th>
-                                <th>Lop</th>
-                                <th>Diem</th>
-                                <th>Ngay</th>
+                                <th>Đề thi</th>
+                                <th>Lớp</th>
+                                <th>Điểm</th>
+                                <th>Ngày</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -159,7 +159,7 @@ export default function StudentDashboard() {
 
             <section className="lms-grid lms-grid-2">
                 <div className="lms-table-card">
-                    <div className="lms-card-title">Phan tich muc do</div>
+                    <div className="lms-card-title">Phân tích mức độ</div>
                     <div className="lms-section">
                         {bloomAnalysis.map((item) => (
                             <div key={item.level} className="lms-row" style={{ justifyContent: 'space-between' }}>
@@ -170,9 +170,9 @@ export default function StudentDashboard() {
                     </div>
                 </div>
                 <div className="lms-table-card">
-                    <div className="lms-card-title">Goi y on tap</div>
+                    <div className="lms-card-title">Gợi ý ôn tập</div>
                     {recommendations.length === 0 ? (
-                        <div className="lms-note">Chua co goi y.</div>
+                        <div className="lms-note">Chưa có gợi ý.</div>
                     ) : (
                         <ul className="lms-section">
                             {recommendations.map((rec, idx) => (

@@ -22,27 +22,27 @@ export default function LoginPage() {
             <div className="lms-auth-shell">
                 <section className="lms-auth-hero">
                     <span className="lms-auth-kicker">STEM Vietnam</span>
-                    <h1 className="lms-auth-heading">Hoc cong nghe theo cach thuc te.</h1>
+                    <h1 className="lms-auth-heading">Học công nghệ theo cách thực tế.</h1>
                     <p className="lms-auth-copy">
-                        Dang nhap de quay lai lop hoc, chat AI va bai luyen tap da luu.
-                        Tap trung vao nang luc cong nghe cho THPT.
+                        Đăng nhập để quay lại lớp học, chat AI và bài luyện tập đã lưu.
+                        Tập trung vào năng lực công nghệ cho THPT.
                     </p>
                     <div className="lms-auth-chips">
-                        <span className="lms-auth-chip">Chat AI thong minh</span>
-                        <span className="lms-auth-chip">Bai thi theo GDPT</span>
-                        <span className="lms-auth-chip">Hoc theo lo trinh</span>
+                        <span className="lms-auth-chip">Chat AI thông minh</span>
+                        <span className="lms-auth-chip">Bài thi theo GDPT</span>
+                        <span className="lms-auth-chip">Học theo lộ trình</span>
                     </div>
                     <div className="lms-auth-tile">
-                        <strong>Goi y nhanh</strong>
-                        <span>Su dung email da dang ky de truy cap tai lieu, de thi va lop hoc.</span>
+                        <strong>Gợi ý nhanh</strong>
+                        <span>Sử dụng email đã đăng ký để truy cập tài liệu, đề thi và lớp học.</span>
                     </div>
                 </section>
 
                 <section className="lms-auth-panel">
                     <div className="lms-auth-header">
                         <div className="lms-user-avatar">SV</div>
-                        <h1 className="lms-auth-title">Dang nhap</h1>
-                        <p className="lms-auth-subtitle">Chao mung ban quay lai</p>
+                        <h1 className="lms-auth-title">Đăng nhập</h1>
+                        <p className="lms-auth-subtitle">Chào mừng bạn quay lại</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="lms-auth-form">
@@ -65,7 +65,7 @@ export default function LoginPage() {
                         </div>
 
                         <div className="lms-section">
-                            <label className="lms-label">Mat khau</label>
+                            <label className="lms-label">Mật khẩu</label>
                             <div className="lms-auth-row">
                                 <input
                                     type={showPassword ? 'text' : 'password'}
@@ -79,26 +79,26 @@ export default function LoginPage() {
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
                                     className="lms-auth-toggle"
-                                    aria-label={showPassword ? 'An mat khau' : 'Hien mat khau'}
+                                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                                 >
-                                    {showPassword ? 'An' : 'Hien'}
+                                    {showPassword ? 'Ẩn' : 'Hiện'}
                                 </button>
                             </div>
                         </div>
 
                         <div className="lms-auth-action">
-                            <a href="#" className="lms-auth-link">Quen mat khau?</a>
+                            <a href="#" className="lms-auth-link">Quên mật khẩu?</a>
                             <button type="submit" disabled={isLoading} className="lms-auth-submit">
                                 {isLoading ? <div className="lms-spinner" /> : null}
-                                <span>Dang nhap</span>
+                                <span>Đăng nhập</span>
                             </button>
                         </div>
                     </form>
 
                     <div className="lms-auth-footer">
-                        Chua co tai khoan?{' '}
+                        Chưa có tài khoản?{' '}
                         <Link to="/register" className="lms-badge">
-                            Dang ky
+                            Đăng ký
                         </Link>
                     </div>
                 </section>

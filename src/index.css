@@ -38,32 +38,31 @@
   --color-accent-600: #c27a2f;
 }
 
-/* Chú thích: Base styles cho toàn bộ app */
 /* ============================================ */
-/* THEME SYSTEM - Tối ưu cho mắt               */
+/* THEME SYSTEM                                 */
 /* ============================================ */
 
-/* Light Theme - Tối ưu: Giảm độ sáng, tăng độ tương phản */
+/* Light Theme */
 :root {
-  --background: 250 251 252;
-  --foreground: 30 41 59;
+  --background: 255 255 255;
+  --foreground: 0 0 0;
   --card-bg: 255 255 255;
-  --card-border: 226 232 240;
-  --muted: 241 245 249;
-  --accent-bg: 236 253 245;
+  --card-border: 224 224 224;
+  --muted: 245 245 245;
+  --accent-bg: 240 240 240;
 }
 
-/* Dark Theme - True Dark (AMOLED friendly) */
+/* Dark Theme */
 .dark {
-  --background: 3 7 18;
-  --foreground: 241 245 249;
-  --card-bg: 15 23 42;
-  --card-border: 51 65 85;
-  --muted: 30 41 59;
-  --accent-bg: 6 78 59;
+  --background: 0 0 0;
+  --foreground: 255 255 255;
+  --card-bg: 30 30 30;
+  --card-border: 60 60 60;
+  --muted: 40 40 40;
+  --accent-bg: 50 50 50;
 }
 
-/* Sepia Theme - Chống mỏi mắt (Warm colors) */
+/* Sepia Theme */
 .sepia {
   --background: 253 246 227;
   --foreground: 68 64 60;
@@ -73,13 +72,10 @@
   --accent-bg: 254 243 199;
 }
 
-/* Base body styles for LMS */
+/* Base body styles */
 body {
-  background:
-    radial-gradient(circle at 12% 10%, rgba(15, 107, 92, 0.12), transparent 45%),
-    radial-gradient(circle at 85% 12%, rgba(194, 122, 47, 0.12), transparent 50%),
-    var(--lms-bg);
-  color: var(--lms-text);
+  background: #ffffff;
+  color: #000000;
   font-family: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
   line-height: 1.6;
   margin: 0;
@@ -99,92 +95,64 @@ body.sepia {
   border-color: #d9c398;
 }
 
-.sepia .text-slate-900 {
-  color: #44403c !important;
-}
-
-.sepia .text-slate-600 {
-  color: #78716c !important;
-}
-
-.sepia .text-slate-400 {
-  color: #a8a29e !important;
-}
-
-.sepia .bg-slate-50 {
-  background-color: #fef3c7 !important;
-}
-
-.sepia .bg-slate-100 {
-  background-color: #fde68a !important;
-}
-
-.sepia .bg-white {
-  background-color: #fffbeb !important;
-}
-
-.sepia .border-slate-200 {
-  border-color: #d9c398 !important;
-}
-
 /* ============================================ */
-/* CARD STYLES - Updated for Emerald theme     */
+/* CARD STYLES                                  */
 /* ============================================ */
 .glass-card {
-  @apply bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg rounded-2xl;
+  @apply bg-white dark:bg-slate-800/80 backdrop-blur-lg rounded-2xl;
   @apply border border-slate-200 dark:border-slate-700;
   @apply shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(251, 248, 243, 0.9) 100%);
-  border-color: rgba(225, 215, 202, 0.8);
+  background: #ffffff;
+  border-color: #e0e0e0;
 }
 
 .glass-panel {
   @apply bg-white dark:bg-slate-800 rounded-2xl;
   @apply border border-slate-200 dark:border-slate-700;
   @apply shadow-xl;
-  background: linear-gradient(180deg, #ffffff 0%, #fbf8f3 100%);
-  border-color: rgba(225, 215, 202, 0.9);
+  background: #ffffff;
+  border-color: #e0e0e0;
 }
 
-/* Bento Card - cho dashboard mới */
+/* Bento Card */
 .bento-card {
   @apply bg-white dark:bg-slate-800 rounded-2xl p-6;
   @apply border border-slate-200 dark:border-slate-700;
   @apply shadow-sm hover:shadow-lg transition-shadow duration-300;
-  background: linear-gradient(180deg, #ffffff 0%, #fbf8f3 100%);
-  border-color: rgba(225, 215, 202, 0.9);
+  background: #ffffff;
+  border-color: #e0e0e0;
 }
 
 .bento-card-highlight {
   @apply bg-gradient-to-br from-primary-500 to-secondary-500 rounded-2xl p-6;
   @apply text-white;
   @apply shadow-lg shadow-primary-500/30;
-  background: linear-gradient(135deg, #0f6b5c 0%, #c27a2f 100%);
-  box-shadow: 0 18px 32px rgba(15, 107, 92, 0.2);
+  background: #000000;
+  box-shadow: none;
 }
 
 /* ============================================ */
-/* BUTTONS - Updated with Emerald gradients    */
+/* BUTTONS                                      */
 /* ============================================ */
 .btn-primary {
-  @apply bg-gradient-to-r from-primary-500 to-primary-600;
   @apply text-white font-semibold;
   @apply px-6 py-3 rounded-xl;
-  @apply hover:from-primary-600 hover:to-primary-700;
   @apply transition-all duration-200;
-  @apply shadow-lg shadow-primary-500/30;
   @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  background: #000000;
+  box-shadow: none;
+}
+
+.btn-primary:hover {
+  background: #333333;
 }
 
 .btn-primary-glow {
-  @apply bg-gradient-to-r from-primary-500 to-primary-600;
   @apply text-white font-semibold;
   @apply px-6 py-3 rounded-xl;
-  @apply hover:from-primary-600 hover:to-primary-700;
   @apply transition-all duration-200;
-  @apply shadow-lg shadow-primary-500/30;
   @apply disabled:opacity-50 disabled:cursor-not-allowed;
-  @apply hover:shadow-glow;
+  background: #000000;
 }
 
 .btn-secondary {
@@ -197,12 +165,10 @@ body.sepia {
 }
 
 .btn-accent {
-  @apply bg-gradient-to-r from-accent-500 to-accent-600;
   @apply text-white font-semibold;
   @apply px-6 py-3 rounded-xl;
-  @apply hover:from-accent-600 hover:to-amber-600;
   @apply transition-all duration-200;
-  @apply shadow-lg shadow-accent-500/30;
+  background: #000000;
 }
 
 /* ============================================ */
@@ -316,7 +282,6 @@ body.sepia {
   }
 }
 
-/* Landing page animations */
 @keyframes float {
 
   0%,
@@ -329,43 +294,8 @@ body.sepia {
   }
 }
 
-@keyframes gradient {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-@keyframes pulseGlow {
-
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(15, 107, 92, 0.4);
-  }
-
-  50% {
-    box-shadow: 0 0 30px 10px rgba(15, 107, 92, 0);
-  }
-}
-
 .animate-float {
   animation: float 6s ease-in-out infinite;
-}
-
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradient 8s ease infinite;
-}
-
-.animate-pulse-glow {
-  animation: pulseGlow 2s infinite;
 }
 
 /* ============================================ */
@@ -381,72 +311,10 @@ body.sepia {
 }
 
 .shadow-glow {
-  box-shadow: 0 0 30px -5px rgba(15, 107, 92, 0.3);
+  box-shadow: 0 0 30px -5px rgba(0, 0, 0, 0.2);
 }
 
-/* Smooth scrolling */
-/* Glassmorphism & Neon Theme */
-@layer utilities {
-  .glass-panel {
-    @apply bg-white/10 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl;
-  }
-
-  .glass-panel-hover {
-    @apply hover:bg-white/20 dark:hover:bg-slate-900/60 transition-all duration-300;
-  }
-
-  .neon-text-emerald {
-    text-shadow: 0 0 10px rgba(15, 107, 92, 0.5), 0 0 20px rgba(15, 107, 92, 0.3);
-  }
-
-  .neon-text-amber {
-    text-shadow: 0 0 10px rgba(194, 122, 47, 0.5), 0 0 20px rgba(194, 122, 47, 0.3);
-  }
-
-  .neon-border-emerald {
-    box-shadow: 0 0 10px rgba(15, 107, 92, 0.2), inset 0 0 10px rgba(15, 107, 92, 0.1);
-  }
-
-  .mesh-gradient-bg {
-    background-color: #1f2328;
-    background-image:
-      radial-gradient(at 0% 0%, rgba(15, 107, 92, 0.2) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(194, 122, 47, 0.2) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgba(120, 84, 50, 0.18) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, rgba(38, 48, 46, 0.2) 0px, transparent 50%);
-    background-attachment: fixed;
-  }
-
-  /* Floating Dock Animation */
-  .dock-item {
-    @apply transition-all duration-300 ease-out origin-bottom;
-  }
-
-  .dock-item:hover {
-    transform: scale(1.2) translateY(-10px);
-  }
-}
-
-/* Animated Mesh Background */
-@keyframes mesh-pulse {
-
-  0%,
-  100% {
-    opacity: 0.6;
-    transform: scale(1);
-  }
-
-  50% {
-    opacity: 0.8;
-    transform: scale(1.1);
-  }
-}
-
-.animate-mesh-pulse {
-  animation: mesh-pulse 10s ease-in-out infinite;
-}
-
-/* Custom Scrollbar for Glass UI */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

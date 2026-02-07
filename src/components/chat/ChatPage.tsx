@@ -74,6 +74,9 @@ export default function ChatPage() {
     const [isNearBottom, setIsNearBottom] = useState(true);
     const [showScrollButton, setShowScrollButton] = useState(false);
 
+    // Chú thích: Ref to prevent double submission (faster than state)
+    const isSendingRef = useRef(false);
+
     // Chú thích: Load saved conversations on mount or user change - offline-first
     useEffect(() => {
         if (!user?.id) return;
@@ -237,267 +240,264 @@ export default function ChatPage() {
         });
     }, [activeId, token]);
 
-    // Chú thích: Import Settings Store (Moved to top)
+    // Chú thích: Import Settings Store (Restored)
     const { provider, apiKey, selectedModel, useBackendProxy } = useSettingsStore();
-    // import { sendClientSideChat ... } removed from here
 
     // Chú thích: Send message logic updated for Client-side or Backend Proxy
     const handleSend = async (message: string, files: FileAttachment[], hiddenContext?: string) => {
-        if (!message.trim() && files.length === 0) return;
+        if ((!message.trim() && files.length === 0) || isSendingRef.current) return;
 
-        // Chú thích: Check settings - cho phép backend proxy mode không cần API key
-        const isBackendMode = useBackendProxy;
-
-        if (!isBackendMode && (!apiKey || provider === 'default')) {
-            // Nếu không dùng backend proxy và chưa config API key, báo lỗi
-            console.warn('[chat] No API key configured and backend proxy disabled');
-        }
-
-        // Chú thích: Nếu chưa có conversation, tạo mới
-        let currentId = activeId;
-        if (!currentId) {
-            const newConv: Conversation = {
-                id: Date.now().toString(),
-                title: generateTitle(message),
-                messages: [],
-                createdAt: Date.now(),
-                updatedAt: Date.now(),
-                context: hiddenContext,
-            };
-            setConversations(prev => [newConv, ...prev]);
-            setActiveId(newConv.id);
-            currentId = newConv.id;
-        }
-
-        const userMessage: ChatMessage = {
-            id: Date.now().toString(),
-            role: 'user',
-            content: message,
-            timestamp: Date.now(),
-            attachments: files.map(f => ({ name: f.file.name, type: f.type, url: URL.createObjectURL(f.file) })),
-        };
-
-        // Chú thích: Add user message to UI immediately
-        setConversations(prev => prev.map(c => {
-            if (c.id === currentId) {
-                const isFirstMessage = c.messages.length === 0;
-                const messagesToAdd = [userMessage];
-
-                // Welcome message logic
-                if (isFirstMessage) {
-                    const welcomeMessage: ChatMessage = {
-                        id: 'welcome',
-                        role: 'assistant',
-                        content: 'Chào bạn! Mình là **StemBot** - trợ lý AI chuyên về học tập và công nghệ.\n\nMình có thể giúp gì cho bạn hôm nay?',
-                        timestamp: Date.now(),
-                    };
-                    messagesToAdd.unshift(welcomeMessage);
-                }
-
-                // Sync to backend (optional log)
-                if (token && currentId && !hiddenContext) {
-                    addMessage(currentId, {
-                        role: 'user',
-                        content: message,
-                        attachments: files.length > 0 ? files.map(f => ({ name: f.file.name, type: f.type })) : undefined
-                    }, token).catch(e => console.error('Failed to sync user msg', e));
-                }
-
-                return {
-                    ...c,
-                    title: isFirstMessage ? generateTitle(message) : c.title,
-                    messages: [...c.messages, ...messagesToAdd],
-                    updatedAt: Date.now(),
-                };
-            }
-            return c;
-        }));
-
-        setIsLoading(true);
-        const startTime = Date.now();
-        setThinkingStep('Kết nối AI Provider...');
-        setElapsedTime(0);
-
-        const timerInterval = setInterval(() => {
-            setElapsedTime((Date.now() - startTime) / 1000);
-        }, 100);
-
-        setTimeout(() => setThinkingStep('Đang gửi yêu cầu...'), 800);
+        isSendingRef.current = true;
+        // setInput(''); // handled by ChatInput
 
         try {
-            // Chú thích: Prepare messages for API
-            // 1. Get history
-            const currentConv = conversations.find(c => c.id === currentId);
-            const history = currentConv?.messages || [];
+            // Chú thích: Check settings - cho phép backend proxy mode không cần API key
+            const isBackendMode = useBackendProxy;
 
-            // 2. Format history to ServiceChatMessage[]
-            // Lấy 10 tin nhắn gần nhất
-            const apiMessages: ServiceChatMessage[] = history.slice(-10).map(m => ({
-                role: m.role as 'user' | 'assistant',
-                content: m.content
-                // TODO: handle history images if needed
-            }));
-
-            // 3. Add Context / System Prompt
-            const contextToUse = currentConv?.context || (hiddenContext && !activeId ? hiddenContext : undefined);
-
-            // System Message
-            const systemPrompt = `Bạn là StemBot, trợ lý học tập thông minh. 
-            Hãy trả lời ngắn gọn, chính xác, tập trung vào công nghệ và lập trình.
-            Nếu có câu hỏi về code, hãy viết code trong markdown block.
-            ${contextToUse ? `\n\nThông tin bối cảnh:\n${contextToUse}` : ''}`;
-
-            apiMessages.unshift({ role: 'system', content: systemPrompt });
-
-            // 4. Add current message (handled in history slice if setConversations worked fast enough? 
-            // No, setConversations is async. We constructed apiMessages from `conversations` state which might act funny with closure.
-            // Better to append the new user message explicitly since state update might not reflect yet in this closure.
-            // Actually `currentConv` depends on `conversations` which is from closure scope.
-            // Is `conversations` updated? No, `setConversations` schedules update.
-            // So `history` does NOT contain `userMessage` yet.
-
-            // Convert images
-            const imageAttachments = files.filter(f => f.type === 'image');
-            const imagesBase64: string[] = [];
-            if (imageAttachments.length > 0) {
-                for (const img of imageAttachments) {
-                    const reader = new FileReader();
-                    const promise = new Promise<string>((resolve) => {
-                        reader.onload = (e) => resolve(e.target?.result as string);
-                    });
-                    reader.readAsDataURL(img.file);
-                    imagesBase64.push(await promise);
-                }
+            if (!isBackendMode && (!apiKey || provider === 'default')) {
+                // Nếu không dùng backend proxy và chưa config API key, báo lỗi
+                console.warn('[chat] No API key configured and backend proxy disabled');
             }
 
-            apiMessages.push({
+            // Chú thích: Nếu chưa có conversation, tạo mới
+            let currentId = activeId;
+            if (!currentId) {
+                const newConv: Conversation = {
+                    id: Date.now().toString(),
+                    title: generateTitle(message),
+                    messages: [],
+                    createdAt: Date.now(),
+                    updatedAt: Date.now(),
+                    context: hiddenContext,
+                };
+                // Safety check for ID collision
+                if (conversations.some(c => c.id === newConv.id)) {
+                    newConv.id = (Date.now() + 1).toString();
+                }
+
+                setConversations(prev => [newConv, ...prev]);
+                setActiveId(newConv.id);
+                currentId = newConv.id;
+            }
+
+            const userMessage: ChatMessage = {
+                id: Date.now().toString(),
                 role: 'user',
                 content: message,
-                images: imagesBase64.length > 0 ? imagesBase64 : undefined
-            });
-
-
-            // 5. Gọi API - chọn backend proxy hoặc client-side
-            let responseText: string;
-
-            if (isBackendMode) {
-                // Chú thích: Dùng backend proxy miễn phí - không cần API key
-                setThinkingStep('Đang gọi AI qua server...');
-                const API_BASE = (import.meta.env.VITE_API_URL || 'https://stem-vietnam-api.stu725114073.workers.dev').replace(/\/$/, '');
-
-                const backendResponse = await fetch(`${API_BASE}/api/chat`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-                    },
-                    body: JSON.stringify({
-                        message: message,
-                        conversationId: currentId,
-                        images: imagesBase64.length > 0 ? imagesBase64 : undefined,
-                        context: contextToUse,
-                    }),
-                });
-
-                if (!backendResponse.ok) {
-                    const errText = await backendResponse.text();
-                    throw new Error(`Backend error: ${backendResponse.status} - ${errText}`);
-                }
-
-                const data = await backendResponse.json();
-                responseText = data.response || data.text || 'Không có phản hồi';
-            } else {
-                // Chú thích: Dùng API key riêng - gọi trực tiếp từ frontend
-                const currentProvider = provider === 'default' ? 'openrouter' : provider;
-
-                if (!apiKey) {
-                    throw new Error('Vui lòng nhập API Key trong phần Cài đặt, hoặc bật "Chế độ Backend miễn phí" trong Giao diện.');
-                }
-
-                const response = await sendClientSideChat(
-                    currentProvider,
-                    apiKey,
-                    selectedModel || 'google/gemini-2.0-flash-exp:free',
-                    apiMessages
-                );
-
-                if (!response.success || !response.response) {
-                    throw new Error(response.error || 'Failed to get response');
-                }
-                responseText = response.response;
-            }
-
-            const assistantMessage: ChatMessage = {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
-                content: responseText,
                 timestamp: Date.now(),
+                attachments: files.map(f => ({ name: f.file.name, type: f.type, url: URL.createObjectURL(f.file) })),
             };
 
-            // Sync AI message
-            if (token && currentId) {
-                addMessage(currentId, {
-                    role: 'assistant',
-                    content: responseText,
-                }, token).catch(e => console.error('Failed to sync AI msg', e));
-            }
-
+            // Chú thích: Add user message to UI immediately
             setConversations(prev => prev.map(c => {
                 if (c.id === currentId) {
+                    const isFirstMessage = c.messages.length === 0;
+                    const messagesToAdd = [userMessage];
+
+                    // Welcome message logic
+                    if (isFirstMessage) {
+                        const welcomeMessage: ChatMessage = {
+                            id: 'welcome',
+                            role: 'assistant',
+                            content: 'Chào bạn! Mình là **StemBot** - trợ lý AI chuyên về học tập và công nghệ.\n\nMình có thể giúp gì cho bạn hôm nay?',
+                            timestamp: Date.now(),
+                        };
+                        messagesToAdd.unshift(welcomeMessage);
+                    }
+
+                    // Sync to backend (optional log)
+                    if (token && currentId && !hiddenContext) {
+                        addMessage(currentId, {
+                            role: 'user',
+                            content: message,
+                            attachments: files.length > 0 ? files.map(f => ({ name: f.file.name, type: f.type })) : undefined
+                        }, token).catch(e => console.error('Failed to sync user msg', e));
+                    }
+
                     return {
                         ...c,
-                        messages: [...c.messages, assistantMessage],
+                        title: isFirstMessage ? generateTitle(message) : c.title,
+                        messages: [...c.messages, ...messagesToAdd],
                         updatedAt: Date.now(),
                     };
                 }
                 return c;
             }));
 
-        } catch (error) {
-            clearInterval(timerInterval);
-            console.error('[chat] error:', error);
-            const errorMessage: ChatMessage = {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
-                content: `⚠️ Lỗi: ${error instanceof Error ? error.message : 'Đã có lỗi xảy ra'}`,
-                timestamp: Date.now(),
-            };
-            setConversations(prev => prev.map(c => {
-                if (c.id === currentId) {
-                    return { ...c, messages: [...c.messages, errorMessage] };
+            setIsLoading(true);
+            const startTime = Date.now();
+            setThinkingStep('Kết nối AI Provider...');
+            setElapsedTime(0);
+
+            const timerInterval = setInterval(() => {
+                setElapsedTime((Date.now() - startTime) / 1000);
+            }, 100);
+
+            setTimeout(() => setThinkingStep('Đang gửi yêu cầu...'), 800);
+
+            try {
+                // Chú thích: Prepare messages for API
+                // 1. Get history
+                // Need to get state. Since setConversations is updated, we can't see it immediately in `conversations`.
+                // We must artificially reconstruct history.
+                const currentConv = conversations.find(c => c.id === currentId);
+                const history = currentConv?.messages || [];
+                // Note: userMessage is NOT in history yet due to closure.
+
+                // 2. Format history to ServiceChatMessage[]
+                const apiMessages: ServiceChatMessage[] = history.slice(-10).map(m => ({
+                    role: m.role as 'user' | 'assistant',
+                    content: m.content
+                }));
+
+                // 3. Add Context / System Prompt
+                const contextToUse = currentConv?.context || (hiddenContext && !activeId ? hiddenContext : undefined);
+
+                // System Message
+                const systemPrompt = `Bạn là StemBot, trợ lý học tập thông minh. 
+                Hãy trả lời ngắn gọn, chính xác, tập trung vào công nghệ và lập trình.
+                Nếu có câu hỏi về code, hãy viết code trong markdown block.
+                ${contextToUse ? `\n\nThông tin bối cảnh:\n${contextToUse}` : ''}`;
+
+                apiMessages.unshift({ role: 'system', content: systemPrompt });
+
+                // Convert images
+                const imageAttachments = files.filter(f => f.type === 'image');
+                const imagesBase64: string[] = [];
+                if (imageAttachments.length > 0) {
+                    for (const img of imageAttachments) {
+                        const reader = new FileReader();
+                        const promise = new Promise<string>((resolve) => {
+                            reader.onload = (e) => resolve(e.target?.result as string);
+                        });
+                        reader.readAsDataURL(img.file);
+                        imagesBase64.push(await promise);
+                    }
                 }
-                return c;
-            }));
-        } finally {
+
+                // Append current user message
+                apiMessages.push({
+                    role: 'user',
+                    content: message,
+                    images: imagesBase64.length > 0 ? imagesBase64 : undefined
+                });
+
+                // 5. Gọi API - chọn backend proxy hoặc client-side
+                let responseText: string;
+
+                if (isBackendMode) {
+                    // Chú thích: Dùng backend proxy miễn phí - không cần API key
+                    setThinkingStep('Đang gọi AI qua server...');
+                    const API_BASE = (import.meta.env.VITE_API_URL || 'https://stem-vietnam-api.stu725114073.workers.dev').replace(/\/$/, '');
+
+                    const backendResponse = await fetch(`${API_BASE}/api/chat`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                        },
+                        body: JSON.stringify({
+                            message: message,
+                            conversationId: currentId,
+                            images: imagesBase64.length > 0 ? imagesBase64 : undefined,
+                            context: contextToUse,
+                        }),
+                    });
+
+                    if (!backendResponse.ok) {
+                        const errText = await backendResponse.text();
+                        throw new Error(`Backend error: ${backendResponse.status} - ${errText}`);
+                    }
+
+                    const data = await backendResponse.json();
+                    responseText = data.response || data.text || 'Không có phản hồi';
+                } else {
+                    // Chú thích: Dùng API key riêng - gọi trực tiếp từ frontend
+                    const currentProvider = provider === 'default' ? 'openrouter' : provider;
+
+                    if (!apiKey) {
+                        throw new Error('Vui lòng nhập API Key trong phần Cài đặt, hoặc bật "Chế độ Backend miễn phí" trong Giao diện.');
+                    }
+
+                    const response = await sendClientSideChat(
+                        currentProvider,
+                        apiKey,
+                        selectedModel || 'google/gemini-2.0-flash-exp:free',
+                        apiMessages
+                    );
+
+                    if (!response.success || !response.response) {
+                        throw new Error(response.error || 'Failed to get response');
+                    }
+                    responseText = response.response;
+                }
+
+                const assistantMessage: ChatMessage = {
+                    id: (Date.now() + 1).toString(),
+                    role: 'assistant',
+                    content: responseText,
+                    timestamp: Date.now(),
+                };
+
+                // Sync AI message
+                if (token && currentId) {
+                    addMessage(currentId, {
+                        role: 'assistant',
+                        content: responseText,
+                    }, token).catch(e => console.error('Failed to sync AI msg', e));
+                }
+
+                setConversations(prev => prev.map(c => {
+                    if (c.id === currentId) {
+                        return {
+                            ...c,
+                            messages: [...c.messages, assistantMessage],
+                            updatedAt: Date.now(),
+                        };
+                    }
+                    return c;
+                }));
+
+            } catch (error) {
+                clearInterval(timerInterval);
+                console.error('[chat] error:', error);
+                const errorMessage: ChatMessage = {
+                    id: (Date.now() + 1).toString(),
+                    role: 'assistant',
+                    content: `⚠️ Lỗi: ${error instanceof Error ? error.message : 'Đã có lỗi xảy ra'}`,
+                    timestamp: Date.now(),
+                };
+                setConversations(prev => prev.map(c => {
+                    if (c.id === currentId) {
+                        return { ...c, messages: [...c.messages, errorMessage] };
+                    }
+                    return c;
+                }));
+            } finally {
+                setIsLoading(false);
+                isSendingRef.current = false; // Reset lock
+                clearInterval(timerInterval);
+            }
+        } catch (outerError) {
+            console.error('Setup error', outerError);
             setIsLoading(false);
-            clearInterval(timerInterval);
+            isSendingRef.current = false;
         }
     };
 
     // Chú thích: Handle navigation state (e.g. "Chat with Exam")
     useEffect(() => {
         if (location.state?.initialContext && !isLoading) {
-            // Check to ensure we don't duplicate (simple check: if active convo is brand new with similar message)
-            // But actually, simpler is to just check if we have handled this state.
-            // Best way: check if the location.state is fresh. 
-            // React Router doesn't clear state auto. We must clear it.
-
             const context = location.state.initialContext as string;
             const introMsg = 'Hãy giúp mình giải đáp thắc mắc và ôn tập dựa trên đề thi vừa tạo này nhé.';
 
             // Clear state immediately to prevent loops
             window.history.replaceState({}, document.title);
 
-            // Start new chat
-            // We need to wait a tick for setConversations/ActiveId potentially? 
-            // handleSend handles new convo creation if activeId is null.
-            // Ensure activeId is null if we want a NEW chat, or user flow decides.
-            // Assumption: When coming from Exam, we want a NEW chat.
-
-            setActiveId(null); // Force new conversation
+            // Force new conversation
+            setActiveId(null);
 
             // Use setTimeout to ensure state update processes or just call it.
-            // handleSend is async but we don't await it here.
             setTimeout(() => {
                 handleSend(introMsg, [], context);
             }, 100);
@@ -521,20 +521,20 @@ export default function ChatPage() {
                         <button
                             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                             className="lms-text-button"
-                            title={isSidebarOpen ? 'Dong danh sach' : 'Mo danh sach'}
+                            title={isSidebarOpen ? 'Đóng danh sách' : 'Mở danh sách'}
                         >
-                            {isSidebarOpen ? 'An danh sach' : 'Hien danh sach'}
+                            {isSidebarOpen ? 'Ẩn danh sách' : 'Hiện danh sách'}
                         </button>
                         <div className="lms-chat-brand">AI</div>
                         <div>
                             <div className="lms-row" style={{ gap: 8 }}>
-                                <div className="lms-chat-title">StemBot - Tro ly hoc tap</div>
+                                <div className="lms-chat-title">StemBot - Trợ lý học tập</div>
                                 {user?.id && (
                                     <span
                                         className={`lms-chat-status ${isSynced ? 'is-online' : 'is-offline'}`}
-                                        title={isSynced ? 'Da dong bo' : 'Offline'}
+                                        title={isSynced ? 'Đã đồng bộ' : 'Offline'}
                                     >
-                                        {isSynced ? 'Dong bo' : 'Offline'}
+                                        {isSynced ? 'Đồng bộ' : 'Offline'}
                                     </span>
                                 )}
                             </div>
@@ -561,12 +561,12 @@ export default function ChatPage() {
                         {messages.length === 0 ? (
                             <div className="lms-chat-empty">
                                 <div className="lms-chat-brand">AI</div>
-                                <h2 className="lms-chat-title">Xin chao! Toi la STEM AI</h2>
+                                <h2 className="lms-chat-title">Xin chào! Tôi là STEM AI</h2>
                                 <p className="lms-note" style={{ maxWidth: 360 }}>
-                                    Toi co the giup ban voi moi cau hoi. Hay bat dau bang mot cau hoi bat ky.
+                                    Tôi có thể giúp bạn với mọi câu hỏi. Hãy bắt đầu bằng một câu hỏi bất kỳ.
                                 </p>
                                 <div className="lms-chat-suggestions">
-                                    {['Mang may tinh la gi?', 'Tin tuc AI hom nay', 'Giai thich TCP/IP'].map(q => (
+                                    {['Mạng máy tính là gì?', 'Tin tức AI hôm nay', 'Giải thích TCP/IP'].map(q => (
                                         <button
                                             key={q}
                                             onClick={() => handleSend(q, [])}
@@ -613,7 +613,7 @@ export default function ChatPage() {
                                                 }}
                                                 className="lms-chip is-active"
                                             >
-                                                Goi y: {q}
+                                                Gợi ý: {q}
                                             </button>
                                         ))}
                                     </div>
@@ -626,9 +626,9 @@ export default function ChatPage() {
                             <button
                                 onClick={scrollToBottom}
                                 className="lms-chat-scroll"
-                                title="Cuon xuong cuoi"
+                                title="Cuộn xuống cuối"
                             >
-                                Cuon
+                                Cuộn
                             </button>
                         )}
                     </div>
@@ -637,7 +637,7 @@ export default function ChatPage() {
                         <ChatInput
                             onSend={handleSend}
                             isLoading={isLoading}
-                            placeholder="Nhap cau hoi cua ban..."
+                            placeholder="Nhập câu hỏi của bạn..."
                         />
                     </div>
                 </div>

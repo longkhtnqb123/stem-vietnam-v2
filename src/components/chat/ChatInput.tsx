@@ -35,7 +35,7 @@ function FileTag({ type }: { type: FileAttachment['type'] }) {
     return <span className={`lms-file-tag is-${type}`}>{labelMap[type]}</span>;
 }
 
-export default function ChatInput({ onSend, isLoading, placeholder = "Nhap tin nhan..." }: ChatInputProps) {
+export default function ChatInput({ onSend, isLoading, placeholder = "Nhập tin nhắn..." }: ChatInputProps) {
     const [input, setInput] = useState('');
     const [files, setFiles] = useState<FileAttachment[]>([]);
     const [isDragging, setIsDragging] = useState(false);
@@ -87,7 +87,7 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhap tin n
 
     const toggleListening = () => {
         if (!recognitionRef.current) {
-            alert('Trinh duyet cua ban khong ho tro nhan dien giong noi. Vui long dung Chrome/Edge.');
+            alert('Trình duyệt của bạn không hỗ trợ nhận diện giọng nói. Vui lòng dùng Chrome/Edge.');
             return;
         }
 
@@ -214,7 +214,7 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhap tin n
                 <button
                     onClick={() => fileInputRef.current?.click()}
                     className="lms-text-button"
-                    title="Dinh kem file"
+                    title="Đính kèm file"
                 >
                     File
                 </button>
@@ -222,9 +222,9 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhap tin n
                 <button
                     onClick={toggleListening}
                     className={`lms-text-button ${isListening ? 'is-active' : ''}`}
-                    title={isListening ? 'Dung ghi am' : 'Nhap bang giong noi'}
+                    title={isListening ? 'Dừng ghi âm' : 'Nhập bằng giọng nói'}
                 >
-                    {isListening ? 'Dung' : 'Mic'}
+                    {isListening ? 'Dừng' : 'Mic'}
                 </button>
 
                 <textarea
@@ -237,7 +237,7 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhap tin n
                             handleSubmit();
                         }
                     }}
-                    placeholder={isListening ? 'Dang nghe ban noi...' : placeholder}
+                    placeholder={isListening ? 'Đang nghe bạn nói...' : placeholder}
                     rows={1}
                     className="lms-chat-textarea"
                     disabled={isLoading}
@@ -249,7 +249,7 @@ export default function ChatInput({ onSend, isLoading, placeholder = "Nhap tin n
                     className="lms-text-button is-primary"
                     aria-label="Send"
                 >
-                    Gui
+                    Gửi
                 </button>
             </div>
         </div>

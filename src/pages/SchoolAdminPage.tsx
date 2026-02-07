@@ -75,7 +75,7 @@ export default function SchoolAdminPage() {
     if (user?.role !== 'admin') {
         return (
             <div className="lms-page">
-                <div className="lms-empty">Ban khong co quyen truy cap.</div>
+                <div className="lms-empty">Bạn không có quyền truy cập.</div>
             </div>
         );
     }
@@ -85,7 +85,7 @@ export default function SchoolAdminPage() {
             <div className="lms-page">
                 <div className="lms-empty">
                     <div className="lms-spinner" />
-                    <p className="lms-note">Dang tai truong hoc...</p>
+                    <p className="lms-note">Đang tải trường học...</p>
                 </div>
             </div>
         );
@@ -101,16 +101,16 @@ export default function SchoolAdminPage() {
             <section className="lms-card">
                 <div className="lms-card-header">
                     <div>
-                        <div className="lms-card-title">Quan ly truong hoc</div>
-                        <div className="lms-card-subtitle">Danh sach truong va thong tin lien he</div>
+                        <div className="lms-card-title">Quản lý trường học</div>
+                        <div className="lms-card-subtitle">Danh sách trường và thông tin liên hệ</div>
                     </div>
                     <button onClick={() => setShowCreateModal(true)} className="lms-button">
-                        <Plus size={16} /> Them truong
+                        <Plus size={16} /> Thêm trường
                     </button>
                 </div>
                 <input
                     className="lms-input"
-                    placeholder="Tim kiem truong..."
+                    placeholder="Tìm kiếm trường..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -118,15 +118,15 @@ export default function SchoolAdminPage() {
 
             <section className="lms-card">
                 {filtered.length === 0 ? (
-                    <div className="lms-empty">Khong co du lieu</div>
+                    <div className="lms-empty">Không có dữ liệu</div>
                 ) : (
                     <table className="lms-table">
                         <thead>
                             <tr>
-                                <th>Ten truong</th>
-                                <th>Ma</th>
-                                <th>So lop</th>
-                                <th>So giao vien</th>
+                                <th>Tên trường</th>
+                                <th>Mã</th>
+                                <th>Số lớp</th>
+                                <th>Số giáo viên</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -147,14 +147,14 @@ export default function SchoolAdminPage() {
                 <div className="lms-modal">
                     <div className="lms-modal-panel" style={{ maxWidth: 560 }}>
                         <div className="lms-modal-header">
-                            <div className="lms-card-title">Them truong</div>
+                            <div className="lms-card-title">Thêm trường</div>
                             <button onClick={() => setShowCreateModal(false)} className="lms-button-ghost">
-                                Dong
+                                Đóng
                             </button>
                         </div>
                         <form onSubmit={handleCreateSchool} className="lms-modal-body lms-form">
                             <div className="lms-section">
-                                <label className="lms-label">Ten truong</label>
+                                <label className="lms-label">Tên trường</label>
                                 <input
                                     className="lms-input"
                                     value={formData.name}
@@ -163,7 +163,7 @@ export default function SchoolAdminPage() {
                                 />
                             </div>
                             <div className="lms-section">
-                                <label className="lms-label">Ma truong</label>
+                                <label className="lms-label">Mã trường</label>
                                 <input
                                     className="lms-input"
                                     value={formData.code}
@@ -172,7 +172,7 @@ export default function SchoolAdminPage() {
                                 />
                             </div>
                             <div className="lms-section">
-                                <label className="lms-label">Dia chi</label>
+                                <label className="lms-label">Địa chỉ</label>
                                 <input
                                     className="lms-input"
                                     value={formData.address}
@@ -188,7 +188,7 @@ export default function SchoolAdminPage() {
                                 />
                             </div>
                             <div className="lms-section">
-                                <label className="lms-label">Dien thoai</label>
+                                <label className="lms-label">Điện thoại</label>
                                 <input
                                     className="lms-input"
                                     value={formData.contactPhone}
@@ -197,9 +197,9 @@ export default function SchoolAdminPage() {
                             </div>
                             <div className="lms-modal-footer">
                                 <button type="button" onClick={() => setShowCreateModal(false)} className="lms-button-secondary">
-                                    Huy
+                                    Hủy
                                 </button>
-                                <button type="submit" className="lms-button">Luu</button>
+                                <button type="submit" className="lms-button">Lưu</button>
                             </div>
                         </form>
                     </div>

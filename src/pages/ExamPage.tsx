@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -30,24 +31,24 @@ function ExamCard({
                 <div>
                     <div className="lms-card-title">{template.title}</div>
                     <div className="lms-card-subtitle">
-                        Lop {template.grade}
-                        {template.branch && ` - ${template.branch === 'cong_nghiep' ? 'Cong nghiep' : 'Nong nghiep'}`}
+                        Lớp {template.grade}
+                        {template.branch && ` - ${template.branch === 'cong_nghiep' ? 'Công nghiệp' : 'Nông nghiệp'}`}
                     </div>
                 </div>
                 <span className="lms-badge">{getExamTypeLabel(template.exam_type)}</span>
             </div>
 
             <div className="lms-row lms-note">
-                <span>{template.total_questions} cau</span>
-                <span>{template.duration_minutes} phut</span>
+                <span>{template.total_questions} câu</span>
+                <span>{template.duration_minutes} phút</span>
                 <span>{getDifficultyLabel(template.difficulty)}</span>
             </div>
 
             <div className="lms-row" style={{ justifyContent: 'space-between', marginTop: 12 }}>
-                <span className="lms-note">{template.times_taken} luot lam</span>
+                <span className="lms-note">{template.times_taken} lượt làm</span>
                 <button onClick={onStart} disabled={isLoading} className="lms-button">
                     {isLoading ? <div className="lms-spinner" /> : null}
-                    <span>Lam bai</span>
+                    <span>Làm bài</span>
                 </button>
             </div>
         </article>
@@ -65,11 +66,11 @@ function AttemptCard({
         <button onClick={onClick} className="lms-card" style={{ textAlign: 'left' }}>
             <div className="lms-row" style={{ justifyContent: 'space-between' }}>
                 <div>
-                    <div className="lms-card-title">{attempt.title || 'De thi'}</div>
+                    <div className="lms-card-title">{attempt.title || 'Đề thi'}</div>
                     <div className="lms-card-subtitle">
                         {attempt.status === 'submitted'
-                            ? `${attempt.correct_count}/${attempt.total_questions} cau`
-                            : 'Dang lam...'}
+                            ? `${attempt.correct_count}/${attempt.total_questions} câu`
+                            : 'Đang làm...'}
                     </div>
                     <div className="lms-note">{new Date(attempt.started_at).toLocaleDateString('vi-VN')}</div>
                 </div>
@@ -99,17 +100,17 @@ function QuickFilter({
                         onClick={() => setGrade(g)}
                         className={grade === g ? 'lms-button' : 'lms-button-secondary'}
                     >
-                        {g || 'Tat ca'}
+                        {g || 'Tất cả'}
                     </button>
                 ))}
             </div>
 
             <div className="lms-row">
                 {[
-                    { value: '', label: 'Tat ca' },
-                    { value: '15min', label: '15 phut' },
-                    { value: 'midterm', label: 'Giua ki' },
-                    { value: 'final', label: 'Cuoi ki' },
+                    { value: '', label: 'Tất cả' },
+                    { value: '15min', label: '15 phút' },
+                    { value: 'midterm', label: 'Giữa kì' },
+                    { value: 'final', label: 'Cuối kì' },
                     { value: 'thpt', label: 'THPT 2025' },
                 ].map((t) => (
                     <button
@@ -195,7 +196,7 @@ export default function ExamPage() {
             });
         } catch (error) {
             console.error('Failed to start exam:', error);
-            alert('Khong the bat dau lam bai. Vui long thu lai.');
+            alert('Không thể bắt đầu làm bài. Vui lòng thử lại.');
         } finally {
             setStartingExam(null);
         }
@@ -207,7 +208,7 @@ export default function ExamPage() {
             return;
         }
         if (!aiParams.grade || !aiParams.exam_type || !aiParams.difficulty) {
-            alert('Vui long chon du thong tin');
+            alert('Vui lòng chọn đủ thông tin');
             return;
         }
         try {
@@ -217,7 +218,7 @@ export default function ExamPage() {
             setShowAIModal(false);
         } catch (error: any) {
             console.error('AI Gen Error:', error);
-            alert(`Loi tao de thi: ${error.message || JSON.stringify(error)}`);
+            alert(`Lỗi tạo đề thi: ${error.message || JSON.stringify(error)}`);
         } finally {
             setGenerating(false);
         }
@@ -238,9 +239,9 @@ export default function ExamPage() {
             });
             setPreviewData(null);
             loadTemplates();
-            alert('Da luu de thi thanh cong!');
+            alert('Đã lưu đề thi thành công!');
         } catch (error: any) {
-            alert(error.message || 'Loi luu de thi');
+            alert(error.message || 'Lỗi lưu đề thi');
         } finally {
             setSavingTemplate(false);
         }
@@ -254,11 +255,11 @@ export default function ExamPage() {
                 <div className="lms-card-header">
                     <div>
                         <h1 className="lms-card-title">Thi Online</h1>
-                        <p className="lms-card-subtitle">On tap va lam bai thi theo chuong trinh</p>
+                        <p className="lms-card-subtitle">Ôn tập và làm bài thi theo chương trình</p>
                     </div>
                     {isAuthenticated && (
                         <button onClick={() => setShowAIModal(true)} className="lms-button">
-                            <span>Tao de AI</span>
+                            <span>Tạo đề AI</span>
                         </button>
                     )}
                 </div>
@@ -275,20 +276,20 @@ export default function ExamPage() {
                 <section className="lms-section">
                     <div className="lms-card">
                         <div className="lms-card-header">
-                            <div className="lms-card-title">De thi co san</div>
+                            <div className="lms-card-title">Đề thi có sẵn</div>
                         </div>
 
                         {loading ? (
                             <div className="lms-empty">
                                 <div className="lms-spinner" />
-                                <p className="lms-note">Dang tai danh sach</p>
+                                <p className="lms-note">Đang tải danh sách</p>
                             </div>
                         ) : hasNoTemplates ? (
                             <div className="lms-empty">
-                                <p className="lms-note">Chua co de thi</p>
+                                <p className="lms-note">Chưa có đề thi</p>
                                 {isAuthenticated && (
                                     <button onClick={() => setShowAIModal(true)} className="lms-button">
-                                        <span>Tao de AI</span>
+                                        <span>Tạo đề AI</span>
                                     </button>
                                 )}
                             </div>
@@ -310,19 +311,19 @@ export default function ExamPage() {
                 <section className="lms-section">
                     <div className="lms-card">
                         <div className="lms-card-header">
-                            <div className="lms-card-title">Lich su lam bai</div>
+                            <div className="lms-card-title">Lịch sử làm bài</div>
                         </div>
 
                         {!isAuthenticated ? (
                             <div className="lms-empty">
-                                <p className="lms-note">Dang nhap de xem lich su</p>
+                                <p className="lms-note">Đăng nhập để xem lịch sử</p>
                                 <button onClick={() => navigate('/login')} className="lms-button-secondary">
-                                    Dang nhap
+                                    Đăng nhập
                                 </button>
                             </div>
                         ) : attempts.length === 0 ? (
                             <div className="lms-empty">
-                                <p className="lms-note">Chua co bai thi</p>
+                                <p className="lms-note">Chưa có bài thi</p>
                             </div>
                         ) : (
                             <div className="lms-grid">
@@ -343,15 +344,15 @@ export default function ExamPage() {
                 <div className="lms-modal">
                     <div className="lms-modal-panel">
                         <div className="lms-modal-header">
-                            <div className="lms-card-title">Tao de thi bang AI</div>
+                            <div className="lms-card-title">Tạo đề thi bằng AI</div>
                             <button onClick={() => setShowAIModal(false)} className="lms-button-ghost">
-                                Dong
+                                Đóng
                             </button>
                         </div>
 
                         <div className="lms-modal-body lms-form">
                             <div className="lms-section">
-                                <label className="lms-label">Lop</label>
+                                <label className="lms-label">Lớp</label>
                                 <div className="lms-row">
                                     {(['10', '11', '12'] as const).map(g => (
                                         <button
@@ -367,45 +368,45 @@ export default function ExamPage() {
 
                             {aiParams.grade && (
                                 <div className="lms-section">
-                                    <label className="lms-label">Dinh huong</label>
+                                    <label className="lms-label">Định hướng</label>
                                     <div className="lms-row">
                                         <button
                                             onClick={() => setAiParams(p => ({ ...p, branch: 'cong_nghiep' }))}
                                             className={aiParams.branch === 'cong_nghiep' ? 'lms-button' : 'lms-button-secondary'}
                                         >
-                                            {aiParams.grade === '10' ? 'Cong nghiep' : aiParams.grade === '11' ? 'Co khi' : 'Dien - Dien tu'}
+                                            {aiParams.grade === '10' ? 'Công nghiệp' : aiParams.grade === '11' ? 'Cơ khí' : 'Điện - Điện tử'}
                                         </button>
                                         <button
                                             onClick={() => setAiParams(p => ({ ...p, branch: 'nong_nghiep' }))}
                                             className={aiParams.branch === 'nong_nghiep' ? 'lms-button' : 'lms-button-secondary'}
                                         >
-                                            {aiParams.grade === '10' ? 'Nong nghiep' : aiParams.grade === '11' ? 'Chan nuoi' : 'Lam - Thuy san'}
+                                            {aiParams.grade === '10' ? 'Nông nghiệp' : aiParams.grade === '11' ? 'Chăn nuôi' : 'Lâm - Thủy sản'}
                                         </button>
                                     </div>
                                 </div>
                             )}
 
                             <div className="lms-section">
-                                <label className="lms-label">Loai de</label>
+                                <label className="lms-label">Loại đề</label>
                                 <select
                                     value={aiParams.exam_type}
                                     onChange={(e) => setAiParams(p => ({ ...p, exam_type: e.target.value as any }))}
                                     className="lms-select"
                                 >
-                                    <option value="15min">Kiem tra 15 phut (10 cau)</option>
-                                    <option value="midterm">Giua ki (21 cau)</option>
-                                    <option value="final">Cuoi ki (26 cau)</option>
-                                    <option value="thpt">THPT 2025 (28 cau)</option>
+                                    <option value="15min">Kiểm tra 15 phút (10 câu)</option>
+                                    <option value="midterm">Giữa kì (21 câu)</option>
+                                    <option value="final">Cuối kì (26 câu)</option>
+                                    <option value="thpt">THPT 2025 (28 câu)</option>
                                 </select>
                             </div>
 
                             <div className="lms-section">
-                                <label className="lms-label">Do kho</label>
+                                <label className="lms-label">Độ khó</label>
                                 <div className="lms-row">
                                     {([
-                                        { value: 'easy', label: 'De' },
-                                        { value: 'medium', label: 'Trung binh' },
-                                        { value: 'hard', label: 'Kho' },
+                                        { value: 'easy', label: 'Dễ' },
+                                        { value: 'medium', label: 'Trung bình' },
+                                        { value: 'hard', label: 'Khó' },
                                     ] as const).map(d => (
                                         <button
                                             key={d.value}
@@ -419,12 +420,12 @@ export default function ExamPage() {
                             </div>
 
                             <div className="lms-section">
-                                <label className="lms-label">Chu de (tuy chon)</label>
+                                <label className="lms-label">Chủ đề (tùy chọn)</label>
                                 <input
                                     type="text"
                                     value={aiParams.topic || ''}
                                     onChange={(e) => setAiParams(p => ({ ...p, topic: e.target.value }))}
-                                    placeholder="VD: Mang may tinh, Thuat toan..."
+                                    placeholder="VD: Mạng máy tính, Thuật toán..."
                                     className="lms-input"
                                 />
                             </div>
@@ -432,11 +433,11 @@ export default function ExamPage() {
 
                         <div className="lms-modal-footer">
                             <button onClick={() => setShowAIModal(false)} className="lms-button-secondary">
-                                Huy
+                                Hủy
                             </button>
                             <button onClick={handleGenerateAI} disabled={generating} className="lms-button">
                                 {generating ? <div className="lms-spinner" /> : null}
-                                <span>Tao de</span>
+                                <span>Tạo đề</span>
                             </button>
                         </div>
                     </div>
@@ -448,13 +449,13 @@ export default function ExamPage() {
                     <div className="lms-modal-panel">
                         <div className="lms-modal-header">
                             <div>
-                                <div className="lms-card-title">Xem truoc de thi</div>
+                                <div className="lms-card-title">Xem trước đề thi</div>
                                 <div className="lms-card-subtitle">
-                                    {previewData.template.title} - {previewData.template.total_questions} cau
+                                    {previewData.template.title} - {previewData.template.total_questions} câu
                                 </div>
                             </div>
                             <button onClick={() => setPreviewData(null)} className="lms-button-ghost">
-                                Dong
+                                Đóng
                             </button>
                         </div>
 
@@ -472,27 +473,27 @@ export default function ExamPage() {
                                     return (
                                         <article key={q.id} className="lms-card">
                                             <div className="lms-row" style={{ justifyContent: 'space-between' }}>
-                                                <span className="lms-pill">Cau {idx + 1}</span>
-                                                {isTrueFalse && <span className="lms-badge">D/S</span>}
-                                                {isEssay && <span className="lms-badge">Tu luan</span>}
+                                                <span className="lms-pill">Câu {idx + 1}</span>
+                                                {isTrueFalse && <span className="lms-badge">Đ/S</span>}
+                                                {isEssay && <span className="lms-badge">Tự luận</span>}
                                             </div>
                                             <p style={{ marginTop: 8 }}>{q.content}</p>
 
                                             {isEssay ? (
                                                 <div className="lms-note">
-                                                    Diem: {q.max_points ?? 1}
+                                                    Điểm: {q.max_points ?? 1}
                                                     {keywordList.length > 0 && (
-                                                        <div>Tu khoa: {keywordList.join(', ')}</div>
+                                                        <div>Từ khóa: {keywordList.join(', ')}</div>
                                                     )}
                                                     {q.sample_answer && (
-                                                        <div>Goi y: {q.sample_answer}</div>
+                                                        <div>Gợi ý: {q.sample_answer}</div>
                                                     )}
                                                 </div>
                                             ) : isTrueFalse && q.statements ? (
                                                 <div className="lms-section">
                                                     {q.statements.map((stmt, stmtIdx) => (
                                                         <div key={stmtIdx} className="lms-row">
-                                                            <span className="lms-pill">{Array.isArray(q.answer) && q.answer[stmtIdx] ? 'Dung' : 'Sai'}</span>
+                                                            <span className="lms-pill">{Array.isArray(q.answer) && q.answer[stmtIdx] ? 'Đúng' : 'Sai'}</span>
                                                             <span>{stmt}</span>
                                                         </div>
                                                     ))}
@@ -512,7 +513,7 @@ export default function ExamPage() {
                                             )}
 
                                             {q.explanation && (
-                                                <div className="lms-note">Giai thich: {q.explanation}</div>
+                                                <div className="lms-note">Giải thích: {q.explanation}</div>
                                             )}
                                         </article>
                                     );
@@ -525,14 +526,14 @@ export default function ExamPage() {
                                 onClick={() => { setPreviewData(null); setShowAIModal(true); }}
                                 className="lms-button-secondary"
                             >
-                                Tao lai
+                                Tạo lại
                             </button>
                             <button
                                 onClick={handleSaveTemplate}
                                 disabled={savingTemplate}
                                 className="lms-button"
                             >
-                                {savingTemplate ? <div className="lms-spinner" /> : <span>Luu de thi</span>}
+                                {savingTemplate ? <div className="lms-spinner" /> : <span>Lưu đề thi</span>}
                             </button>
                         </div>
                     </div>

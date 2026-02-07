@@ -14,122 +14,122 @@ interface GuideSection {
 const STUDENT_GUIDES: GuideSection[] = [
     {
         title: 'Chat AI',
-        description: 'Hoi dap va giai bai tap voi AI.',
+        description: 'Hỏi đáp và giải bài tập với AI.',
         steps: [
-            'Mo menu Chat AI',
-            'Nhap cau hoi va gui',
-            'Doc giai thich va goi y',
+            'Mở menu Chat AI',
+            'Nhập câu hỏi và gửi',
+            'Đọc giải thích và gợi ý',
         ],
         link: '/chat',
-        linkText: 'Mo Chat AI',
+        linkText: 'Mở Chat AI',
     },
     {
-        title: 'Lop hoc',
-        description: 'Tham gia lop hoc va lam bai tap.',
+        title: 'Lớp học',
+        description: 'Tham gia lớp học và làm bài tập.',
         steps: [
-            'Mo menu Lop hoc',
-            'Nhap ma tham gia',
-            'Theo doi bai tap',
+            'Mở menu Lớp học',
+            'Nhập mã tham gia',
+            'Theo dõi bài tập',
         ],
         link: '/classes',
-        linkText: 'Vao lop',
+        linkText: 'Vào lớp',
     },
     {
         title: 'Thi online',
-        description: 'Lam bai thi truc tuyen va xem ket qua.',
+        description: 'Làm bài thi trực tuyến và xem kết quả.',
         steps: [
-            'Chon de thi',
-            'Bat dau lam bai',
-            'Nop bai va xem diem',
+            'Chọn đề thi',
+            'Bắt đầu làm bài',
+            'Nộp bài và xem điểm',
         ],
         link: '/exam',
-        linkText: 'Lam bai thi',
+        linkText: 'Làm bài thi',
     },
     {
-        title: 'Thu vien',
-        description: 'Xem tai lieu, SGK va de mau.',
+        title: 'Thư viện',
+        description: 'Xem tài liệu, SGK và đề mẫu.',
         steps: [
-            'Mo menu Thu vien',
-            'Loc theo lop',
-            'Tai ve tai lieu',
+            'Mở menu Thư viện',
+            'Lọc theo lớp',
+            'Tải về tài liệu',
         ],
         link: '/library',
-        linkText: 'Mo thu vien',
+        linkText: 'Mở thư viện',
     },
     {
-        title: 'Cai dat',
-        description: 'Tuy chinh AI va giao dien.',
+        title: 'Cài đặt',
+        description: 'Tùy chỉnh AI và giao diện.',
         steps: [
-            'Mo Cai dat',
-            'Nhap API key neu can',
-            'Luu thay doi',
+            'Mở Cài đặt',
+            'Nhập API key nếu cần',
+            'Lưu thay đổi',
         ],
         link: '/settings',
-        linkText: 'Mo cai dat',
+        linkText: 'Mở cài đặt',
     },
 ];
 
 const TEACHER_GUIDES: GuideSection[] = [
     {
-        title: 'Tao de thi AI',
-        description: 'Tao de thi nhanh theo ma tran.',
+        title: 'Tạo đề thi AI',
+        description: 'Tạo đề thi nhanh theo ma trận.',
         steps: [
-            'Mo Thi online',
-            'Chon Tao de AI',
-            'Xem truoc va luu',
+            'Mở Thi online',
+            'Chọn Tạo đề AI',
+            'Xem trước và lưu',
         ],
         link: '/exam',
-        linkText: 'Tao de thi',
+        linkText: 'Tạo đề thi',
     },
     {
-        title: 'Quan ly lop hoc',
-        description: 'Tao lop, moi hoc sinh, giao bai tap.',
+        title: 'Quản lý lớp học',
+        description: 'Tạo lớp, mời học sinh, giao bài tập.',
         steps: [
-            'Tao lop moi',
-            'Gui ma tham gia',
-            'Giao bai tap',
+            'Tạo lớp mới',
+            'Gửi mã tham gia',
+            'Giao bài tập',
         ],
         link: '/classes',
-        linkText: 'Quan ly lop',
+        linkText: 'Quản lý lớp',
     },
     {
-        title: 'Thong ke',
-        description: 'Xem diem va tien do cua hoc sinh.',
+        title: 'Thống kê',
+        description: 'Xem điểm và tiến độ của học sinh.',
         steps: [
-            'Mo de thi',
-            'Xem thong ke',
+            'Mở đề thi',
+            'Xem thống kê',
         ],
         link: '/exam',
-        linkText: 'Xem thong ke',
+        linkText: 'Xem thống kê',
     },
     {
-        title: 'Tao de thu cong',
-        description: 'Tao de thi tu cau hoi san co.',
+        title: 'Tạo đề thủ công',
+        description: 'Tạo đề thi từ câu hỏi sẵn có.',
         steps: [
-            'Mo Thi online',
-            'Tao de moi',
-            'Luu de thi',
+            'Mở Thi online',
+            'Tạo đề mới',
+            'Lưu đề thi',
         ],
         link: '/exam',
-        linkText: 'Tao de thu cong',
+        linkText: 'Tạo đề thủ công',
     },
     {
-        title: 'RAG tu SGK',
-        description: 'AI tao cau hoi theo SGK.',
+        title: 'RAG từ SGK',
+        description: 'AI tạo câu hỏi theo SGK.',
         steps: [
-            'Chon lop va dinh huong',
-            'Tao cau hoi AI',
+            'Chọn lớp và định hướng',
+            'Tạo câu hỏi AI',
         ],
     },
     {
-        title: 'Chat AI ho tro soan bai',
-        description: 'Su dung Chat AI de soan bai giang.',
+        title: 'Chat AI hỗ trợ soạn bài',
+        description: 'Sử dụng Chat AI để soạn bài giảng.',
         steps: [
-            'Mo Chat AI',
-            'Nhap yeu cau',
+            'Mở Chat AI',
+            'Nhập yêu cầu',
         ],
         link: '/chat',
-        linkText: 'Mo Chat AI',
+        linkText: 'Mở Chat AI',
     },
 ];
 
@@ -142,21 +142,21 @@ export default function HelpPage() {
             <section className="lms-card">
                 <div className="lms-card-header">
                     <div>
-                        <div className="lms-card-title">Huong dan su dung</div>
-                        <div className="lms-card-subtitle">Chon vai tro de xem huong dan</div>
+                        <div className="lms-card-title">Hướng dẫn sử dụng</div>
+                        <div className="lms-card-subtitle">Chọn vai trò để xem hướng dẫn</div>
                     </div>
                     <div className="lms-row">
                         <button
                             onClick={() => setActiveTab('student')}
                             className={activeTab === 'student' ? 'lms-button' : 'lms-button-secondary'}
                         >
-                            Hoc sinh
+                            Học sinh
                         </button>
                         <button
                             onClick={() => setActiveTab('teacher')}
                             className={activeTab === 'teacher' ? 'lms-button' : 'lms-button-secondary'}
                         >
-                            Giao vien
+                            Giáo viên
                         </button>
                     </div>
                 </div>

@@ -35,25 +35,25 @@ export default function ApiKeyWarning() {
         <div className="lms-modal">
             <div className="lms-modal-panel" style={{ maxWidth: 520 }}>
                 <div className="lms-modal-header">
-                    <div className="lms-card-title">Cau hinh API Key</div>
-                    <button onClick={handleDismiss} className="lms-button-ghost" aria-label="Dong">
-                        Dong
+                    <div className="lms-card-title">Cấu hình AI</div>
+                    <button onClick={handleDismiss} className="lms-button-ghost" aria-label="Đóng">
+                        Đóng
                     </button>
                 </div>
                 <div className="lms-modal-body lms-section">
                     <div className="lms-alert">
-                        <span>Ban chua cau hinh API key cho AI.</span>
+                        <span>Bạn chưa cấu hình API key cho AI.</span>
                     </div>
                     <p className="lms-note">
-                        API key giup AI hoat dong on dinh va khong bi gioi han.
+                        API key giúp AI hoạt động ổn định và không bị giới hạn.
                     </p>
                 </div>
                 <div className="lms-modal-footer">
                     <button onClick={handleDismiss} className="lms-button-secondary">
-                        De sau
+                        Để sau
                     </button>
                     <button onClick={handleGoToSettings} className="lms-button">
-                        <span>Di toi Cai dat</span>
+                        <span>Đi tới Cài đặt</span>
                     </button>
                 </div>
             </div>

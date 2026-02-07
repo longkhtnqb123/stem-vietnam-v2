@@ -58,9 +58,9 @@ function SpeakerButton({ text }: { text: string }) {
         <button
             onClick={speak}
             className={isSpeaking ? 'lms-text-button is-active' : 'lms-text-button'}
-            title={isSpeaking ? "Dung doc" : "Doc to"}
+            title={isSpeaking ? "Dừng đọc" : "Đọc to"}
         >
-            {isSpeaking ? 'Dung' : 'Doc'}
+            {isSpeaking ? 'Dừng' : 'Đọc'}
         </button>
     );
 }
@@ -89,7 +89,7 @@ function MermaidDiagram({ code }: { code: string }) {
                 setError('');
             } catch (err) {
                 console.error('[mermaid] render error:', err);
-                setError('Không thể render sơ đồ');
+                setError('Không thể vẽ sơ đồ');
             }
         };
         renderDiagram();
@@ -193,46 +193,49 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
         }
     };
 
+    // Chú thích: Preprocess content để normalize LaTeX delimiters
+    const preprocessContent = (content: string) => {
+        if (!content) return '';
+
+        // 1. Convert \[ ... \] to $$ ... $$
+        let processed = content.replace(/\\\[([\s\S]*?)\\\]/g, '$$$$$1$$$$');
+
+        // 2. Convert \( ... \) to $ ... $
+        processed = processed.replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$');
+
+        return processed;
+    };
+
     return (
         <div className={`lms-message ${isUser ? 'is-user' : ''}`}>
             <div className={`lms-message-avatar ${isUser ? '' : 'is-assistant'}`}>
-                {isUser ? 'BAN' : 'AI'}
+                {isUser ? 'BẠN' : 'AI'}
             </div>
 
-            <div className="lms-message-body" style={{ textAlign: isUser ? 'right' : 'left' }}>
-                <div className={`lms-message-bubble ${isUser ? 'is-user' : 'is-assistant'}`}>
-                    {isUser ? (
-                        <div style={{ whiteSpace: 'pre-wrap' }}>
-                            {message.content}
-                        </div>
-                    ) : (
-                        <div className="lms-markdown">
-                            <ReactMarkdown
-                                remarkPlugins={[remarkGfm, remarkMath]}
-                                rehypePlugins={[rehypeKatex]}
-                                components={markdownComponents}
-                            >
-                                {message.content}
-                            </ReactMarkdown>
-                        </div>
-                    )}
+            <div className="lms-message-content">
+                <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
+                    components={markdownComponents}
+                >
+                    {preprocessContent(message.content)}
+                </ReactMarkdown>
 
-                    {message.attachments && message.attachments.length > 0 && (
-                        <div className="lms-row" style={{ marginTop: 8 }}>
-                            {message.attachments.map((file, idx) => (
-                                <span key={idx} className="lms-badge">
-                                    File: {file.name}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                {message.attachments && message.attachments.length > 0 && (
+                    <div className="lms-message-attachments">
+                        {message.attachments.map((file, idx) => (
+                            <div key={idx} className="lms-attachment">
+                                <span>File: {file.name}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
 
                 {!isUser && message.sourceChunks && message.sourceChunks.length > 0 && (
                     <div className="lms-message-sources">
                         <div className="lms-row" style={{ gap: 6, marginBottom: 6 }}>
-                            <span className="lms-badge">Nguon</span>
-                            <span className="lms-note">Tai lieu tham khao</span>
+                            <span className="lms-badge">Nguồn</span>
+                            <span className="lms-note">Tài liệu tham khảo</span>
                         </div>
                         <div className="lms-section" style={{ gap: 6 }}>
                             {message.sourceChunks.slice(0, 3).map((chunk, idx) => (
@@ -256,23 +259,23 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 
                         {feedbackSent ? (
                             <span className="lms-note">
-                                {feedbackSent === 'helpful' ? 'Cam on phan hoi!' : 'Da ghi nhan'}
+                                {feedbackSent === 'helpful' ? 'Cảm ơn phản hồi!' : 'Đã ghi nhận'}
                             </span>
                         ) : (
                             <>
                                 <button
                                     onClick={() => sendFeedback(true)}
                                     className="lms-text-button"
-                                    title="Huu ich"
+                                    title="Hữu ích"
                                 >
-                                    Huu ich
+                                    Hữu ích
                                 </button>
                                 <button
                                     onClick={() => sendFeedback(false)}
                                     className="lms-text-button"
-                                    title="Chua huu ich"
+                                    title="Chưa hữu ích"
                                 >
-                                    Chua huu ich
+                                    Chưa hữu ích
                                 </button>
                             </>
                         )}
@@ -298,4 +301,3 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
         </div>
     );
 }
-

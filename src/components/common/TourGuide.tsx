@@ -10,31 +10,31 @@ interface TourStep {
 
 const TOUR_STEPS: TourStep[] = [
     {
-        title: 'Chao mung den STEM Vietnam',
-        description: 'Huong dan nhanh de ban lam quen voi he thong.',
+        title: 'Chào mừng đến STEM Vietnam',
+        description: 'Hướng dẫn nhanh để bạn làm quen với hệ thống.',
         tag: 'NEW',
     },
     {
         title: 'Chat AI',
-        description: 'Hoi dap va giai bai tap voi AI.',
+        description: 'Hỏi đáp và giải bài tập với AI.',
         tag: 'AI',
         targetPath: '/chat',
     },
     {
-        title: 'Thu vien',
-        description: 'Tra cuu SGK va tai lieu hoc tap.',
+        title: 'Thư viện',
+        description: 'Tra cứu SGK và tài liệu học tập.',
         tag: 'DOC',
         targetPath: '/library',
     },
     {
         title: 'Thi online',
-        description: 'Lam bai thi va xem ket qua.',
+        description: 'Làm bài thi và xem kết quả.',
         tag: 'EX',
         targetPath: '/exam',
     },
     {
-        title: 'Cai dat',
-        description: 'Tuy chinh AI va giao dien.',
+        title: 'Cài đặt',
+        description: 'Tùy chỉnh AI và giao diện.',
         tag: 'CFG',
         targetPath: '/settings',
     },
@@ -88,9 +88,9 @@ export default function TourGuide({ onComplete, isOpen }: TourGuideProps) {
         <div className="lms-modal">
             <div className="lms-modal-panel" style={{ maxWidth: 560 }}>
                 <div className="lms-modal-header">
-                    <div className="lms-card-title">Huong dan nhanh</div>
+                    <div className="lms-card-title">Hướng dẫn nhanh</div>
                     <button onClick={handleSkip} className="lms-button-ghost">
-                        Dong
+                        Đóng
                     </button>
                 </div>
                 <div className="lms-modal-body lms-section">
@@ -103,16 +103,16 @@ export default function TourGuide({ onComplete, isOpen }: TourGuideProps) {
                     </div>
                     {step.targetPath && (
                         <button onClick={handleGoToFeature} className="lms-button-secondary">
-                            Di den muc nay
+                            Đi đến mục này
                         </button>
                     )}
                 </div>
                 <div className="lms-modal-footer">
                     <button onClick={handlePrev} disabled={isFirstStep} className="lms-button-secondary">
-                        Truoc
+                        Trước
                     </button>
                     <button onClick={handleNext} className="lms-button">
-                        {isLastStep ? 'Bat dau' : 'Tiep'}
+                        {isLastStep ? 'Bắt đầu' : 'Tiếp'}
                     </button>
                 </div>
             </div>
